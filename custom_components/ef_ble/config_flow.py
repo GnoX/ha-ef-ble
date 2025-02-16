@@ -3,27 +3,24 @@
 from __future__ import annotations
 
 import logging
-
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.components.bluetooth import (
     BluetoothServiceInfoBleak,
     async_discovered_service_info,
 )
 from homeassistant.config_entries import (
+    CONN_CLASS_LOCAL_PUSH,
     ConfigFlow,
     ConfigFlowResult,
     OptionsFlow,
-    CONN_CLASS_LOCAL_PUSH,
 )
 from homeassistant.const import CONF_ADDRESS
-from homeassistant.helpers import config_validation as cv
 from homeassistant.core import callback
 
 from . import eflib
-from .const import DOMAIN, CONF_USER_ID
+from .const import CONF_USER_ID, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -78,6 +75,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_USER_ID): str,
+                    vol.Required(CONF_ADDRESS, default=device.address): str,
                 }
             ),
         )

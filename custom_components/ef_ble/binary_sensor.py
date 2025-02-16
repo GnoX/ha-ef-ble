@@ -3,15 +3,12 @@
 import logging
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
-
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import DeviceConfigEntry
-from .sensor import SensorBase
-from .const import DOMAIN
+from .sensor import EcoflowSensor
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,15 +29,15 @@ async def async_setup_entry(
         async_add_entities(new_sensors)
 
 
-class ErrorDetectedSensor(SensorBase):
+class ErrorDetectedSensor(EcoflowSensor):
     """Represents that problem happened on device."""
 
     device_class = BinarySensorDeviceClass.PROBLEM
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
-    def __init__(self, device):
+    def __init__(self, device, sensor):
         """Initialize the sensor."""
-        super().__init__(device)
+        super().__init__(device, sensor)
 
         self._attr_unique_id = f"{self._device.name}_error"
         self._attr_name = "Error"
