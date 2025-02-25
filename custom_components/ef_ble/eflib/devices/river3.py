@@ -64,7 +64,7 @@ def _out_power(x):
 class Device(DeviceBase):
     """River 3"""
 
-    SN_PREFIX = b"R655"
+    SN_PREFIX = b"R65"
     NAME_PREFIX = "EF-R3"
 
     battery_level = _ProtobufField[int]("bms_batt_soc")
