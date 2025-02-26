@@ -19,9 +19,8 @@
         },
         {
             "local_name": "EF-R3*",
-            "service_uuid": "00000001-0000-1000-8000-00805f9b34fb",
             "manufacturer_id": 46517,
-            "manufacturer_data_start": [19, 82, 54, 53],
+            "manufacturer_data_start": [19, 82, 54],
             "connectable": true
         }
     ],
