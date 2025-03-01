@@ -55,6 +55,15 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         suggested_display_precision=0,
         icon="mdi:home-lightning-bolt-outline",
     ),
+    "input_energy": SensorEntityDescription(
+        key="input_energy",
+        name="Input Energy Total",
+        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        suggested_display_precision=3,
+        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR
+    ),
     "output_power": SensorEntityDescription(
         key="output_power",
         name="Output Power",
@@ -62,6 +71,15 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.POWER,
         suggested_display_precision=0,
         icon="mdi:home-lightning-bolt-outline",
+    ),
+    "output_energy": SensorEntityDescription(
+        key="output_energy",
+        name="Output Energy Total",
+        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        suggested_display_precision=3,
+        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR
     ),
     "lv_solar_power": SensorEntityDescription(
         key="lv_solar_power",

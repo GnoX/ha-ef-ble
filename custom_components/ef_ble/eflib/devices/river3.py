@@ -76,7 +76,10 @@ class Device(DeviceBase):
     ac_output_energy = _StatField[int]("STATISTICS_OBJECT_AC_OUT_ENERGY")
 
     input_power = _ProtobufField[int]("pow_in_sum_w")
+    input_energy = _DeviceField[int]()
+
     output_power = _ProtobufField[int]("pow_out_sum_w")
+    output_energy = _DeviceField[int]()
 
     dc_input_power = _ProtobufField[float]("pow_get_pv")
     dc_input_energy = _StatField[int]("STATISTICS_OBJECT_PV_IN_ENERGY")
@@ -139,6 +142,23 @@ class Device(DeviceBase):
                 asyncio.create_task(self.sendRTCRespond())
                 asyncio.create_task(self.sendRTCCheck())
             processed = True
+
+        if self.ac_input_energy is not None and self.dc_input_energy is not None:
+            self.input_energy = self.ac_input_energy + self.dc_input_energy
+        
+        if (
+            self.ac_output_energy is not None
+            and self.usba_output_energy is not None
+            and self.usbc_output_energy is not None
+            and self.dc12v_output_energy is not None
+        ):
+            self.output_energy = (
+                self.ac_output_energy
+                + self.usba_output_energy
+                + self.usbc_output_energy
+                + self.dc12v_output_energy
+            )
+       
 
         if self.updated:
             for callback in self._callbacks:
