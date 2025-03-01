@@ -103,7 +103,7 @@ class DeviceBase:
         await self._conn.waitDisconnected()
 
     def register_callback(
-        self, callback: Callable[[], None], propname: str | None
+        self, callback: Callable[[], None], propname: str | None = None
     ) -> None:
         """Register callback, called when Device changes state."""
         if propname is None:
@@ -114,7 +114,7 @@ class DeviceBase:
             ).union([callback])
 
     def remove_callback(
-        self, callback: Callable[[], None], propname: str | None
+        self, callback: Callable[[], None], propname: str | None = None
     ) -> None:
         """Remove previously registered callback."""
         if propname is None:

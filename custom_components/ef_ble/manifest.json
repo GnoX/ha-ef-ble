@@ -2,19 +2,28 @@
     "domain": "ef_ble",
     "name": "EcoFlow BLE (Unofficial)",
 
-    "bluetooth": [{
-        "local_name": "EF-HD3*",
-        "service_uuid": "00000002-0000-1000-8000-00805f9b34fb",
-        "manufacturer_id": 46517,
-        "manufacturer_data_start": [19, 72, 68, 51, 49, 90, 65, 83, 52, 88, 71, 52, 80],
-        "connectable": true
-    },{
-        "local_name": "EF-YJ*",
-        "service_uuid": "00000002-0000-1000-8000-00805f9b34fb",
-        "manufacturer_id": 46517,
-        "manufacturer_data_start": [19, 89, 55, 49, 49, 90, 65, 66, 53, 83, 71, 50, 82],
-        "connectable": true
-    }],
+    "bluetooth": [
+        {
+            "local_name": "EF-HD3*",
+            "service_uuid": "00000002-0000-1000-8000-00805f9b34fb",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 72, 68, 51, 49, 90, 65, 83, 52, 88, 71, 52, 80],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-YJ*",
+            "service_uuid": "00000002-0000-1000-8000-00805f9b34fb",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 89, 55, 49, 49, 90, 65, 66, 53, 83, 71, 50, 82],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-R3*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 82, 54],
+            "connectable": true
+        }
+    ],
 
     "codeowners": ["@rabits"],
     "config_flow": true,
