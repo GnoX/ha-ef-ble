@@ -85,7 +85,7 @@ class Device(DeviceBase):
     async def data_parse(self, packet: Packet) -> bool:
         """Processing the incoming notifications from the device"""
         processed = False
-        updated = False
+        updated_fields = []
         if packet.src == 0x0B and packet.cmdSet == 0x0C:
             if (
                 packet.cmdId == 0x01
@@ -102,31 +102,31 @@ class Device(DeviceBase):
                     for i, w in enumerate(p.load_info.hall1_watt):
                         if self._data_circuit_power[i] != w:
                             self._data_circuit_power[i] = w
-                            updated = True
+                            updated_fields.append(f"circuit_power_{i}")
                     for i, a in enumerate(p.load_info.hall1_curr):
                         if self._data_circuit_current[i] != a:
                             self._data_circuit_current[i] = a
-                            updated = True
+                            updated_fields.append(f"circuit_current_{i}")
 
                 if p.HasField("watt_info"):
                     wi = p.watt_info
                     if wi.HasField("grid_watt"):
                         if self._data_grid_power != wi.grid_watt:
                             self._data_grid_power = wi.grid_watt
-                            updated = True
+                            updated_fields.append("grid_power")
                     elif self._data_grid_power != 0:
                         self._data_grid_power = 0
-                        updated = True
+                        updated_fields.append("grid_power")
 
                     for i, w in enumerate(wi.ch_watt):
                         if self._data_channel_power[i] != w:
                             self._data_channel_power[i] = w
-                            updated = True
+                            updated_fields.append(f"channel_power_{i}")
 
                     if wi.HasField("all_hall_watt"):
                         if self._data_in_use_power != wi.all_hall_watt:
                             self._data_in_use_power = wi.all_hall_watt
-                            updated = True
+                            updated_fields.append("in_use_power")
 
                 processed = True
 
@@ -155,7 +155,6 @@ class Device(DeviceBase):
                                     errors,
                                 )
                             self._data_error_count = len(errors)
-                            updated = True
 
                     if info.HasField("backup_bat_per"):
                         self.battery_level = info.backup_bat_per
@@ -195,9 +194,8 @@ class Device(DeviceBase):
             asyncio.create_task(self.setConfigFlag(True))
             processed = True
 
-        if updated:
-            for callback in self._callbacks:
-                callback()
+        for prop_name in updated_fields:
+            self.update_callback(prop_name)
 
         return processed
 

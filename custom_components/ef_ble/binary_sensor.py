@@ -23,7 +23,7 @@ async def async_setup_entry(
 
     new_sensors = []
     if hasattr(device, "error_happened"):
-        new_sensors.append(ErrorDetectedSensor(device))
+        new_sensors.append(ErrorDetectedSensor(device, "error_happened"))
 
     if new_sensors:
         async_add_entities(new_sensors)

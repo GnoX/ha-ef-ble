@@ -3,6 +3,7 @@
 import logging
 
 from custom_components.ef_ble.eflib import DeviceBase
+
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -261,11 +262,11 @@ class EcoflowSensor(SensorEntity):
 
     async def async_added_to_hass(self):
         """Run when this Entity has been added to HA."""
-        self._device.register_callback(self.async_write_ha_state)
+        self._device.register_callback(self.async_write_ha_state, self._sensor)
 
     async def async_will_remove_from_hass(self):
         """Entity being removed from hass."""
-        self._device.remove_callback(self.async_write_ha_state)
+        self._device.remove_callback(self.async_write_ha_state, self._sensor)
 
 
 class CircuitPowerSensor(EcoflowSensor):
@@ -277,10 +278,10 @@ class CircuitPowerSensor(EcoflowSensor):
 
     def __init__(self, device, index):
         """Initialize the sensor."""
-        super().__init__(device, "circuit_power")
+        super().__init__(device, f"circuit_power_{index}")
 
         self._attr_unique_id = f"{self._device.name}_circuit_power_{index+1}"
-        self._attr_name = f"Circuit Power {index+1:02d}"
+        self._attr_name = f"Circuit Power {index + 1:02d}"
         self._index = index
 
     @property
@@ -299,7 +300,7 @@ class CircuitCurrentSensor(EcoflowSensor):
 
     def __init__(self, device, index):
         """Initialize the sensor."""
-        super().__init__(device, "circuit_current")
+        super().__init__(device, f"circuit_current_{index}")
 
         self._attr_unique_id = f"{self._device.name}_circuit_current_{index+1}"
         self._attr_name = f"Circuit Current {index+1:02d}"
@@ -321,7 +322,7 @@ class ChannelPowerSensor(EcoflowSensor):
 
     def __init__(self, device, index):
         """Initialize the sensor."""
-        super().__init__(device, "channel_power")
+        super().__init__(device, f"channel_power_{index}")
 
         self._attr_unique_id = f"{self._device.name}_channel_power_{index+1}"
         self._attr_name = f"Channel Power {index+1}"
