@@ -73,7 +73,8 @@ class Device(DeviceBase):
     async def data_parse(self, packet: Packet) -> bool:
         """Processing the incoming notifications from the device"""
         processed = False
-        updated = False
+        updated_props: list[str] = []
+
         if packet.src == 0x02 and packet.cmdSet == 0x02:
             if packet.cmdId == 0x01:  # Ping
                 await self._conn.replyPacket(packet)
@@ -87,33 +88,33 @@ class Device(DeviceBase):
                 if p.HasField("in_hv_mppt_pwr"):
                     if self._data_hv_solar_power != p.in_hv_mppt_pwr:
                         self._data_hv_solar_power = p.in_hv_mppt_pwr
-                        updated = True
+                        updated_props.append("hv_solar_power")
                 elif self._data_hv_solar_power != 0:
                     self._data_hv_solar_power = 0
-                    updated = True
+                    updated_props.append("hv_solar_power")
 
                 if p.HasField("in_lv_mppt_pwr"):
                     if self._data_lv_solar_power != p.in_lv_mppt_pwr:
                         self._data_lv_solar_power = p.in_lv_mppt_pwr
-                        updated = True
+                        updated_props.append("lv_solar_power")
                 elif self._data_lv_solar_power != 0:
                     self._data_lv_solar_power = 0
-                    updated = True
+                    updated_props.append("lv_solar_power")
 
                 if p.HasField("watts_in_sum"):
                     if self._data_input_power != p.watts_in_sum:
                         self._data_input_power = p.watts_in_sum
-                        updated = True
+                        updated_props.append("input_power")
 
                 if p.HasField("watts_out_sum"):
                     if self._data_output_power != p.watts_out_sum:
                         self._data_output_power = p.watts_out_sum
-                        updated = True
+                        updated_props.append("output_power")
 
                 if p.HasField("soc"):
                     if self._data_battery_level != p.soc:
                         self._data_battery_level = p.soc
-                        updated = True
+                        updated_props.append("battery_level")
 
                 processed = True
 
@@ -134,9 +135,8 @@ class Device(DeviceBase):
                 asyncio.create_task(self.sendRTCCheck())
             processed = True
 
-        if updated:
-            for callback in self._callbacks:
-                callback()
+        for prop_name in updated_props:
+            self.update_callback(prop_name)
 
         return processed
 
