@@ -14,8 +14,9 @@ from ..pb import pr705_pb2
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class _StatField[T](ProtobufListField[T]):
-    _stat_enum = pr705_pb2.STATISTICS_OBJECT # type: ignore[attr-defined]
+    _stat_enum = pr705_pb2.STATISTICS_OBJECT  # type: ignore[attr-defined]
 
     @property
     def list_name(self):
@@ -34,9 +35,10 @@ class _StatField[T](ProtobufListField[T]):
 def _out_power(x):
     return -round(x, 2) if x != 0 else 0
 
+
 class Device(DeviceBase, UpdatableProps):
     """River 3"""
-    
+
     SN_PREFIX = b"R6"
     NAME_PREFIX = "EF-R3"
 
@@ -66,7 +68,9 @@ class Device(DeviceBase, UpdatableProps):
     usba_output_power = ProtobufField[float]("pow_get_qcusb1", _out_power)
     usba_output_energy = _StatField[int]("STATISTICS_OBJECT_USBA_OUT_ENERGY")
 
-    def __init__(self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str) -> None:
+    def __init__(
+        self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
+    ) -> None:
         super().__init__(ble_dev, adv_data, sn)
         self._time_commands = TimeCommands(self)
 

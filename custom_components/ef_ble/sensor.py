@@ -63,7 +63,7 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
         suggested_display_precision=3,
-        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR
+        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
     ),
     "output_power": SensorEntityDescription(
         key="output_power",
@@ -80,7 +80,7 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
         suggested_display_precision=3,
-        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR
+        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
     ),
     "lv_solar_power": SensorEntityDescription(
         key="lv_solar_power",
@@ -119,7 +119,7 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
         suggested_display_precision=3,
-        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR
+        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
     ),
     "ac_output_energy": SensorEntityDescription(
         key="ac_output_energy",
@@ -128,7 +128,7 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
         suggested_display_precision=3,
-        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR
+        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
     ),
     "dc_input_power": SensorEntityDescription(
         key="dc_input_power",
@@ -144,7 +144,7 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
         suggested_display_precision=3,
-        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR
+        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
     ),
     "dc12v_output_power": SensorEntityDescription(
         key="dc12v_output_power",
@@ -160,7 +160,7 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
         suggested_display_precision=3,
-        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR
+        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
     ),
     "usbc_output_power": SensorEntityDescription(
         key="usbc_output_power",
@@ -176,7 +176,7 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
         suggested_display_precision=3,
-        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR
+        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
     ),
     "usba_output_power": SensorEntityDescription(
         key="usba_output_power",
@@ -192,9 +192,10 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
         suggested_display_precision=3,
-        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR
+        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
     ),
 }
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -283,7 +284,7 @@ class CircuitPowerSensor(EcoflowSensor):
         """Initialize the sensor."""
         super().__init__(device, f"circuit_power_{index}")
 
-        self._attr_unique_id = f"{self._device.name}_circuit_power_{index+1}"
+        self._attr_unique_id = f"{self._device.name}_circuit_power_{index + 1}"
         self._attr_name = f"Circuit Power {index + 1:02d}"
         self._index = index
 
@@ -305,15 +306,14 @@ class CircuitCurrentSensor(EcoflowSensor):
         """Initialize the sensor."""
         super().__init__(device, f"circuit_current_{index}")
 
-        self._attr_unique_id = f"{self._device.name}_circuit_current_{index+1}"
-        self._attr_name = f"Circuit Current {index+1:02d}"
+        self._attr_unique_id = f"{self._device.name}_circuit_current_{index + 1}"
+        self._attr_name = f"Circuit Current {index + 1:02d}"
         self._index = index
 
     @property
     def native_value(self) -> float:
         """Return the value of the sensor."""
         return self._device.circuit_current[self._index]
-
 
 
 class ChannelPowerSensor(EcoflowSensor):
@@ -327,12 +327,11 @@ class ChannelPowerSensor(EcoflowSensor):
         """Initialize the sensor."""
         super().__init__(device, f"channel_power_{index}")
 
-        self._attr_unique_id = f"{self._device.name}_channel_power_{index+1}"
-        self._attr_name = f"Channel Power {index+1}"
+        self._attr_unique_id = f"{self._device.name}_channel_power_{index + 1}"
+        self._attr_name = f"Channel Power {index + 1}"
         self._index = index
 
     @property
     def native_value(self) -> float:
         """Return the value of the sensor."""
         return self._device.channel_power[self._index]
-

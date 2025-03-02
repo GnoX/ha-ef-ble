@@ -8,7 +8,7 @@ from Crypto.Util.Padding import pad
 class EncPacket:
     """Outside wrapper of Packet that actually transferred through the BLE channel"""
 
-    PREFIX = b"\x5A\x5A"
+    PREFIX = b"\x5a\x5a"
 
     FRAME_TYPE_COMMAND = 0x00
     FRAME_TYPE_PROTOCOL = 0x01

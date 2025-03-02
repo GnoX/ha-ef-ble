@@ -155,12 +155,12 @@ class ProtobufField[T](Field[T]):
                 f"Can only set value from protobuf message but received: {value}"
             )
 
-
         if not value.HasField(self.pb_field_name):
             return
 
         value = self.transform_value(getattr(value, self.pb_field_name))
         super().__set__(instance, value)
+
 
 @dataclass
 class ProtobufListField[T](Field[T], abc.ABC):

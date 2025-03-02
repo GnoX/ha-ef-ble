@@ -9,7 +9,7 @@ _LOGGER = logging.getLogger(__name__)
 class Packet:
     """Needed to parse and make the internal packet structure"""
 
-    PREFIX = b"\xAA"
+    PREFIX = b"\xaa"
 
     NET_BLE_COMMAND_CMD_CHECK_RET_TIME = 0x53
     NET_BLE_COMMAND_CMD_SET_RET_TIME = 0x52
