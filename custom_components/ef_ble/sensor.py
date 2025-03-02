@@ -235,7 +235,10 @@ class EcoflowSensor(SensorEntity):
         self._device = device
         self._sensor = sensor
         self._attr_unique_id = f"{device.name}_{sensor}"
-        self.entity_description = SENSOR_TYPES[sensor]
+
+        if sensor in SENSOR_TYPES:
+            self.entity_description = SENSOR_TYPES[sensor]
+
         if self.entity_description.state_class is None:
             self._attr_state_class = SensorStateClass.MEASUREMENT
 
