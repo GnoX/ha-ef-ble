@@ -240,7 +240,9 @@ class EcoflowSensor(SensorEntity):
         if sensor in SENSOR_TYPES:
             self.entity_description = SENSOR_TYPES[sensor]
 
-        if self.entity_description.state_class is None:
+            if self.entity_description.state_class is None:
+                self._attr_state_class = SensorStateClass.MEASUREMENT
+        else:
             self._attr_state_class = SensorStateClass.MEASUREMENT
 
     @property
