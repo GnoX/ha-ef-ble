@@ -1,5 +1,5 @@
-from collections.abc import Sequence
 import logging
+from collections.abc import Sequence
 from typing import Any
 
 from bleak.backends.device import BLEDevice
@@ -36,6 +36,12 @@ def _out_power(x):
     return -round(x, 2) if x != 0 else 0
 
 
+def _flow_is_on(x):
+    # this is the same check as in app, no idea what values other than 0 (off) or 2 (on)
+    # actually represent
+    return (int(x) & 0b11) in [0b10, 0b11]
+
+
 class Device(DeviceBase, UpdatableProps):
     """River 3"""
 
@@ -67,6 +73,21 @@ class Device(DeviceBase, UpdatableProps):
 
     usba_output_power = ProtobufField[float]("pow_get_qcusb1", _out_power)
     usba_output_energy = _StatField[int]("STATISTICS_OBJECT_USBA_OUT_ENERGY")
+
+    is_charging_ac = ProtobufField[bool]("plug_in_info_ac_charger_flag")
+    energy_backup = ProtobufField[bool]("energy_backup_en")
+    energy_backup_battery_level = ProtobufField[int]("energy_backup_start_soc")
+    battery_input_power = ProtobufField("pow_get_bms", (lambda value: max(0, value)))
+    battery_output_power = ProtobufField("pow_get_bms", lambda value: -min(0, value))
+
+    battery_charge_limit_min = ProtobufField[int]("cms_min_dsg_soc")
+    battery_charge_limit_max = ProtobufField[int]("cms_max_chg_soc")
+
+    cell_temperature = ProtobufField[int]("bms_max_cell_temp")
+    mosfet_temperature = ProtobufField[int]("bms_max_mos_temp")
+
+    dc_12v_port = ProtobufField[bool]("flow_info_12v", _flow_is_on)
+    ac_ports = ProtobufField[bool]("flow_info_ac_out", _flow_is_on)
 
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
@@ -119,5 +140,59 @@ class Device(DeviceBase, UpdatableProps):
 
         for field_name in self.updated_fields:
             self.update_callback(field_name)
+            self.update_state(field_name, getattr(self, field_name))
 
         return processed
+
+    async def _send_config_packet(self, message):
+        payload = message.SerializeToString()
+        packet = Packet(0x20, 0x02, 0xFE, 0x11, payload, 0x01, 0x01, 0x13)
+        await self._conn.sendPacket(packet)
+
+    async def set_energy_backup_battery_level(self, value: int):
+        config = pr705_pb2.ConfigWrite()
+        config.cfg_energy_backup.energy_backup_en = True
+        config.cfg_energy_backup.energy_backup_start_soc = value
+        await self._send_config_packet(config)
+        return True
+
+    async def enable_dc_12v_port(self, enabled: bool):
+        config = pr705_pb2.ConfigWrite()
+        config.cfg_dc_12v_out_open = enabled
+        await self._send_config_packet(config)
+
+    async def enable_ac_ports(self, enabled: bool):
+        config = pr705_pb2.ConfigWrite()
+        config.cfg_ac_out_open = enabled
+        await self._send_config_packet(config)
+
+    async def enable_energy_backup(self, enabled: bool):
+        config = pr705_pb2.ConfigWrite()
+        config.cfg_energy_backup.energy_backup_en = enabled
+        await self._send_config_packet(config)
+
+    async def set_battery_charge_limit_min(self, limit: int):
+        if (
+            self.battery_charge_limit_max is not None
+            and limit > self.battery_charge_limit_max
+        ):
+            return False
+
+        config = pr705_pb2.ConfigWrite()
+        config.cfg_min_dsg_soc = limit
+
+        await self._send_config_packet(config)
+        return True
+
+    async def set_battery_charge_limit_max(self, limit: int):
+        if (
+            self.battery_charge_limit_min is not None
+            and limit < self.battery_charge_limit_min
+        ):
+            return False
+
+        config = pr705_pb2.ConfigWrite()
+        config.cfg_max_chg_soc = limit
+
+        await self._send_config_packet(config)
+        return True

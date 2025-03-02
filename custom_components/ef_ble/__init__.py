@@ -14,7 +14,12 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from . import eflib
 from .const import CONF_USER_ID, DOMAIN, MANUFACTURER
 
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
+PLATFORMS: list[Platform] = [
+    Platform.SENSOR,
+    Platform.BINARY_SENSOR,
+    Platform.SWITCH,
+    Platform.NUMBER,
+]
 
 type DeviceConfigEntry = ConfigEntry[eflib.DeviceBase]
 

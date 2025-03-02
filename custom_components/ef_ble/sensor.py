@@ -1,9 +1,5 @@
 """EcoFlow BLE sensor"""
 
-import logging
-
-from custom_components.ef_ble.eflib import DeviceBase
-
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -12,26 +8,45 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import (
     PERCENTAGE,
+    EntityCategory,
     UnitOfElectricCurrent,
     UnitOfEnergy,
     UnitOfPower,
+    UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import DeviceConfigEntry
-from .const import DOMAIN, MANUFACTURER
+from custom_components.ef_ble.eflib import DeviceBase
 
-_LOGGER = logging.getLogger(__name__)
+from . import DeviceConfigEntry
+from .entity import EcoflowEntity
 
 SENSOR_TYPES: dict[str, SensorEntityDescription] = {
+    # Common
     "battery_level": SensorEntityDescription(
         key="battery_level",
         name="Battery",
         native_unit_of_measurement=PERCENTAGE,
         device_class=SensorDeviceClass.BATTERY,
     ),
+    "input_power": SensorEntityDescription(
+        key="input_power",
+        name="Input Power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        suggested_display_precision=0,
+        icon="mdi:home-lightning-bolt-outline",
+    ),
+    "output_power": SensorEntityDescription(
+        key="output_power",
+        name="Output Power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        suggested_display_precision=0,
+        icon="mdi:home-lightning-bolt-outline",
+    ),
+    # SHP2
     "grid_power": SensorEntityDescription(
         key="grid_power",
         name="Grid Power",
@@ -48,40 +63,7 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         suggested_display_precision=2,
         icon="mdi:home-lightning-bolt-outline",
     ),
-    "input_power": SensorEntityDescription(
-        key="input_power",
-        name="Input Power",
-        native_unit_of_measurement=UnitOfPower.WATT,
-        device_class=SensorDeviceClass.POWER,
-        suggested_display_precision=0,
-        icon="mdi:home-lightning-bolt-outline",
-    ),
-    "input_energy": SensorEntityDescription(
-        key="input_energy",
-        name="Input Energy Total",
-        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
-        suggested_display_precision=3,
-        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
-    ),
-    "output_power": SensorEntityDescription(
-        key="output_power",
-        name="Output Power",
-        native_unit_of_measurement=UnitOfPower.WATT,
-        device_class=SensorDeviceClass.POWER,
-        suggested_display_precision=0,
-        icon="mdi:home-lightning-bolt-outline",
-    ),
-    "output_energy": SensorEntityDescription(
-        key="output_energy",
-        name="Output Energy Total",
-        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-        state_class=SensorStateClass.TOTAL_INCREASING,
-        suggested_display_precision=3,
-        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
-    ),
+    # DPU
     "lv_solar_power": SensorEntityDescription(
         key="lv_solar_power",
         name="LV Solar Power",
@@ -97,6 +79,25 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.POWER,
         suggested_display_precision=2,
         icon="mdi:solar-panel-large",
+    ),
+    # River 3
+    "input_energy": SensorEntityDescription(
+        key="input_energy",
+        name="Input Energy Total",
+        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        suggested_display_precision=3,
+        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+    ),
+    "output_energy": SensorEntityDescription(
+        key="output_energy",
+        name="Output Energy Total",
+        native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        suggested_display_precision=3,
+        suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
     ),
     "ac_input_power": SensorEntityDescription(
         key="ac_input_power",
@@ -194,6 +195,38 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         suggested_display_precision=3,
         suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
     ),
+    "battery_input_power": SensorEntityDescription(
+        key="battery_input_power",
+        name="Battery Input Power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    "battery_output_power": SensorEntityDescription(
+        key="battery_output_power",
+        name="Battery Output Power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+    "cell_temperature": SensorEntityDescription(
+        key="temperature",
+        name="Cell Temperature",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        entity_registry_enabled_default=False,
+    ),
+    "mosfet_temperature": SensorEntityDescription(
+        key="mosfet_temperature",
+        name="MOSFET Temperature",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        entity_registry_enabled_default=False,
+    ),
 }
 
 
@@ -226,14 +259,13 @@ async def async_setup_entry(
         async_add_entities(new_sensors)
 
 
-class EcoflowSensor(SensorEntity):
+class EcoflowSensor(EcoflowEntity, SensorEntity):
     """Base representation of a sensor."""
-
-    _attr_has_entity_name = True
 
     def __init__(self, device: DeviceBase, sensor: str):
         """Initialize the sensor."""
-        self._device = device
+        super().__init__(device)
+
         self._sensor = sensor
         self._attr_unique_id = f"{device.name}_{sensor}"
 
@@ -246,23 +278,7 @@ class EcoflowSensor(SensorEntity):
             self._attr_state_class = SensorStateClass.MEASUREMENT
 
     @property
-    def device_info(self):
-        """Return information to link this entity with the correct device."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._device.address)},
-            name=self._device.name,
-            manufacturer=MANUFACTURER,
-            model=self._device.device,
-        )
-
-    @property
-    def available(self) -> bool:
-        """Return True if device is connected."""
-        return self._device.is_connected
-
-    # Uses ef_dev_property to get the device sensor value
-    @property
-    def native_value(self) -> int | float | bool:
+    def native_value(self):
         """Return the value of the sensor."""
         return getattr(self._device, self._sensor, None)
 

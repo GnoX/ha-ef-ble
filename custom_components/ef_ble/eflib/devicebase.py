@@ -1,5 +1,7 @@
 import logging
+from collections import defaultdict
 from collections.abc import Callable
+from typing import Any
 
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
@@ -35,6 +37,9 @@ class DeviceBase:
         self._conn = None
         self._callbacks = set()
         self._callbacks_map = {}
+        self._state_update_callbacks: dict[str, set[Callable[[Any], None]]] = (
+            defaultdict(set)
+        )
 
     @property
     def device(self):
@@ -132,3 +137,22 @@ class DeviceBase:
         """Find the registered callbacks in the map and then calling the callbacks"""
         for callback in self._callbacks_map.get(propname, set()):
             callback()
+
+    def register_state_update_callback(
+        self, state_update_callback: Callable[[Any], None], propname: str
+    ):
+        """Register a callback called that receives value of updated property"""
+        self._state_update_callbacks[propname].add(state_update_callback)
+
+    def remove_state_update_calback(
+        self, callback: Callable[[Any], None], propname: str
+    ):
+        """Remove previously registered state update callback"""
+        self._state_update_callbacks[propname].discard(callback)
+
+    def update_state(self, propname: str, value: Any):
+        """Run callback for updated state"""
+        if propname not in self._state_update_callbacks:
+            return
+        for update in self._state_update_callbacks[propname]:
+            update(value)
