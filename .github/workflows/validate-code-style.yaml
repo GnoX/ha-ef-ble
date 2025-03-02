@@ -17,4 +17,4 @@ jobs:
       - run: python3 -m pip install black
 
       - name: Black style validation
-        run: black .
+        run: black --check .
