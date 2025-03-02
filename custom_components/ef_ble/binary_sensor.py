@@ -1,16 +1,45 @@
 """EcoFlow BLE binary sensor"""
 
 import logging
+from collections.abc import Callable
+from dataclasses import dataclass
 
-from homeassistant.components.binary_sensor import BinarySensorDeviceClass
+from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
+    BinarySensorEntity,
+    BinarySensorEntityDescription,
+)
 from homeassistant.const import EntityCategory
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from custom_components.ef_ble.eflib import DeviceBase
+
 from . import DeviceConfigEntry
-from .sensor import EcoflowSensor
+from .entity import EcoflowEntity
 
 _LOGGER = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True, kw_only=True)
+class EcoflowBinarySensorEntityDescription(BinarySensorEntityDescription):
+    update_state: Callable[[bool], None] | None = None
+
+
+BINARY_SENSOR_TYPES = {
+    "error_happened": BinarySensorEntityDescription(
+        key="error",
+        name="Error",
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    "is_charging_ac": BinarySensorEntityDescription(
+        key="is_charging_ac",
+        name="AC Charging",
+        device_class=BinarySensorDeviceClass.BATTERY_CHARGING,
+        entity_registry_enabled_default=False,
+    ),
+}
 
 
 async def async_setup_entry(
@@ -21,30 +50,37 @@ async def async_setup_entry(
     """Add binary sensors for passed config_entry in HA."""
     device = config_entry.runtime_data
 
-    new_sensors = []
-    if hasattr(device, "error_happened"):
-        new_sensors.append(ErrorDetectedSensor(device, "error_happened"))
+    new_sensors = [
+        EcoflowBinarySensor(device, sensor)
+        for sensor in BINARY_SENSOR_TYPES
+        if hasattr(device, sensor)
+    ]
 
     if new_sensors:
         async_add_entities(new_sensors)
 
 
-class ErrorDetectedSensor(EcoflowSensor):
-    """Represents that problem happened on device."""
+class EcoflowBinarySensor(EcoflowEntity, BinarySensorEntity):
+    def __init__(
+        self,
+        device: DeviceBase,
+        sensor: str,
+    ):
+        super().__init__(device)
 
-    device_class = BinarySensorDeviceClass.PROBLEM
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_unique_id = f"{self._device.name}_{sensor}"
+        self.entity_description = BINARY_SENSOR_TYPES[sensor]
+        self._prop_name = self.entity_description.key
 
-    def __init__(self, device, sensor):
-        """Initialize the sensor."""
-        super().__init__(device, sensor)
+    async def async_added_to_hass(self):
+        """Run when this Entity has been added to HA."""
+        self._device.register_state_update_callback(self.state_updated, self._prop_name)
 
-        self._attr_unique_id = f"{self._device.name}_error"
-        self._attr_name = "Error"
+    async def async_will_remove_from_hass(self):
+        """Entity being removed from hass."""
+        self._device.remove_state_update_calback(self.state_updated, self._prop_name)
 
-    @property
-    def is_on(self):
-        """Return true if the binary sensor is on."""
-        if self._device.error_happened:
-            return True
-        return False
+    @callback
+    def state_updated(self, state: bool):
+        self._attr_is_on = state
+        self.async_write_ha_state()

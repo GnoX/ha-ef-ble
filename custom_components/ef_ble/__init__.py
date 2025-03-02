@@ -14,7 +14,12 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from . import eflib
 from .const import DOMAIN, MANUFACTURER, CONF_USER_ID
 
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BINARY_SENSOR]
+PLATFORMS: list[Platform] = [
+    Platform.SENSOR,
+    Platform.BINARY_SENSOR,
+    Platform.SWITCH,
+    Platform.NUMBER,
+]
 
 type DeviceConfigEntry = ConfigEntry[eflib.DeviceBase]
 
