@@ -18,7 +18,7 @@ class Device(river3.Device):
 
     SN_PREFIX = (b"R631", b"R634")
 
-    led_state = ProtobufField("led", lambda num: LedState(num))
+    led_state = ProtobufField("led_mode", lambda num: LedState(num))
 
     async def set_led_state(self, state: LedState):
         config = pr705_pb2.ConfigWrite()
