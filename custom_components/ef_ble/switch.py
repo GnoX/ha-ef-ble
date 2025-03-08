@@ -6,11 +6,9 @@ from homeassistant.components.switch import (
     SwitchEntityDescription,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import DeviceConfigEntry
-from .const import DOMAIN, MANUFACTURER
 from .eflib import DeviceBase
 from .entity import EcoflowEntity
 
@@ -85,13 +83,3 @@ class EcoflowSwitchEntity(EcoflowEntity, SwitchEntity):
     @property
     def is_on(self):
         return self._on_off_state if self._on_off_state is not None else False
-
-    @property
-    def device_info(self):
-        """Return information to link this entity with the correct device."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._device.address)},
-            name=self._device.name,
-            manufacturer=MANUFACTURER,
-            model=self._device.device,
-        )

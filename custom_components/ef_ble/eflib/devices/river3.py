@@ -45,7 +45,7 @@ def _flow_is_on(x):
 class Device(DeviceBase, UpdatableProps):
     """River 3"""
 
-    SN_PREFIX = b"R6"
+    SN_PREFIX = (b"R651", b"R653", b"R654", b"R655")
     NAME_PREFIX = "EF-R3"
 
     battery_level = ProtobufField[int]("bms_batt_soc")
@@ -74,7 +74,7 @@ class Device(DeviceBase, UpdatableProps):
     usba_output_power = ProtobufField[float]("pow_get_qcusb1", _out_power)
     usba_output_energy = _StatField[int]("STATISTICS_OBJECT_USBA_OUT_ENERGY")
 
-    is_charging_ac = ProtobufField[bool]("plug_in_info_ac_charger_flag")
+    plugged_in_ac = ProtobufField[bool]("plug_in_info_ac_charger_flag")
     energy_backup = ProtobufField[bool]("energy_backup_en")
     energy_backup_battery_level = ProtobufField[int]("energy_backup_start_soc")
     battery_input_power = ProtobufField("pow_get_bms", (lambda value: max(0, value)))
@@ -84,7 +84,6 @@ class Device(DeviceBase, UpdatableProps):
     battery_charge_limit_max = ProtobufField[int]("cms_max_chg_soc")
 
     cell_temperature = ProtobufField[int]("bms_max_cell_temp")
-    mosfet_temperature = ProtobufField[int]("bms_max_mos_temp")
 
     dc_12v_port = ProtobufField[bool]("flow_info_12v", _flow_is_on)
     ac_ports = ProtobufField[bool]("flow_info_ac_out", _flow_is_on)
@@ -95,9 +94,23 @@ class Device(DeviceBase, UpdatableProps):
         super().__init__(ble_dev, adv_data, sn)
         self._time_commands = TimeCommands(self)
 
-    @staticmethod
-    def check(sn):
-        return sn.startswith(Device.SN_PREFIX)
+    @classmethod
+    def check(cls, sn):
+        return sn[:4] in cls.SN_PREFIX
+
+    @property
+    def device(self):
+        model = ""
+        match self._sn[:4]:
+            case "R653":
+                model = "(230Wh)"
+            case "R654":
+                model = "UPS (230Wh)"
+            case "R651":
+                model = "(245Wh)"
+            case "R655":
+                model = "UPS (245Wh)"
+        return f"River 3 {model}".strip()
 
     async def packet_parse(self, data: bytes) -> Packet:
         return Packet.fromBytes(data, is_xor=True)
@@ -109,6 +122,7 @@ class Device(DeviceBase, UpdatableProps):
             p = pr705_pb2.DisplayPropertyUpload()
             p.ParseFromString(packet.payload)
             _LOGGER.debug("%s: %s: Parsed data: %r", self.address, self.name, packet)
+            _LOGGER.debug("River 3 Parsed Message \n %s", str(p))
             self.update_fields(p)
             processed = True
         elif (
@@ -156,6 +170,15 @@ class Device(DeviceBase, UpdatableProps):
         await self._send_config_packet(config)
         return True
 
+    async def enable_energy_backup(self, enabled: bool):
+        config = pr705_pb2.ConfigWrite()
+        config.cfg_energy_backup.energy_backup_en = enabled
+        if enabled and self.energy_backup_battery_level is not None:
+            config.cfg_energy_backup.energy_backup_start_soc = (
+                self.energy_backup_battery_level
+            )
+        await self._send_config_packet(config)
+
     async def enable_dc_12v_port(self, enabled: bool):
         config = pr705_pb2.ConfigWrite()
         config.cfg_dc_12v_out_open = enabled
@@ -164,11 +187,6 @@ class Device(DeviceBase, UpdatableProps):
     async def enable_ac_ports(self, enabled: bool):
         config = pr705_pb2.ConfigWrite()
         config.cfg_ac_out_open = enabled
-        await self._send_config_packet(config)
-
-    async def enable_energy_backup(self, enabled: bool):
-        config = pr705_pb2.ConfigWrite()
-        config.cfg_energy_backup.energy_backup_en = enabled
         await self._send_config_packet(config)
 
     async def set_battery_charge_limit_min(self, limit: int):

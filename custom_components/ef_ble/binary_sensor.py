@@ -33,10 +33,10 @@ BINARY_SENSOR_TYPES = {
         device_class=BinarySensorDeviceClass.PROBLEM,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    "is_charging_ac": BinarySensorEntityDescription(
-        key="is_charging_ac",
-        name="AC Charging",
-        device_class=BinarySensorDeviceClass.BATTERY_CHARGING,
+    "plugged_in_ac": BinarySensorEntityDescription(
+        key="plugged_in_ac",
+        name="AC Plugged In",
+        device_class=BinarySensorDeviceClass.PLUG,
         entity_registry_enabled_default=False,
     ),
 }
