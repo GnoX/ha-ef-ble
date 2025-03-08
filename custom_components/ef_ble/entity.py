@@ -1,4 +1,4 @@
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
 from homeassistant.helpers.entity import Entity
 
 from .const import DOMAIN, MANUFACTURER
@@ -15,10 +15,16 @@ class EcoflowEntity(Entity):
     def device_info(self):
         """Return information to link this entity with the correct device."""
         return DeviceInfo(
-            identifiers={(DOMAIN, self._device.address)},
+            identifiers={
+                (DOMAIN, self._device.address),
+            },
+            connections={
+                (CONNECTION_NETWORK_MAC, self._device.address),
+            },
             name=self._device.name,
             manufacturer=MANUFACTURER,
             model=self._device.device,
+            serial_number=self._device._sn,
         )
 
     @property

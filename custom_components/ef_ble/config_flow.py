@@ -6,7 +6,6 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.components.bluetooth import (
     BluetoothServiceInfoBleak,
     async_discovered_service_info,
@@ -47,7 +46,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(discovery_info.address)
         self._abort_if_unique_id_configured()
         device = eflib.NewDevice(discovery_info.device, discovery_info.advertisement)
-        if device == None:
+        if device is None:
             return self.async_abort(reason="not_supported")
         self._discovery_info = discovery_info
         self._discovered_device = device
