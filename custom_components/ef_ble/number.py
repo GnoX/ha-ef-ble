@@ -1,5 +1,6 @@
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from typing import Any
 
 from homeassistant.components.number import (
     NumberDeviceClass,
@@ -25,7 +26,7 @@ class EcoflowNumberEntityDescription[T: DeviceBase](NumberEntityDescription):
     availability_prop: str | None = None
 
 
-NUMBER_TYPES = [
+NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
     # River 3
     EcoflowNumberEntityDescription[river3.Device](
         key="energy_backup_battery_level",
@@ -84,6 +85,7 @@ async def async_setup_entry(
 
 
 class EcoflowNumber(EcoflowEntity, NumberEntity):
+
     def __init__(
         self,
         device: DeviceBase,
@@ -98,6 +100,27 @@ class EcoflowNumber(EcoflowEntity, NumberEntity):
         self._set_native_value = entity_description.async_set_native_value
         self._prop_name = entity_description.key
         self._attr_native_value = getattr(device, self._prop_name)
+        self._update_callbacks: list[tuple[str, Callable[[Any], None]]] = []
+
+        self._register_update_callback("_attr_native_value", self._prop_name)
+        self._register_update_callback(
+            "_attr_available",
+            self._max_value_prop,
+            lambda state: state if state is not None else False,
+        )
+        self._register_update_callback(
+            "_attr_native_min_value",
+            self._min_value_prop,
+            lambda state: state if state is not None else EcoflowNumber._SkipWrite,
+        )
+        self._register_update_callback(
+            "_attr_native_max_value",
+            self._max_value_prop,
+            lambda state: state if state is not None else EcoflowNumber._SkipWrite,
+        )
+
+    class _SkipWrite:
+        """Sentinel value for skipping write in update callback"""
 
     @property
     def available(self):
@@ -114,60 +137,31 @@ class EcoflowNumber(EcoflowEntity, NumberEntity):
 
         await super().async_set_native_value(value)
 
-    @callback
-    def state_updated(self, state: float | None):
-        self._attr_native_value = state
-        self.async_write_ha_state()
+    def _register_update_callback(
+        self,
+        entity_attr: str,
+        prop_name: str | None,
+        get_state: Callable[[Any], _SkipWrite | Any] = lambda x: x,
+    ):
+        if prop_name is None:
+            return
 
-    @callback
-    def _min_state_updated(self, state: float | None):
-        if state is not None:
-            self._attr_native_min_value = state
+        @callback
+        def state_updated(state: Any):
+            if (state := get_state(state)) is EcoflowNumber._SkipWrite:
+                return
+
+            setattr(self, entity_attr, state)
             self.async_write_ha_state()
 
-    @callback
-    def _max_state_updated(self, state: float | None):
-        if state is not None:
-            self._attr_native_max_value = state
-            self.async_write_ha_state()
-
-    @callback
-    def _availability_updated(self, state: bool | None):
-        self._attr_available = state if state is not None else False
-        self.async_write_ha_state()
+        self._update_callbacks.append((prop_name, state_updated))
 
     async def async_added_to_hass(self) -> None:
-        self._device.register_state_update_callback(self.state_updated, self._prop_name)
-        if self._min_value_prop is not None:
-            self._device.register_state_update_callback(
-                self._min_state_updated, self._min_value_prop
-            )
-        if self._max_value_prop is not None:
-            self._device.register_state_update_callback(
-                self._max_state_updated,
-                self._max_value_prop,
-            )
-        if self._availability_prop is not None:
-            self._device.register_state_update_callback(
-                self._availability_updated,
-                self._availability_prop,
-            )
+        for prop, state_callback in self._update_callbacks:
+            self._device.register_state_update_callback(state_callback, prop)
         await super().async_added_to_hass()
 
     async def async_will_remove_from_hass(self) -> None:
-        self._device.remove_state_update_calback(self.state_updated, self._prop_name)
-        if self._min_value_prop is not None:
-            self._device.remove_state_update_calback(
-                self._min_state_updated, self._min_value_prop
-            )
-        if self._max_value_prop is not None:
-            self._device.remove_state_update_calback(
-                self._max_state_updated,
-                self._max_value_prop,
-            )
-        if self._availability_prop is not None:
-            self._device.remove_state_update_calback(
-                self._availability_updated,
-                self._availability_prop,
-            )
+        for prop, state_callback in self._update_callbacks:
+            self._device.remove_state_update_calback(state_callback, prop)
         await super().async_will_remove_from_hass()

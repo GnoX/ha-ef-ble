@@ -219,14 +219,6 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         entity_registry_enabled_default=False,
     ),
-    "mosfet_temperature": SensorEntityDescription(
-        key="mosfet_temperature",
-        name="MOSFET Temperature",
-        device_class=SensorDeviceClass.TEMPERATURE,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        entity_registry_enabled_default=False,
-    ),
 }
 
 

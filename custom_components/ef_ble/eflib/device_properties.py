@@ -29,7 +29,7 @@ class UpdatableProps:
     _pb_list_field_names: list[str] = []
     _list_field_name_to_field: dict[str, "ProtobufListField"] = {}
 
-    def update_fields(self, message: Message) -> list[str]:
+    def update_fields(self, message: Message):
         """
         Update all defined fields and return names of updated fields
 
@@ -51,8 +51,6 @@ class UpdatableProps:
             for item in field.get_list(getattr(message, list_field_name)):
                 for pb_list_field_name in self._pb_list_field_names:
                     setattr(self, pb_list_field_name, item)
-
-        return self.updated_fields
 
 
 @dataclass(kw_only=True)
@@ -147,7 +145,7 @@ class ProtobufField[T](Field[T]):
     def __set_name__(self, owner: type[UpdatableProps], name: str):
         super().__set_name__(owner, name)
 
-        owner._pb_field_names.append(self.public_name)
+        owner._pb_field_names = owner._pb_field_names + [self.public_name]
 
     def __set__(self, instance: UpdatableProps, value: Any):
         if not isinstance(value, Message):
@@ -213,8 +211,10 @@ class ProtobufListField[T](Field[T], abc.ABC):
 
     def __set_name__(self, owner: type[UpdatableProps], name: str):
         super().__set_name__(owner, name)
-        owner._list_field_name_to_field[self.list_name] = self
-        owner._pb_list_field_names.append(name)
+        owner._list_field_name_to_field = owner._list_field_name_to_field | {
+            self.list_name: self
+        }
+        owner._pb_list_field_names = owner._pb_list_field_names + [name]
 
     def __set__(self, instance: UpdatableProps, value: Any):
         if not self.should_update(value):

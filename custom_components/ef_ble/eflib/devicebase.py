@@ -21,6 +21,7 @@ class DeviceBase:
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
     ) -> None:
+        self._sn = sn
         _LOGGER.debug(
             "%s: Creating new device: %s (%s)",
             ble_dev.address,
@@ -29,7 +30,6 @@ class DeviceBase:
         )
         self._ble_dev = ble_dev
         self._address = ble_dev.address
-        self._sn = sn
         # We can't use advertisement name here - it's prone to change to "Ecoflow-dev"
         self._name = self.NAME_PREFIX + self._sn[-4:]
         self._name_by_user = self._name
