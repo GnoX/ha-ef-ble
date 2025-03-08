@@ -1,32 +1,58 @@
 {
   "config": {
     "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+      "already_configured": "Device is already configured",
+      "not_supported": "Device not supported",
+      "no_devices_found": "No supported Ecoflow devices found",
+      "reconfigure_successful": "Re-configuration was successful"
     },
     "error": {
-      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
-      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "cannot_connect": "Cannot connect",
+      "invalid_auth": "Authentication is invalid",
+      "unknown": "Unexpected error, check logs",
+      "email_empty": "Email cannot be empty",
+      "password_empty": "Password cannot be empty",
+      "device_auth_failed": "Device authentification failed, user id may be incorrect",
+      "bt_timeout": "Could not connect to device, exceeded maximum tries",
+      "bt_general_eror": "Could not connect to device, see logs for details",
+      "error_try_refresh": "Connection is in invalid state, try refreshing before adding device"
     },
     "step": {
+      "bluetooth_confirm": {
+          "title": "Discovered Device Config",
+          "data": {
+            "user_id": "Ecoflow User ID",
+            "address": "BLE Device"
+          },
+          "sections": {
+            "login": {
+              "name": "Ecoflow Login (skip if you already have user id)",
+              "data": {
+                "email": "Email",
+                "password": "Password"
+              }
+            }
+          }
+      },
       "user": {
+          "title": "Add Ecoflow Device",
+          "data": {
+            "user_id": "Ecoflow User ID",
+            "address": "BLE Device"
+          },
+          "sections": {
+            "login": {
+              "name": "Ecoflow Login (skip if you already have user id)",
+              "data": {
+                "email": "Email",
+                "password": "Password"
+              }
+            }
+          }
+      },
+      "reconfigure": {
         "data": {
-          "user_id": "EcoFlow User ID",
-          "address": "BLE Device"
-        }
-      }
-    }
-  },
-  "options": {
-    "step": {
-      "user": {
-        "data": {
-          "binary_sensor": "Binary sensor enabled",
-          "sensor": "Sensor enabled",
-          "switch": "Switch enabled",
-          "light": "Light enabled",
-          "select": "Select enabled",
-          "camera": "Camera enabled"
+          "user_id": "Ecoflow User ID"
         }
       }
     }

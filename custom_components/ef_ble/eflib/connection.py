@@ -1,45 +1,59 @@
-import struct
 import asyncio
+import contextlib
+import hashlib
 import logging
+import struct
 import traceback
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
+from enum import Enum, auto
 
-from bleak import BleakError
+import ecdsa
 from bleak.backends.characteristic import BleakGATTCharacteristic
+from bleak.backends.device import BLEDevice
+from bleak.exc import BleakError
 from bleak_retry_connector import (
     MAX_CONNECT_ATTEMPTS,
     BleakClientWithServiceCache,
-    BLEDevice,
+    BleakNotFoundError,
     establish_connection,
 )
-
-import hashlib
-import ecdsa
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
-from .crc import crc16
-from .packet import Packet
-from .encpacket import EncPacket
 from . import keydata
+from .crc import crc16
+from .encpacket import EncPacket
+from .packet import Packet
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class PacketParseError:
+class PacketParseError(Exception):
     """Error during parsing Packet"""
 
 
-class EncPacketParseError:
+class EncPacketParseError(Exception):
     """Error during parsing EncPacket"""
 
 
-class PacketReceiveError:
+class PacketReceiveError(Exception):
     """Error during receiving packet"""
 
 
-class AuthFailedError:
+class AuthFailedError(Exception):
     """Error during authentificating"""
+
+
+class ConnectionState(Enum):
+    INIT = auto()
+    ERROR_TIMEOUT = auto()
+    ERROR_NOT_FOUND = auto()
+    ERROR_BLEAK = auto()
+    ERROR_PACKET_PARSE = auto()
+    ERROR_SEND_REQUEST = auto()
+    ERROR_UNKNOWN = auto()
+    ERROR_AUTH_FAILED = auto()
+    AUTHENTICATED = auto()
 
 
 class Connection:
@@ -53,8 +67,8 @@ class Connection:
         ble_dev: BLEDevice,
         dev_sn: str,
         user_id: str,
-        data_parse: Callable[[Packet], bool],
-        packet_parse: Callable[[bytes], Packet],
+        data_parse: Callable[[Packet], Awaitable[bool]],
+        packet_parse: Callable[[bytes], Awaitable[Packet]],
     ) -> None:
         self._ble_dev = ble_dev
         self._address = ble_dev.address
@@ -62,15 +76,21 @@ class Connection:
         self._user_id = user_id
         self._data_parse = data_parse
         self._packet_parse = packet_parse
+        self._authenticated = False
 
         self._errors = 0
+        self._last_error_msg = ""
         self._client = None
         self._connected = asyncio.Event()
         self._disconnected = asyncio.Event()
         self._retry_on_disconnect = False
         self._retry_on_disconnect_delay = 10
+        self._state = ConnectionState.INIT
+        self._cancel_lock = asyncio.Lock()
 
         self._enc_packet_buffer = b""
+        self._tasks: list[asyncio.Task] = []
+        self._cancelling = False
 
     @property
     def is_connected(self) -> bool:
@@ -80,6 +100,10 @@ class Connection:
         return self._ble_dev
 
     async def connect(self, max_attempts: int = MAX_CONNECT_ATTEMPTS):
+        self._connected.clear()
+        self._disconnected.clear()
+
+        error = None
         try:
             if self._client != None:
                 if self._client.is_connected:
@@ -97,8 +121,21 @@ class Connection:
                     ble_device_callback=self.ble_dev,
                     max_attempts=max_attempts,
                 )
-        except (asyncio.TimeoutError, BleakError) as err:
-            _LOGGER.error("%s: Failed to connect to the device: %s", self._address, err)
+        except asyncio.TimeoutError as err:
+            error = err
+            self._state = ConnectionState.ERROR_TIMEOUT
+        except BleakNotFoundError as err:
+            error = err
+            self._state = ConnectionState.ERROR_NOT_FOUND
+        except BleakError as err:
+            error = err
+            self._state = ConnectionState.ERROR_BLEAK
+
+        if error is not None:
+            self._last_error_msg = str(error)
+            _LOGGER.error(
+                "%s: Failed to connect to the device: %s", self._address, error
+            )
             self.disconnected()
             return
 
@@ -124,6 +161,7 @@ class Connection:
             loop = asyncio.get_event_loop()
             loop.create_task(self.reconnect())
         else:
+            self._connected.set()
             self._disconnected.set()
 
     async def reconnect(self) -> None:
@@ -159,7 +197,6 @@ class Connection:
         _LOGGER.error(
             "%s: Captured exception: %s:\n%s", self._address, exception, "".join(tb)
         )
-        self._errors += 1
         if self._errors > 5:
             # Too much errors happened - let's reconnect
             self._errors = 0
@@ -298,6 +335,7 @@ class Connection:
                 if packet != None:
                     packets.append(packet)
             except Exception as e:
+                self._state = ConnectionState.ERROR_PACKET_PARSE
                 await self.errorsAdd(e)
 
         return packets
@@ -367,7 +405,7 @@ class Connection:
             packet.productId,
         )
         # Running reply asynchroneously
-        asyncio.create_task(self.sendPacket(reply_packet))
+        await self._add_task(asyncio.create_task(self.sendPacket(reply_packet)))
 
     async def initBleSessionKey(self):
         _LOGGER.debug("%s: initBleSessionKey: Pub key exchange", self._address)
@@ -467,7 +505,7 @@ class Connection:
         await self.autoAuthentication()
 
     async def autoAuthentication(self):
-        _LOGGER.debug(
+        _LOGGER.info(
             "%s: autoAuthentication: Sending secretKey consists of user id and device serial number",
             self._address,
         )
@@ -489,6 +527,7 @@ class Connection:
         try:
             packets = await self.parseEncPackets(bytes(recv_data))
         except Exception as e:
+            self._state = ConnectionState.ERROR_PACKET_PARSE
             await self.errorsAdd(e)
             return
 
@@ -502,16 +541,33 @@ class Connection:
                     _LOGGER.error(
                         "%s: Auth failed with response: %r", self._address, packet
                     )
+                    self._state = ConnectionState.ERROR_AUTH_FAILED
+                    self._connected.set()
                     raise AuthFailedError
                 processed = True
-                self._connected.set()
                 _LOGGER.info("%s: Auth completed, everything is fine", self._address)
+                self._state = ConnectionState.AUTHENTICATED
+                self._connected.set()
             else:
                 # Processing the packet with specific device
                 processed = await self._data_parse(packet)
 
             if not processed:
                 _LOGGER.debug("%s: listenForDataHandler: %r", self._address, packet)
+
+    async def _cancel_tasks(self):
+        for task in self._tasks:
+            task.cancel()
+
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+
+        async with self._cancel_lock:
+            self._tasks = []
+
+    async def _add_task(self, task: asyncio.Task):
+        async with self._cancel_lock:
+            self._tasks.append(task)
 
 
 def getEcdhTypeSize(curve_num: int):

@@ -12,8 +12,8 @@ from . import devices
 _LOGGER = logging.getLogger(__name__)
 
 
-def NewDevice(ble_dev: BLEDevice, adv_data: AdvertisementData):
-    """Returns Device if ble dev fits the requirements otherwise None"""
+def NewDevice(ble_dev: BLEDevice, adv_data: AdvertisementData) -> DeviceBase | None:
+    """Return Device if ble dev fits the requirements otherwise None"""
     if not (
         hasattr(adv_data, "manufacturer_data")
         and DeviceBase.MANUFACTURER_KEY in adv_data.manufacturer_data
