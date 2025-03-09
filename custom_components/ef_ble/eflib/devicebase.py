@@ -34,6 +34,7 @@ class DeviceBase:
 
         self._conn = None
         self._callbacks = set()
+        self._callbacks_map = {}
 
     @property
     def device(self):
@@ -105,8 +106,7 @@ class DeviceBase:
             _LOGGER.error("%s: Device has no connection", self._address)
             return
 
-        if self.is_connected:
-            await self._conn.waitDisconnected()
+        await self._conn.waitDisconnected()
 
     def register_callback(
         self, callback: Callable[[], None], propname: str | None = None
