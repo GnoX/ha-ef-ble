@@ -94,12 +94,11 @@ class DeviceBase:
 
         await self._conn.disconnect()
 
-    async def waitConnected(self):
+    async def waitConnected(self, timeout: int = 20):
         if self._conn == None:
             _LOGGER.error("%s: Device has no connection", self._address)
             return
-        if not self.is_connected:
-            await self._conn.waitConnected()
+        await self._conn.waitConnected(timeout=timeout)
 
     async def waitDisconnected(self):
         if self._conn == None:

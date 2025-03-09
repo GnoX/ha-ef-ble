@@ -184,9 +184,12 @@ class Connection:
         if self._client != None and self._client.is_connected:
             await self._client.disconnect()
 
-    async def waitConnected(self):
+    async def waitConnected(self, timeout: int = 20):
         """Will release when connection is happened and authenticated"""
-        await self._connected.wait()
+        try:
+            await asyncio.wait_for(self._connected.wait(), timeout=timeout)
+        except asyncio.TimeoutError:
+            self._state = ConnectionState.ERROR_TIMEOUT
 
     async def waitDisconnected(self):
         """Will release when client got disconnected from the device"""
