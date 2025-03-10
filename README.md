@@ -8,9 +8,62 @@ Unofficial EcoFlow BLE devices Home Assistant integration will allow you to comm
 number of EcoFlow devices through bluetooth and monitor their status / control parameters.
 
 Recognized devices:
-* Smart Home Panel 2 (EF-HD3####, FW Version: 4.0.0.122, WiFi Version: 2.0.1.20)
-* Delta Pro Ultra (EF-YJ####, FW Version: 5.0.0.25, WiFi Version: 2.0.2.4)
-* River 3, River 3 Plus (EF-R3####, FW Version: 1.0.0.0)
+<details><summary>
+<b>Smart Home Panel 2 (EF-HD3####, FW Version: 4.0.0.122, WiFi Version: 2.0.1.20)</b>
+</summary>
+
+| *Sensors*                      |
+|--------------------------------|
+| Battery Level                  |
+| Input Power                    |
+| Output Power                   |
+| Grid Power                     |
+| Power In Use                   |
+| Circuit Power (Each Circuit)   |
+| Circuit Current (Each Circuit) |
+| Channel Current (Each Channel) |
+</details>
+<details><summary>
+<b>Delta Pro Ultra (EF-YJ####, FW Version: 5.0.0.25, WiFi Version: 2.0.2.4)</b>
+</summary>
+
+| *Sensors*                |
+|--------------------------|
+| Battery Level            |
+| Input Power              |
+| Output Power             |
+| Low Voltage Solar Power  |
+| High Voltage Solar Power |
+</details>
+<details><summary>
+<b>River 3 (Plus, UPS) (EF-R3####, FW Version: 1.0.0.0)</b>
+</summary>
+
+| *Sensors*                       | *Switches*     | *Sliders*            | *Selects*            |
+|---------------------------------|----------------|----------------------|----------------------|
+| AC Input Energy                 | AC Port        | Backup Reserve Level | Led Mode (Plus only) |
+| AC Input Power                  | DC Port        | Max Charge Limit     |                      |
+| AC Output Energy                | Backup Reserve | Min Discharge Limit  |                      |
+| AC Output Power                 |                |                      |                      |
+| Battery Level                   |                |                      |                      |
+| DC 12V Port Output Energy       |                |                      |                      |
+| DC 12V Port Output Power        |                |                      |                      |
+| DC Input Energy                 |                |                      |                      |
+| DC Input Power                  |                |                      |                      |
+| Input Energy Total              |                |                      |                      |
+| Input Power Total               |                |                      |                      |
+| Output Energy Total             |                |                      |                      |
+| Output Power Total              |                |                      |                      |
+| USB A Output Energy             |                |                      |                      |
+| USB A Output Power              |                |                      |                      |
+| USB C Output Energy             |                |                      |                      |
+| USB C Output Power              |                |                      |                      |
+| Battery Input Power (disabled)  |                |                      |                      |
+| Battery Output Power (disabled) |                |                      |                      |
+| Cell Temperature (disabled)     |                |                      |                      |
+</details>
+
+</p>
 
 **NOTICE**: this integration utilizes Bluetooth LE of the EF device, which is supporting just one
 connection at a time - so if you want to manage the device through BLE from your phone, you will

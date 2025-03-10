@@ -8,7 +8,6 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import (
     PERCENTAGE,
-    EntityCategory,
     UnitOfElectricCurrent,
     UnitOfEnergy,
     UnitOfPower,
@@ -200,7 +199,6 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         name="Battery Input Power",
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
-        entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
     ),
     "battery_output_power": SensorEntityDescription(
@@ -208,14 +206,12 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         name="Battery Output Power",
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
-        entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=False,
     ),
     "cell_temperature": SensorEntityDescription(
         key="temperature",
         name="Cell Temperature",
         device_class=SensorDeviceClass.TEMPERATURE,
-        entity_category=EntityCategory.DIAGNOSTIC,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         entity_registry_enabled_default=False,
     ),
