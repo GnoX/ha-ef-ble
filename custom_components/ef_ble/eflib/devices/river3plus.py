@@ -6,7 +6,7 @@ from ..device_properties import ProtobufField
 from ..pb import pr705_pb2
 
 
-class LedState(IntEnum):
+class LedMode(IntEnum):
     OFF = 0
     DIM = 1
     BRIGHT = 2
@@ -18,9 +18,9 @@ class Device(river3.Device):
 
     SN_PREFIX = (b"R631", b"R634")
 
-    led_state = ProtobufField("led_mode", lambda num: LedState(num))
+    led_mode = ProtobufField("led_mode", lambda num: LedMode(num))
 
-    async def set_led_state(self, state: LedState):
+    async def set_led_mode(self, state: LedMode):
         config = pr705_pb2.ConfigWrite()
         config.cfg_led_mode = state.value
         await self._send_config_packet(config)
