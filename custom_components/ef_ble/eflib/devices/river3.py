@@ -122,7 +122,6 @@ class Device(DeviceBase, UpdatableProps):
             p = pr705_pb2.DisplayPropertyUpload()
             p.ParseFromString(packet.payload)
             _LOGGER.debug("%s: %s: Parsed data: %r", self.address, self.name, packet)
-            _LOGGER.debug("River 3 Parsed Message \n %s", str(p))
             self.update_fields(p)
             processed = True
         elif (
