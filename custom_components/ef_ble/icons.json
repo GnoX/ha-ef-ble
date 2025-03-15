@@ -1,0 +1,13 @@
+{
+    "entity": {
+        "switch": {
+            "battery_sync": {
+                "default": "mdi:battery-sync",
+                "state": {
+                    "off": "mdi:battery-sync-outline"
+                }
+            }
+        }
+    }
+    
+}

@@ -31,6 +31,7 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
     EcoflowNumberEntityDescription[river3.Device](
         key="energy_backup_battery_level",
         name="Backup Reserve",
+        icon="mdi:battery-sync",
         device_class=NumberDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
         native_step=1.0,
@@ -44,6 +45,7 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
     EcoflowNumberEntityDescription[river3.Device](
         key="battery_charge_limit_min",
         name="Discharge Limit",
+        icon="mdi:battery-arrow-down-outline",
         device_class=NumberDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
         native_step=1.0,
@@ -56,6 +58,7 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
     EcoflowNumberEntityDescription[river3.Device](
         key="battery_charge_limit_max",
         name="Charge Limit",
+        icon="mdi:battery-arrow-up",
         device_class=NumberDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
         native_step=1.0,
@@ -85,7 +88,6 @@ async def async_setup_entry(
 
 
 class EcoflowNumber(EcoflowEntity, NumberEntity):
-
     def __init__(
         self,
         device: DeviceBase,
@@ -105,7 +107,7 @@ class EcoflowNumber(EcoflowEntity, NumberEntity):
         self._register_update_callback("_attr_native_value", self._prop_name)
         self._register_update_callback(
             "_attr_available",
-            self._max_value_prop,
+            self._availability_prop,
             lambda state: state if state is not None else False,
         )
         self._register_update_callback(

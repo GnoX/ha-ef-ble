@@ -63,6 +63,34 @@ Recognized devices:
 | Cell Temperature (disabled)     |                |                      |                      |
 </details>
 
+<details><summary>
+<b>Delta 3 (Plus, 1500) (EF-D3####, FW Version: 6.49.76.57)</b>
+</summary>
+
+| *Sensors*                           | *Switches*     | *Sliders*            |
+|-------------------------------------|----------------|----------------------|
+| Battery Level                       | AC Ports       | Backup Reserve Level |
+| AC Input Power                      | DC Ports       | Max Charge Limit     |
+| AC Output Power                     | Backup Reserve | Min Discharge Limit  |
+| DC 12V Port Output Power            | USB Ports      |                      |
+| DC Port Input Power                 |                |                      |
+| DC Port Input State                 |                |                      |
+| DC Port (2) Input Power (Plus only) |                |                      |
+| DC Port (2) Input State (Plus only) |                |                      |
+| Solar Power                         |                |                      |
+| Solar Power (2) (Plus only)         |                |                      |
+| Input Power Total                   |                |                      |
+| Output Power Total                  |                |                      |
+| Left USB A Output Power             |                |                      |
+| Right USB A Output Power            |                |                      |
+| Left USB C Output Power             |                |                      |
+| Right USB C Output Power            |                |                      |
+| AC Plugged In                       |                |                      |
+| Battery Input Power (disabled)      |                |                      |
+| Battery Output Power (disabled)     |                |                      |
+| Cell Temperature (disabled)         |                |                      |
+</details>
+
 </p>
 
 **NOTICE**: this integration utilizes Bluetooth LE of the EF device, which is supporting just one

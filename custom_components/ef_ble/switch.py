@@ -27,6 +27,12 @@ SWITCH_TYPES = [
         key="energy_backup",
         name="Backup Reserve",
         device_class=SwitchDeviceClass.SWITCH,
+        translation_key="battery_sync",
+    ),
+    SwitchEntityDescription(
+        key="usb_ports",
+        name="USB Ports",
+        icon="mdi:usb",
     ),
 ]
 
