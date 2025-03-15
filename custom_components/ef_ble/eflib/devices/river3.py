@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any
 
 from bleak.backends.device import BLEDevice
@@ -7,86 +8,92 @@ from bleak.backends.scanner import AdvertisementData
 from google.protobuf.message import Message
 
 from ..commands import TimeCommands
-from ..device_properties import Field, ProtobufField, ProtobufListField, UpdatableProps
 from ..devicebase import DeviceBase
 from ..packet import Packet
 from ..pb import pr705_pb2
+from ..props import (
+    ProtobufProps,
+    pb_field,
+    proto_attr_mapper,
+    repeated_pb_field_type,
+    Field,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
-
-class _StatField[T](ProtobufListField[T]):
-    _stat_enum = pr705_pb2.STATISTICS_OBJECT  # type: ignore[attr-defined]
-
-    @property
-    def list_name(self):
-        return "display_statistics_sum"
-
-    def get_list(self, message: Any) -> Sequence[Message]:
-        return message.list_info
-
-    def should_update(self, message: Any) -> bool:
-        return self._stat_enum.Name(message.statistics_object) == self.pb_field_name
-
-    def get_item_value(self, message: Any) -> T | None:
-        return message.statistics_content
+pb = proto_attr_mapper(pr705_pb2.DisplayPropertyUpload)
 
 
-def _out_power(x):
+@dataclass
+class _StatField(
+    repeated_pb_field_type(
+        list_field=pb.display_statistics_sum.list_info,
+        value_field=lambda x: x.statistics_content,
+    )
+):
+    stat: pr705_pb2.STATISTICS_OBJECT
+
+    def process_item(self, value: pr705_pb2.StatisticsRecordItem) -> int | None:
+        return (
+            value.statistics_content if value.statistics_object == self.stat else None
+        )
+
+
+def _out_power(x) -> float:
     return -round(x, 2) if x != 0 else 0
 
 
-def _flow_is_on(x):
+def _flow_is_on(x) -> bool:
     # this is the same check as in app, no idea what values other than 0 (off) or 2 (on)
     # actually represent
     return (int(x) & 0b11) in [0b10, 0b11]
 
 
-class Device(DeviceBase, UpdatableProps):
+class Device(DeviceBase, ProtobufProps):
     """River 3"""
 
     SN_PREFIX = (b"R651", b"R653", b"R654", b"R655")
     NAME_PREFIX = "EF-R3"
 
-    battery_level = ProtobufField[int]("bms_batt_soc")
+    battery_level = pb_field(pb.bms_batt_soc)
 
-    ac_input_power = ProtobufField[float]("pow_get_ac_in")
-    ac_input_energy = _StatField[int]("STATISTICS_OBJECT_AC_IN_ENERGY")
+    ac_input_power = pb_field(pb.pow_get_ac_in)
+    ac_input_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_AC_IN_ENERGY)
 
-    ac_output_power = ProtobufField[float]("pow_get_ac_out", _out_power)
-    ac_output_energy = _StatField[int]("STATISTICS_OBJECT_AC_OUT_ENERGY")
+    ac_output_power = pb_field(pb.pow_get_ac_out, _out_power)
+    ac_output_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_AC_OUT_ENERGY)
 
-    input_power = ProtobufField[int]("pow_in_sum_w")
+    input_power = pb_field(pb.pow_in_sum_w)
     input_energy = Field[int]()
 
-    output_power = ProtobufField[int]("pow_out_sum_w")
+    output_power = pb_field(pb.pow_out_sum_w)
     output_energy = Field[int]()
 
-    dc_input_power = ProtobufField[float]("pow_get_pv")
-    dc_input_energy = _StatField[int]("STATISTICS_OBJECT_PV_IN_ENERGY")
+    dc_input_power = pb_field(pb.pow_get_pv)
+    dc_input_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_PV_IN_ENERGY)
 
-    dc12v_output_power = ProtobufField[float]("pow_get_12v")
-    dc12v_output_energy = _StatField[int]("STATISTICS_OBJECT_DC12V_OUT_ENERGY")
+    dc12v_output_power = pb_field(pb.pow_get_12v)
+    dc12v_output_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_DC12V_OUT_ENERGY)
 
-    usbc_output_power = ProtobufField[float]("pow_get_typec1", _out_power)
-    usbc_output_energy = _StatField[int]("STATISTICS_OBJECT_TYPEC_OUT_ENERGY")
+    usbc_output_power = pb_field(pb.pow_get_typec1, _out_power)
+    usbc_output_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_TYPEC_OUT_ENERGY)
 
-    usba_output_power = ProtobufField[float]("pow_get_qcusb1", _out_power)
-    usba_output_energy = _StatField[int]("STATISTICS_OBJECT_USBA_OUT_ENERGY")
+    usba_output_power = pb_field(pb.pow_get_qcusb1, _out_power)
+    usba_output_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_USBA_OUT_ENERGY)
 
-    plugged_in_ac = ProtobufField[bool]("plug_in_info_ac_charger_flag")
-    energy_backup = ProtobufField[bool]("energy_backup_en")
-    energy_backup_battery_level = ProtobufField[int]("energy_backup_start_soc")
-    battery_input_power = ProtobufField("pow_get_bms", (lambda value: max(0, value)))
-    battery_output_power = ProtobufField("pow_get_bms", lambda value: -min(0, value))
+    plugged_in_ac = pb_field(pb.plug_in_info_ac_charger_flag)
+    energy_backup = pb_field(pb.energy_backup_en)
+    energy_backup_battery_level = pb_field(pb.energy_backup_start_soc)
+    battery_input_power = pb_field(pb.pow_get_bms, lambda value: max(0, value))
+    battery_output_power = pb_field(pb.pow_get_bms, lambda value: -min(0, value))
 
-    battery_charge_limit_min = ProtobufField[int]("cms_min_dsg_soc")
-    battery_charge_limit_max = ProtobufField[int]("cms_max_chg_soc")
+    battery_charge_limit_min = pb_field(pb.cms_min_dsg_soc)
+    battery_charge_limit_max = pb_field(pb.cms_max_chg_soc)
 
-    cell_temperature = ProtobufField[int]("bms_max_cell_temp")
+    cell_temperature = pb_field(pb.bms_max_cell_temp)
 
-    dc_12v_port = ProtobufField[bool]("flow_info_12v", _flow_is_on)
-    ac_ports = ProtobufField[bool]("flow_info_ac_out", _flow_is_on)
+    dc_12v_port = pb_field(pb.flow_info_12v, _flow_is_on)
+    ac_ports = pb_field(pb.flow_info_ac_out, _flow_is_on)
 
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
@@ -122,7 +129,8 @@ class Device(DeviceBase, UpdatableProps):
             p = pr705_pb2.DisplayPropertyUpload()
             p.ParseFromString(packet.payload)
             _LOGGER.debug("%s: %s: Parsed data: %r", self.address, self.name, packet)
-            self.update_fields(p)
+            # _LOGGER.debug("River 3 Parsed Message \n %s", str(p))
+            self.update_from_message(p)
             processed = True
         elif (
             packet.src == 0x35

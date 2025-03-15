@@ -277,7 +277,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
 
             result_json = await response.json()
             if result_json["code"] != "0":
-                return {"login": f"Login failed: '{result_json["message"]}'"}
+                return {"login": f"Login failed: '{result_json['message']}'"}
 
             self._user_id = result_json["data"]["user"]["userId"]
         self._email = ""
