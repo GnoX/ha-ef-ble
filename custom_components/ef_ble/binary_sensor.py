@@ -37,7 +37,6 @@ BINARY_SENSOR_TYPES = {
         key="plugged_in_ac",
         name="AC Plugged In",
         device_class=BinarySensorDeviceClass.PLUG,
-        entity_registry_enabled_default=False,
     ),
 }
 
