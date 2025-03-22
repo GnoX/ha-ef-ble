@@ -9,12 +9,7 @@ from ..commands import TimeCommands
 from ..devicebase import DeviceBase
 from ..packet import Packet
 from ..pb import pd335_sys_pb2
-from ..props import (
-    Field,
-    ProtobufProps,
-    pb_field,
-    proto_attr_mapper,
-)
+from ..props import Field, ProtobufProps, pb_field, proto_attr_mapper
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -95,7 +90,7 @@ class Device(DeviceBase, ProtobufProps):
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
     ) -> None:
-        super().__init__(ble_dev, adv_data, sn)
+        super().__init__(ble_dev, adv_data, sn, messages_per_update=3)
         self._time_commands = TimeCommands(self)
 
     @classmethod
@@ -159,6 +154,7 @@ class Device(DeviceBase, ProtobufProps):
         payload = message.SerializeToString()
         packet = Packet(0x20, 0x02, 0xFE, 0x11, payload, 0x01, 0x01, 0x13)
         await self._conn.sendPacket(packet)
+        self.allow_next_update()
 
     async def set_energy_backup_battery_level(self, value: int):
         config = pd335_sys_pb2.ConfigWrite()

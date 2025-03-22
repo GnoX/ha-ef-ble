@@ -3,7 +3,6 @@ from collections import defaultdict
 
 from google.protobuf.message import Message
 
-from .protobuf_field import ProtobufField
 from .repeated_protobuf_field import ProtobufRepeatedField
 from .updatable_props import UpdatableProps
 
@@ -35,6 +34,7 @@ class ProtobufProps(UpdatableProps):
 
     """
 
+    _protobuf_fieldnames: list[str] = []
     _repeated_field_map: dict[str, list[ProtobufRepeatedField]] = defaultdict(list)
 
     @classmethod
@@ -44,6 +44,8 @@ class ProtobufProps(UpdatableProps):
         updated_field_map = cls._repeated_field_map.copy()
         updated_field_map[repeated_field.pb_field.name].append(repeated_field)
         cls._repeated_field_map = updated_field_map
+        cls._protobuf_fieldnames = cls._protobuf_fieldnames.copy()
+        cls._protobuf_fieldnames.remove(repeated_field.public_name)
 
     def reset_updated(self):  # noqa: D102 - inherited
         self._processed_fields = []
@@ -60,12 +62,9 @@ class ProtobufProps(UpdatableProps):
         """
         self.reset_updated()
 
-        for field in self._fields:
-            if isinstance(field, ProtobufRepeatedField):
-                continue
-
-            if isinstance(field, ProtobufField):
-                setattr(self, field.public_name, message)
+        for field_name in self._protobuf_fieldnames:
+            if field_name not in self._repeated_field_map:
+                setattr(self, field_name, message)
 
         for repeated_fields in self._repeated_field_map.values():
             field_list = repeated_fields[0].get_list(message)

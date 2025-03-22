@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, overload
+from typing import TYPE_CHECKING, Any, Callable, cast, overload
 
 from google.protobuf.message import Message
 
@@ -17,7 +17,7 @@ class _ProtoAttr:
         self.attrs.append(name)
         return self
 
-    def __str__(self):
+    def __repr__(self):
         return f"proto_attr({self.attrs})"
 
     @property
@@ -74,6 +74,10 @@ class ProtobufField[T](Field[T]):
         """
         self.pb_field = pb_field
         self.transform_value = transform_value
+
+    def __set_name__(self, owner: type["ProtobufProps"], name: str):
+        super().__set_name__(owner, name)
+        owner._protobuf_fieldnames = [*owner._protobuf_fieldnames, self.public_name]
 
     def _get_value(self, value: Message):
         for attr in self.pb_field.attrs:

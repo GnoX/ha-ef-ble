@@ -19,7 +19,11 @@ class DeviceBase:
     MANUFACTURER_KEY = 0xB5B5
 
     def __init__(
-        self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
+        self,
+        ble_dev: BLEDevice,
+        adv_data: AdvertisementData,
+        sn: str,
+        messages_per_update: int = 1,
     ) -> None:
         self._sn = sn
         _LOGGER.debug(
@@ -40,6 +44,8 @@ class DeviceBase:
         self._state_update_callbacks: dict[str, set[Callable[[Any], None]]] = (
             defaultdict(set)
         )
+        self._update_period = None
+        self._n_messages_per_update = messages_per_update
 
     @property
     def device(self):
@@ -86,6 +92,8 @@ class DeviceBase:
                 user_id,
                 self.data_parse,
                 self.packet_parse,
+                update_period=self._update_period,
+                n_messages_per_update=self._n_messages_per_update,
             )
             _LOGGER.info("%s: Connecting to %s", self._address, self.__doc__)
         elif self._conn._user_id != user_id:
@@ -156,3 +164,16 @@ class DeviceBase:
             return
         for update in self._state_update_callbacks[propname]:
             update(value)
+
+    def set_update_period(self, update_period: int | None):
+        """Set number of seconds to wait between parsing messages"""
+        self._update_period = update_period
+        return self
+
+    def allow_next_update(self):
+        """
+        Allow next received message to be parsed before next update period
+
+        Useful for updating state after sending command to the device.
+        """
+        self._conn.allow_next_update()
