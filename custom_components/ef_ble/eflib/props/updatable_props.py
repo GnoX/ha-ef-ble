@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, ClassVar
+from typing import Any
 
 
 class UpdatableProps:
@@ -30,8 +30,6 @@ class UpdatableProps:
     def updated_fields(self, value: list[str]):
         self._updated_fields = value
 
-    _fields: ClassVar[list["Field[Any]"]] = []
-
     def reset_updated(self):
         self.updated = False
         self.updated_fields = []
@@ -42,20 +40,19 @@ class Field[T]:
     """Descriptor for updating values only if they changed"""
 
     def __set_name__[T_PROPS: UpdatableProps](self, owner: type[T_PROPS], name: str):
-        self.public_name = name
-        self.private_name = f"_{name}"
-        owner._fields = owner._fields + [self]
-
-    def __set__(self, instance, value: Any):
-        self._set_value(instance, value)
-
-    def _set_value(self, instance, value):
-        if not isinstance(instance, UpdatableProps):
+        if not issubclass(owner, UpdatableProps):
             raise TypeError(
                 f"Descriptor {self.__class__.__name__} can only be used on subclasses "
                 f"of {UpdatableProps.__name__}"
             )
 
+        self.public_name = name
+        self.private_name = f"_{name}"
+
+    def __set__(self, instance, value: Any):
+        self._set_value(instance, value)
+
+    def _set_value(self, instance: UpdatableProps, value):
         if value == getattr(instance, self.public_name):
             return
 

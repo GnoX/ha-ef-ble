@@ -3,6 +3,7 @@ import contextlib
 import hashlib
 import logging
 import struct
+import time
 import traceback
 from collections.abc import Awaitable, Callable
 from enum import Enum, auto
@@ -55,6 +56,10 @@ class ConnectionState(Enum):
     ERROR_AUTH_FAILED = auto()
     AUTHENTICATED = auto()
 
+    @property
+    def is_processing_messages(self):
+        return self in [ConnectionState.AUTHENTICATED]
+
 
 class Connection:
     """Connection object manages client creation, authentification and sends the packets to parse back"""
@@ -69,6 +74,8 @@ class Connection:
         user_id: str,
         data_parse: Callable[[Packet], Awaitable[bool]],
         packet_parse: Callable[[bytes], Awaitable[Packet]],
+        update_period: float | None = None,
+        n_messages_per_update: int = 1,
     ) -> None:
         self._ble_dev = ble_dev
         self._address = ble_dev.address
@@ -91,6 +98,14 @@ class Connection:
         self._enc_packet_buffer = b""
         self._tasks: list[asyncio.Task] = []
         self._cancelling = False
+
+        # number of seconds to wait before processing next message
+        self._update_period = update_period
+        self._last_update = 0
+        # number of messages to process in sequence (some devices send multiple images
+        # with different fields set)
+        self._n_messages_per_update = n_messages_per_update
+        self._updated_current_period = self._n_messages_per_update
 
     @property
     def is_connected(self) -> bool:
@@ -293,7 +308,7 @@ class Connection:
             raise EncPacketParseError
 
         # Data can contain multiple EncPackets and even incomplete ones, so walking through
-        packets = list()
+        packets = []
         while data:
             if not data.startswith(EncPacket.PREFIX):
                 _LOGGER.error(
@@ -335,7 +350,7 @@ class Connection:
 
                 # Parse packet
                 packet = await self._packet_parse(payload)
-                if packet != None:
+                if packet is not None:
                     packets.append(packet)
             except Exception as e:
                 self._state = ConnectionState.ERROR_PACKET_PARSE
@@ -516,7 +531,7 @@ class Connection:
         # Building payload for auth
         md5_data = hashlib.md5((self._user_id + self._dev_sn).encode("ASCII")).digest()
         # We need upper case in MD5 data here
-        payload = ("".join("{:02X}".format(c) for c in md5_data)).encode("ASCII")
+        payload = ("".join(f"{c:02X}" for c in md5_data)).encode("ASCII")
 
         # Forming packet
         packet = Packet(0x21, 0x35, 0x35, 0x86, payload, 0x01, 0x01, 0x03)
@@ -524,9 +539,40 @@ class Connection:
         # Sending request and starting the common listener
         await self.sendPacket(packet, self.listenForDataHandler)
 
+    def _can_update(self):
+        # can update if
+        # 1. update_period is 0 or we are not yet authenticated
+        if not self._update_period or not self._state.is_processing_messages:
+            return True
+
+        # 2. if we are waiting for next message in sequence
+        if self._updated_current_period > 0:
+            self._updated_current_period -= 1
+            return True
+
+        # 3. if less than update_period seconds have passed since last message
+        now = time.time()
+        if now - self._last_update < self._update_period:
+            return False
+
+        self.allow_next_update()
+        return True
+
+    def allow_next_update(self):
+        """
+        Allow next received message to be parsed before next update period
+
+        Useful for updating state after sending command to the device.
+        """
+        self._last_update = 0
+        self._updated_current_period = self._n_messages_per_update
+
     async def listenForDataHandler(
         self, characteristic: BleakGATTCharacteristic, recv_data: bytearray
     ):
+        if not self._can_update():
+            return
+
         try:
             packets = await self.parseEncPackets(bytes(recv_data))
         except Exception as e:
