@@ -81,10 +81,10 @@ Recognized devices:
 | Solar Power (2) (Plus only)         |                |                      |
 | Input Power Total                   |                |                      |
 | Output Power Total                  |                |                      |
-| Left USB A Output Power             |                |                      |
-| Right USB A Output Power            |                |                      |
-| Left USB C Output Power             |                |                      |
-| Right USB C Output Power            |                |                      |
+| USB A Output Power                  |                |                      |
+| USB A (2) Output Power              |                |                      |
+| USB C Output Power                  |                |                      |
+| USB C (2) Output Power              |                |                      |
 | AC Plugged In                       |                |                      |
 | Battery Input Power (disabled)      |                |                      |
 | Battery Output Power (disabled)     |                |                      |

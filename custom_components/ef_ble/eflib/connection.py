@@ -555,7 +555,8 @@ class Connection:
         if now - self._last_update < self._update_period:
             return False
 
-        self.allow_next_update()
+        self._last_update = now
+        self._updated_current_period = self._n_messages_per_update
         return True
 
     def allow_next_update(self):
