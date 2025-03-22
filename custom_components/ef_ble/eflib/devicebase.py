@@ -45,7 +45,7 @@ class DeviceBase:
             defaultdict(set)
         )
         self._update_period = None
-        self._n_messages_per_update = messages_per_update
+        self._n_messages_per_update = messages_per_update - 1
 
     @property
     def device(self):
