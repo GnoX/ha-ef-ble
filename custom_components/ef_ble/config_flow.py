@@ -23,7 +23,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 
 from . import eflib
-from .const import CONF_USER_ID, DOMAIN
+from .const import CONF_UPDATE_PERIOD, CONF_USER_ID, DOMAIN
 from .eflib.connection import ConnectionState
 
 _LOGGER = logging.getLogger(__name__)
@@ -105,6 +105,9 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                         {"collapsed": self._collapsed},
                     ),
                     vol.Required(CONF_ADDRESS): vol.In([f"{title} ({device.address})"]),
+                    vol.Optional(CONF_UPDATE_PERIOD, default=0): vol.All(
+                        int, vol.Range(min=0)
+                    ),
                 }
             ),
         )
@@ -164,6 +167,9 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                         {"collapsed": self._collapsed},
                     ),
                     vol.Required(CONF_ADDRESS): vol.In(self._discovered_devices.keys()),
+                    vol.Optional(CONF_UPDATE_PERIOD, default=0): vol.All(
+                        int, vol.Range(min=0)
+                    ),
                 }
             ),
         )
@@ -194,6 +200,10 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                     vol.Required(
                         CONF_USER_ID, default=reconfigure_entry.data.get(CONF_USER_ID)
                     ): str,
+                    vol.Optional(
+                        CONF_UPDATE_PERIOD,
+                        default=reconfigure_entry.data.get(CONF_UPDATE_PERIOD),
+                    ): vol.All(int, vol.Range(min=0)),
                 }
             ),
             errors=errors,

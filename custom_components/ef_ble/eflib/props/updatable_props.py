@@ -18,6 +18,7 @@ class UpdatableProps:
 
     updated: bool = False
     _updated_fields: list[str] | None = None
+    _fields: ClassVar[list["Field[Any]"]] = []
 
     @property
     def updated_fields(self):
@@ -29,8 +30,6 @@ class UpdatableProps:
     @updated_fields.setter
     def updated_fields(self, value: list[str]):
         self._updated_fields = value
-
-    _fields: ClassVar[list["Field[Any]"]] = []
 
     def reset_updated(self):
         self.updated = False
