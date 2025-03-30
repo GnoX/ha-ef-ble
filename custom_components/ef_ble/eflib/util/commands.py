@@ -4,9 +4,9 @@ import struct
 import time
 from dataclasses import dataclass
 
-from .devicebase import DeviceBase
-from .packet import Packet
-from .pb import utc_sys_pb2_v4 as utc_sys_pb2
+from ..devicebase import DeviceBase
+from ..packet import Packet
+from ..pb import utc_sys_pb2_v4 as utc_sys_pb2
 
 _LOGGER = logging.getLogger(__name__)
 

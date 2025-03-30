@@ -1,7 +1,7 @@
 import logging
 import struct
 
-from .crc import crc16, crc8
+from .crc import crc8, crc16
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,6 +40,7 @@ class Packet:
 
         # For representation
         self._payload_hex = bytearray(self._payload).hex()
+        self.parsed = False
 
     @property
     def src(self):
