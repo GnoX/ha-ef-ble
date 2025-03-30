@@ -5,11 +5,14 @@ from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from google.protobuf.message import Message
 
-from ..commands import TimeCommands
+from custom_components.ef_ble.eflib.connection import PacketIterator
+
 from ..devicebase import DeviceBase
 from ..packet import Packet
 from ..pb import pd335_sys_pb2
 from ..props import Field, ProtobufProps, pb_field, proto_attr_mapper
+from ..util.commands import TimeCommands
+from .river3 import ThrottledBatchUpdater
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -90,8 +93,16 @@ class Device(DeviceBase, ProtobufProps):
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
     ) -> None:
-        super().__init__(ble_dev, adv_data, sn, messages_per_update=3)
+        super().__init__(ble_dev, adv_data, sn)
         self._time_commands = TimeCommands(self)
+        self._updater = ThrottledBatchUpdater(
+            device=self,
+            discriminator_fields=[
+                pb.cms_batt_soc,
+                pb.energy_backup_en,
+                pb.plug_in_info_ac_charger_flag,
+            ],
+        )
 
     @classmethod
     def check(cls, sn):
@@ -110,6 +121,9 @@ class Device(DeviceBase, ProtobufProps):
     async def packet_parse(self, data: bytes) -> Packet:
         return Packet.fromBytes(data, is_xor=True)
 
+    async def data_parse_batch(self, packet_iterator: PacketIterator):
+        await self._updater.parse_batch(packet_iterator)
+
     async def data_parse(self, packet: Packet):
         processed = False
 
@@ -118,7 +132,9 @@ class Device(DeviceBase, ProtobufProps):
             p.ParseFromString(packet.payload)
             _LOGGER.debug("%s: %s: Parsed data: %r", self.address, self.name, packet)
             # _LOGGER.debug("Delta 3 Parsed Message \n %s", str(p))
-            self.update_from_message(p)
+            if not self._updater.update_from_message(p):
+                return True
+
             processed = True
         elif (
             packet.src == 0x35
@@ -140,10 +156,6 @@ class Device(DeviceBase, ProtobufProps):
             else 0
         )
         self._after_message_parsed()
-
-        for field_name in self.updated_fields:
-            self.update_callback(field_name)
-            self.update_state(field_name, getattr(self, field_name))
 
         return processed
 

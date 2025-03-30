@@ -4,8 +4,7 @@ from dataclasses import dataclass
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
-from ..commands import TimeCommands
-from ..devicebase import DeviceBase
+from ..devicebase import DeviceBase, PacketIterator
 from ..packet import Packet
 from ..pb import pr705_pb2
 from ..props import (
@@ -15,6 +14,8 @@ from ..props import (
     proto_attr_mapper,
     repeated_pb_field_type,
 )
+from ..util.batch_updater import DeviceUpdater, ThrottledBatchUpdater
+from ..util.commands import TimeCommands
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -95,8 +96,11 @@ class Device(DeviceBase, ProtobufProps):
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
     ) -> None:
-        super().__init__(ble_dev, adv_data, sn, messages_per_update=2)
+        super().__init__(ble_dev, adv_data, sn)
         self._time_commands = TimeCommands(self)
+        self._updater = ThrottledBatchUpdater(
+            self, [pb.cms_batt_soc, pb.flow_info_ac_out]
+        )
 
     @classmethod
     def check(cls, sn):
@@ -119,15 +123,21 @@ class Device(DeviceBase, ProtobufProps):
     async def packet_parse(self, data: bytes) -> Packet:
         return Packet.fromBytes(data, is_xor=True)
 
+    async def data_parse_batch(self, packet_iterator: PacketIterator):
+        await self._updater.parse_batch(packet_iterator)
+
     async def data_parse(self, packet: Packet):
         processed = False
 
         if packet.src == 0x02 and packet.cmdSet == 0xFE and packet.cmdId == 0x15:
             p = pr705_pb2.DisplayPropertyUpload()
             p.ParseFromString(packet.payload)
-            _LOGGER.debug("%s: %s: Parsed data: %r", self.address, self.name, packet)
-            # _LOGGER.debug("River 3 Parsed Message \n %s", str(p))
-            self.update_from_message(p)
+
+            if not self._updater.update_from_message(p):
+                return True
+
+            # _LOGGER.debug("%s: %s: Parsed data: %r", self.address, self.name, packet)
+            _LOGGER.debug("River 3 Parsed Message \n %s", str(p))
             processed = True
         elif (
             packet.src == 0x35
@@ -155,10 +165,6 @@ class Device(DeviceBase, ProtobufProps):
                 + self.usbc_output_energy
                 + self.dc12v_output_energy
             )
-
-        for field_name in self.updated_fields:
-            self.update_callback(field_name)
-            self.update_state(field_name, getattr(self, field_name))
 
         return processed
 

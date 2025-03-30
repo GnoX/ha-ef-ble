@@ -133,3 +133,17 @@ def pb_field(
         pb_field=attr,
         transform_value=transform if transform is not None else lambda x: x,
     )
+
+
+def proto_attr_name(proto_attr: _ProtoAttr | Any) -> str:
+    """Get name of attribute from proto attr returned from `proto_attr_mapper`"""
+    return proto_attr.name
+
+
+def proto_has_attr(msg: Message, proto_attr: _ProtoAttr | Any) -> bool:
+    """Return True if protobuf message has specified attribute"""
+    for attr in proto_attr.attrs:
+        if not msg.HasField(attr):
+            return False
+        msg = getattr(msg, attr)
+    return True

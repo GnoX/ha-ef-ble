@@ -7,7 +7,7 @@ from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from bleak_retry_connector import MAX_CONNECT_ATTEMPTS
 
-from .connection import Connection
+from .connection import Connection, PacketIterator
 from .packet import Packet
 
 _LOGGER = logging.getLogger(__name__)
@@ -23,7 +23,6 @@ class DeviceBase:
         ble_dev: BLEDevice,
         adv_data: AdvertisementData,
         sn: str,
-        messages_per_update: int = 1,
     ) -> None:
         self._sn = sn
         _LOGGER.debug(
@@ -45,7 +44,6 @@ class DeviceBase:
             defaultdict(set)
         )
         self._update_period = None
-        self._n_messages_per_update = messages_per_update - 1
 
     @property
     def device(self):
@@ -74,9 +72,15 @@ class DeviceBase:
     def connection_state(self):
         return None if self._conn is None else self._conn._state
 
-    async def data_parse(self, packet: Packet):
+    async def data_parse(self, packet: Packet) -> bool:
         """Function to parse incoming data and trigger sensors update"""
         return False
+
+    async def data_parse_batch(self, packet_iterator: PacketIterator):
+        """Parse incoming data packet batch"""
+        async for packet in packet_iterator:
+            if not await self.data_parse(packet):
+                packet.parsed = False
 
     async def packet_parse(self, data: bytes):
         """Function to parse packet"""
@@ -87,13 +91,12 @@ class DeviceBase:
     ):
         if self._conn is None:
             self._conn = Connection(
-                self._ble_dev,
-                self._sn,
-                user_id,
-                self.data_parse,
-                self.packet_parse,
+                ble_dev=self._ble_dev,
+                dev_sn=self._sn,
+                user_id=user_id,
+                data_parse=self.data_parse_batch,
+                packet_parse=self.packet_parse,
                 update_period=self._update_period,
-                n_messages_per_update=self._n_messages_per_update,
             )
             _LOGGER.info("%s: Connecting to %s", self._address, self.__doc__)
         elif self._conn._user_id != user_id:

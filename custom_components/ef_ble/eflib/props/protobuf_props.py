@@ -47,10 +47,6 @@ class ProtobufProps(UpdatableProps):
         cls._protobuf_fieldnames = cls._protobuf_fieldnames.copy()
         cls._protobuf_fieldnames.remove(repeated_field.public_name)
 
-    def reset_updated(self):  # noqa: D102 - inherited
-        self._processed_fields = []
-        return super().reset_updated()
-
     def update_from_message(self, message: Message):
         """
         Update defined fields values from provided message
@@ -60,8 +56,6 @@ class ProtobufProps(UpdatableProps):
         message
             Protocol buffer message to update fields from
         """
-        self.reset_updated()
-
         for field_name in self._protobuf_fieldnames:
             if field_name not in self._repeated_field_map:
                 setattr(self, field_name, message)

@@ -5,7 +5,7 @@ import logging
 import struct
 import time
 import traceback
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncGenerator, Awaitable, Callable, Sequence
 from enum import Enum, auto
 
 import ecdsa
@@ -61,6 +61,35 @@ class ConnectionState(Enum):
         return self in [ConnectionState.AUTHENTICATED]
 
 
+class PacketIterator:
+    def __init__(self, connection: "Connection", encrypted_payloads: Sequence[str]):
+        self._connection = connection
+        self._encrypted_payloads = encrypted_payloads
+        self._iter = None
+
+    def reversed(self):
+        return self.__class__(
+            connection=self._connection,
+            encrypted_payloads=list(reversed(self._encrypted_payloads)),
+        )
+
+    def __aiter__(self):
+        self._iter = aiter(
+            self._connection._decrypted_packets(self._encrypted_payloads)
+        )
+        return self
+
+    async def __anext__(self):
+        if not self._iter:
+            raise ValueError()
+
+        try:
+            return await anext(self._iter)
+        except StopIteration:
+            self._iter = None
+            raise StopAsyncIteration
+
+
 class Connection:
     """Connection object manages client creation, authentification and sends the packets to parse back"""
 
@@ -72,10 +101,9 @@ class Connection:
         ble_dev: BLEDevice,
         dev_sn: str,
         user_id: str,
-        data_parse: Callable[[Packet], Awaitable[bool]],
-        packet_parse: Callable[[bytes], Awaitable[Packet]],
+        data_parse: Callable[[PacketIterator], Awaitable[None]],
+        packet_parse: Callable[[bytes], Awaitable[Packet | None]],
         update_period: float | None = None,
-        n_messages_per_update: int = 1,
     ) -> None:
         self._ble_dev = ble_dev
         self._address = ble_dev.address
@@ -95,17 +123,16 @@ class Connection:
         self._state = ConnectionState.INIT
         self._cancel_lock = asyncio.Lock()
 
-        self._enc_packet_buffer = b""
+        self._current_enc_packet_buffer = b""
+        self._encrypted_payload_data_buffer = []
+        self._buffer_lock = asyncio.Lock()
+
         self._tasks: list[asyncio.Task] = []
         self._cancelling = False
 
         # number of seconds to wait before processing next message
         self._update_period = update_period
         self._last_update = 0
-        # number of messages to process in sequence (some devices send multiple images
-        # with different fields set)
-        self._n_messages_per_update = n_messages_per_update
-        self._updated_current_period = self._n_messages_per_update
 
     @property
     def is_connected(self) -> bool:
@@ -289,12 +316,11 @@ class Connection:
 
         return payload_data
 
-    async def parseEncPackets(self, data: str):
-        """Deserializes bytes stream into a list of Packets"""
+    async def _add_enc_packet_to_buffer(self, data: str):
         # In case there are leftovers from previous processing - adding them to current data
-        if self._enc_packet_buffer:
-            data = self._enc_packet_buffer + data
-            self._enc_packet_buffer = b""
+        if self._current_enc_packet_buffer:
+            data = self._current_enc_packet_buffer + data
+            self._current_enc_packet_buffer = b""
 
         _LOGGER.debug(
             "%s: parseEncPackets: Data: %r", self._address, bytearray(data).hex()
@@ -308,7 +334,6 @@ class Connection:
             raise EncPacketParseError
 
         # Data can contain multiple EncPackets and even incomplete ones, so walking through
-        packets = []
         while data:
             if not data.startswith(EncPacket.PREFIX):
                 _LOGGER.error(
@@ -316,12 +341,12 @@ class Connection:
                     self._address,
                     bytearray(data).hex(),
                 )
-                return packets
+                return
 
             header = data[0:6]
             data_end = 6 + struct.unpack("<H", header[4:6])[0]
             if data_end > len(data):
-                self._enc_packet_buffer += data
+                self._current_enc_packet_buffer += data
                 break
 
             payload_data = data[6 : data_end - 2]
@@ -339,7 +364,20 @@ class Connection:
                         bytearray(payload_data).hex(),
                     )
                     raise PacketParseError
+                self._encrypted_payload_data_buffer.append(payload_data)
+            except Exception as e:
+                self._state = ConnectionState.ERROR_PACKET_PARSE
+                await self.errorsAdd(e)
 
+    async def parseEncPackets(
+        self, payloads: list[str], reverse: bool = False
+    ) -> AsyncGenerator[Packet]:
+        """Deserializes bytes stream into a list of Packets"""
+        if reverse:
+            payloads.reverse()
+
+        try:
+            for payload_data in payloads:
                 # Decrypt the payload packet
                 payload = await self.decryptSession(payload_data)
                 _LOGGER.debug(
@@ -351,12 +389,10 @@ class Connection:
                 # Parse packet
                 packet = await self._packet_parse(payload)
                 if packet is not None:
-                    packets.append(packet)
-            except Exception as e:
-                self._state = ConnectionState.ERROR_PACKET_PARSE
-                await self.errorsAdd(e)
-
-        return packets
+                    yield packet
+        except Exception as e:
+            self._state = ConnectionState.ERROR_PACKET_PARSE
+            await self.errorsAdd(e)
 
     async def sendRequest(self, send_data: bytes, response_handler=None):
         _LOGGER.debug("%s: Sending: %r", self._address, bytearray(send_data).hex())
@@ -512,9 +548,16 @@ class Connection:
         self, characteristic: BleakGATTCharacteristic, recv_data: bytearray
     ):
         await self._client.stop_notify(Connection.NOTIFY_CHARACTERISTIC)
-        packets = await self.parseEncPackets(bytes(recv_data))
-        if len(packets) < 1:
+        await self._add_enc_packet_to_buffer(bytes(recv_data))
+        if len(self._encrypted_payload_data_buffer) < 1:
             raise PacketReceiveError
+
+        packets = [
+            packet
+            async for packet in self._decrypted_packets(
+                self._encrypted_payload_data_buffer
+            )
+        ]
         data = packets[0].payload
 
         _LOGGER.debug(
@@ -545,18 +588,12 @@ class Connection:
         if not self._update_period or not self._state.is_processing_messages:
             return True
 
-        # 2. if we are waiting for next message in sequence
-        if self._updated_current_period > 0:
-            self._updated_current_period -= 1
-            return True
-
-        # 3. if less than update_period seconds have passed since last message
+        # 2. if less than update_period seconds have passed since last message
         now = time.time()
         if now - self._last_update < self._update_period:
             return False
 
         self._last_update = now
-        self._updated_current_period = self._n_messages_per_update
         return True
 
     def allow_next_update(self):
@@ -566,44 +603,54 @@ class Connection:
         Useful for updating state after sending command to the device.
         """
         self._last_update = 0
-        self._updated_current_period = self._n_messages_per_update
+
+    def _handle_auth_packet(self, packet: Packet):
+        # Handling autoAuthentication response
+        if packet.src == 0x35 and packet.cmdSet == 0x35 and packet.cmdId == 0x86:
+            if packet.payload != b"\x00":
+                # TODO: Most probably we need to follow some other way for auth, but happens rarely
+                _LOGGER.error(
+                    "%s: Auth failed with response: %r", self._address, packet
+                )
+                self._state = ConnectionState.ERROR_AUTH_FAILED
+                self._connected.set()
+                raise AuthFailedError
+            _LOGGER.info("%s: Auth completed, everything is fine", self._address)
+            self._state = ConnectionState.AUTHENTICATED
+            self._connected.set()
+            return True
+        return False
+
+    async def _decrypted_packets(self, payloads: Sequence[str]):
+        async for packet in self.parseEncPackets(list(payloads)):
+            processed = self._handle_auth_packet(packet)
+            if processed:
+                continue
+
+            yield packet
+
+            if not packet.parsed:
+                _LOGGER.debug("%s: listenForDataHandler: %r", self._address, packet)
 
     async def listenForDataHandler(
         self, characteristic: BleakGATTCharacteristic, recv_data: bytearray
     ):
+        await self._add_enc_packet_to_buffer(bytes(recv_data))
         if not self._can_update():
             return
 
+        async with self._buffer_lock:
+            payloads = self._encrypted_payload_data_buffer.copy()
+            self._encrypted_payload_data_buffer.clear()
+
+        if not payloads:
+            return
+
         try:
-            packets = await self.parseEncPackets(bytes(recv_data))
+            await self._data_parse(PacketIterator(self, payloads))
         except Exception as e:
             self._state = ConnectionState.ERROR_PACKET_PARSE
             await self.errorsAdd(e)
-            return
-
-        for packet in packets:
-            processed = False
-
-            # Handling autoAuthentication response
-            if packet.src == 0x35 and packet.cmdSet == 0x35 and packet.cmdId == 0x86:
-                if packet.payload != b"\x00":
-                    # TODO: Most probably we need to follow some other way for auth, but happens rarely
-                    _LOGGER.error(
-                        "%s: Auth failed with response: %r", self._address, packet
-                    )
-                    self._state = ConnectionState.ERROR_AUTH_FAILED
-                    self._connected.set()
-                    raise AuthFailedError
-                processed = True
-                _LOGGER.info("%s: Auth completed, everything is fine", self._address)
-                self._state = ConnectionState.AUTHENTICATED
-                self._connected.set()
-            else:
-                # Processing the packet with specific device
-                processed = await self._data_parse(packet)
-
-            if not processed:
-                _LOGGER.debug("%s: listenForDataHandler: %r", self._address, packet)
 
     async def _cancel_tasks(self):
         for task in self._tasks:
