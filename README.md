@@ -93,6 +93,35 @@ Recognized devices:
 | Cell Temperature (disabled)         |                |                      |
 </details>
 
+<details><summary>
+<b>Delta Pro 3 (EF-DP3####)</b>
+</summary>
+
+| *Sensors*                       | *Switches*     | *Sliders*            |
+|---------------------------------|----------------|----------------------|
+| Main Battery Level              | AC Ports       | Backup Reserve Level |
+| Battery Level                   | DC Ports       | Max Charge Limit     |
+| AC Input Power                  | Backup Reserve | Min Discharge Limit  |
+| AC Output Power                 | USB Ports      |                      |
+| DC 12V Port Output Power        |                |                      |
+| DC Port Input Power             |                |                      |
+| DC Port Input State             |                |                      |
+| DC Port (2) Input Power         |                |                      |
+| DC Port (2) Input State         |                |                      |
+| Solar Power                     |                |                      |
+| Solar Power (2)                 |                |                      |
+| Input Power Total               |                |                      |
+| Output Power Total              |                |                      |
+| USB A Output Power              |                |                      |
+| USB A (2) Output Power          |                |                      |
+| USB C Output Power              |                |                      |
+| USB C (2) Output Power          |                |                      |
+| AC Plugged In                   |                |                      |
+| Battery Input Power (disabled)  |                |                      |
+| Battery Output Power (disabled) |                |                      |
+| Cell Temperature (disabled)     |                |                      |
+</details>
+
 </p>
 
 **NOTICE**: this integration utilizes Bluetooth LE of the EF device, which is supporting just one
