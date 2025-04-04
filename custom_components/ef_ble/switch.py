@@ -24,6 +24,16 @@ SWITCH_TYPES = [
         device_class=SwitchDeviceClass.OUTLET,
     ),
     SwitchEntityDescription(
+        key="ac_lv_port",
+        name="LV AC",
+        device_class=SwitchDeviceClass.OUTLET,
+    ),
+    SwitchEntityDescription(
+        key="ac_hv_port",
+        name="HV AC",
+        device_class=SwitchDeviceClass.OUTLET,
+    ),
+    SwitchEntityDescription(
         key="energy_backup",
         name="Backup Reserve",
         device_class=SwitchDeviceClass.SWITCH,
