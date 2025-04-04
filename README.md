@@ -93,6 +93,34 @@ Recognized devices:
 | Cell Temperature (disabled)         |                |                      |
 </details>
 
+<details><summary>
+<b>Delta Pro 3 (EF-DP3####)</b>
+</summary>
+
+| *Sensors*                   | *Switches*     | *Sliders*            |
+|-----------------------------|----------------|----------------------|
+| Main Battery Level          | AC Ports       | Backup Reserve Level |
+| Battery Level               | DC Ports       | Max Charge Limit     |
+| AC Input Power              | Backup Reserve | Min Discharge Limit  |
+| AC LV Output Power          |                |                      |
+| AC HV Output Power          |                |                      |
+| DC 12V Output Power         |                |                      |
+| DC LV Input Power           |                |                      |
+| DC LV Input State           |                |                      |
+| DC HV Input Power           |                |                      |
+| DC HV Input State           |                |                      |
+| Solar LV Power              |                |                      |
+| Solar HV Power              |                |                      |
+| Input Power Total           |                |                      |
+| Output Power Total          |                |                      |
+| USB A Output Power          |                |                      |
+| USB A (2) Output Power      |                |                      |
+| USB C Output Power          |                |                      |
+| USB C (2) Output Power      |                |                      |
+| AC Plugged In               |                |                      |
+| Cell Temperature (disabled) |                |                      |
+</details>
+
 </p>
 
 **NOTICE**: this integration utilizes Bluetooth LE of the EF device, which is supporting just one
