@@ -37,6 +37,7 @@ class DCPortState(IntEnum):
     OFF = 0
     CAR = 1
     SOLAR = 2
+    DC_CHARGING = 3
 
     @classmethod
     def from_value(cls, value: int):
@@ -59,16 +60,22 @@ class Device(DeviceBase, ProtobufProps):
     battery_level = pb_field(pb.cms_batt_soc, lambda value: round(value, 2))
     battery_level_main = pb_field(pb.bms_batt_soc, lambda value: round(value, 2))
 
-    ac_input_power = pb_field(pb.pow_get_ac_in)
-    ac_output_power = pb_field(pb.pow_get_ac_out, _out_power)
+    ac_input_power = pb_field(pb.pow_get_ac, _out_power)
+    ac_lv_output_power = pb_field(pb.pow_get_ac_lv_out, _out_power)
+    ac_hv_output_power = pb_field(pb.pow_get_ac_hv_out, _out_power)
 
     input_power = pb_field(pb.pow_in_sum_w)
     output_power = pb_field(pb.pow_out_sum_w)
 
     dc12v_output_power = pb_field(pb.pow_get_12v, _out_power)
-    dc_port_input_power = pb_field(pb.pow_get_pv)
-    dc_port_state = pb_field(
-        pb.plug_in_info_pv_type, lambda v: DCPortState(v).state_name
+
+    dc_lv_input_power = pb_field(pb.pow_get_pv_l)
+    dc_hv_input_power = pb_field(pb.pow_get_pv_h)
+    dc_lv_input_state = pb_field(
+        pb.plug_in_info_pv_l_type, lambda v: DCPortState(v).state_name
+    )
+    dc_hv_input_state = pb_field(
+        pb.plug_in_info_pv_h_type, lambda v: DCPortState(v).state_name
     )
 
     usbc_output_power = pb_field(pb.pow_get_typec1, _out_power)
@@ -86,11 +93,13 @@ class Device(DeviceBase, ProtobufProps):
     battery_charge_limit_max = pb_field(pb.cms_max_chg_soc)
 
     cell_temperature = pb_field(pb.bms_max_cell_temp)
-    dc_12v_port = pb_field(pb.flow_info_12v, _flow_is_on)
-    ac_ports = pb_field(pb.flow_info_ac_out, _flow_is_on)
-    usb_ports = pb_field(pb.flow_info_qcusb1, _flow_is_on)
 
-    solar_input_power = Field[float]()
+    dc_12v_port = pb_field(pb.flow_info_12v, _flow_is_on)
+    ac_lv_port = pb_field(pb.flow_info_ac_lv_out, _flow_is_on)
+    ac_hv_port = pb_field(pb.flow_info_ac_hv_out, _flow_is_on)
+
+    solar_lv_power = Field[float]()
+    solar_hv_power = Field[float]()
 
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
@@ -126,15 +135,12 @@ class Device(DeviceBase, ProtobufProps):
                 self._time_commands.async_send_all()
             processed = True
 
-        self.solar_input_power = (
-            round(self.dc_port_input_power, 2)
-            if (
-                self.dc_port_state == DCPortState.SOLAR.state_name
-                and self.dc_port_input_power is not None
-            )
-            else 0
+        self.solar_lv_power = self._get_solar_power(
+            self.dc_lv_input_power, self.dc_lv_input_state
         )
-        self._after_message_parsed()
+        self.solar_hv_power = self._get_solar_power(
+            self.dc_hv_input_power, self.dc_hv_input_state
+        )
 
         for field_name in self.updated_fields:
             self.update_callback(field_name)
@@ -142,8 +148,12 @@ class Device(DeviceBase, ProtobufProps):
 
         return processed
 
-    def _after_message_parsed(self):
-        pass
+    def _get_solar_power(self, power: float | None, state: str | None):
+        return (
+            round(power, 2)
+            if state == DCPortState.SOLAR.state_name and power is not None
+            else 0
+        )
 
     async def _send_config_packet(self, message: Message):
         payload = message.SerializeToString()
@@ -171,8 +181,15 @@ class Device(DeviceBase, ProtobufProps):
             mr521_pb2.ConfigWrite(cfg_dc_12v_out_open=enabled)
         )
 
-    async def enable_ac_ports(self, enabled: bool):
-        await self._send_config_packet(mr521_pb2.ConfigWrite(cfg_ac_out_open=enabled))
+    async def enable_ac_hv_port(self, enabled: bool):
+        await self._send_config_packet(
+            mr521_pb2.ConfigWrite(cfg_hv_ac_out_open=enabled)
+        )
+
+    async def enable_ac_lv_port(self, enabled: bool):
+        await self._send_config_packet(
+            mr521_pb2.ConfigWrite(cfg_lv_ac_out_open=enabled)
+        )
 
     async def set_battery_charge_limit_min(self, limit: int):
         if (
@@ -193,6 +210,3 @@ class Device(DeviceBase, ProtobufProps):
 
         await self._send_config_packet(mr521_pb2.ConfigWrite(cfg_max_chg_soc=limit))
         return True
-
-    async def enable_usb_ports(self, enabled: bool):
-        await self._send_config_packet(mr521_pb2.ConfigWrite(cfg_usb_open=enabled))
