@@ -14,6 +14,7 @@
       "password_empty": "Password cannot be empty",
       "device_auth_failed": "Device authentification failed, user id may be incorrect",
       "bt_timeout": "Could not connect to device, exceeded maximum tries",
+      "bt_not_found": "Device was found, it may have been removed after scan stopped, try reload",
       "bt_general_eror": "Could not connect to device, see logs for details",
       "error_try_refresh": "Connection is in invalid state, try refreshing before adding device"
     },

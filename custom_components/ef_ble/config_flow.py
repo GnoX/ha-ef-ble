@@ -240,7 +240,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
             case ConnectionState.ERROR_TIMEOUT:
                 error = "bt_timeout"
             case ConnectionState.ERROR_NOT_FOUND:
-                error = "bt_timeout"
+                error = "bt_not_found"
             case ConnectionState.ERROR_BLEAK:
                 error = "bt_general_error"
             case ConnectionState.ERROR_UNKNOWN:
