@@ -226,8 +226,8 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
 
         self._user_id = user_id
 
-        await device.connect(self._user_id, max_attempts=2)
-        await device.waitConnected(timeout=20)
+        await device.connect(self._user_id, max_attempts=4)
+        await device.waitConnected(timeout=40)
         conn_state = device.connection_state
         await device.disconnect()
 
