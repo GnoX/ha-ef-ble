@@ -10,7 +10,7 @@ class Device(delta3.Device):
 
     dc_port_2_input_power = pb_field(pb.pow_get_pv2)
     dc_port_2_state = pb_field(
-        pb.plug_in_info_pv2_type, lambda v: DCPortState(v).state_name
+        pb.plug_in_info_pv2_type, lambda v: DCPortState.from_value(v).state_name
     )
 
     solar_input_power_2 = Field[float]()
