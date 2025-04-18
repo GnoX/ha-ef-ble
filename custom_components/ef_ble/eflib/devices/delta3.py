@@ -43,6 +43,7 @@ class DCPortState(IntEnum):
         try:
             return cls(value)
         except ValueError:
+            logging.debug("Encountered invalid value %s for DCPortState", value)
             return cls.UNKNOWN
 
     @property
@@ -68,7 +69,7 @@ class Device(DeviceBase, ProtobufProps):
     dc12v_output_power = pb_field(pb.pow_get_12v, _out_power)
     dc_port_input_power = pb_field(pb.pow_get_pv)
     dc_port_state = pb_field(
-        pb.plug_in_info_pv_type, lambda v: DCPortState(v).state_name
+        pb.plug_in_info_pv_type, lambda v: DCPortState.from_value(v).state_name
     )
 
     usbc_output_power = pb_field(pb.pow_get_typec1, _out_power)
