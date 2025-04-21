@@ -1,8 +1,8 @@
 import asyncio
-from dataclasses import dataclass
 import logging
 import struct
 import time
+from dataclasses import dataclass
 
 from .devicebase import DeviceBase
 from .packet import Packet

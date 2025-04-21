@@ -1,12 +1,11 @@
-from enum import IntEnum
-
 from custom_components.ef_ble.eflib.devices import river3
 
 from ..pb import pr705_pb2
 from ..props import pb_field
+from ..props.enums import IntFieldValue
 
 
-class LedMode(IntEnum):
+class LedMode(IntFieldValue):
     OFF = 0
     DIM = 1
     BRIGHT = 2
@@ -20,7 +19,14 @@ class Device(river3.Device):
 
     battery_level_main = pb_field(river3.pb.bms_batt_soc)
 
-    led_mode = pb_field(river3.pb.led_mode, lambda num: LedMode(num))
+    def __init__(
+        self, ble_dev: river3.BLEDevice, adv_data: river3.AdvertisementData, sn: str
+    ) -> None:
+        super().__init__(ble_dev, adv_data, sn)
+        self.car_input_max_amps = 8
+        self.solar_input_max_amps = 13
+
+    led_mode = pb_field(river3.pb.led_mode, lambda num: LedMode.from_value(num))
 
     async def set_led_mode(self, state: LedMode):
         await self._send_config_packet(pr705_pb2.ConfigWrite(cfg_led_mode=state.value))
