@@ -7,7 +7,7 @@ from homeassistant.components.number import (
     NumberEntity,
     NumberEntityDescription,
 )
-from homeassistant.const import PERCENTAGE, UnitOfPower
+from homeassistant.const import PERCENTAGE, UnitOfElectricCurrent, UnitOfPower
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -27,7 +27,6 @@ class EcoflowNumberEntityDescription[T: DeviceBase](NumberEntityDescription):
 
 
 NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
-    # River 3
     EcoflowNumberEntityDescription[river3.Device](
         key="energy_backup_battery_level",
         name="Backup Reserve",
@@ -68,9 +67,7 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
             lambda device, value: device.set_battery_charge_limit_max(int(value))
         ),
     ),
-    EcoflowNumberEntityDescription[
-        river3.Device | delta3.Device | delta3_plus.Device | delta_pro_3.Device
-    ](
+    EcoflowNumberEntityDescription[river3.Device | delta3.Device | delta_pro_3.Device](
         key="ac_charging_speed",
         name="AC Charging Speed",
         device_class=NumberDeviceClass.POWER,
@@ -80,6 +77,18 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
         max_value_prop="max_ac_charging_power",
         async_set_native_value=(
             lambda device, value: device.set_ac_charging_speed(int(value))
+        ),
+    ),
+    EcoflowNumberEntityDescription[river3.Device](
+        key="dc_charging_max_amps",
+        name="DC Charging Max Amps",
+        device_class=NumberDeviceClass.CURRENT,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        native_step=1,
+        native_min_value=0,
+        max_value_prop="dc_charging_current_max",
+        async_set_native_value=(
+            lambda device, value: device.set_dc_charging_amps_max(int(value))
         ),
     ),
 ]

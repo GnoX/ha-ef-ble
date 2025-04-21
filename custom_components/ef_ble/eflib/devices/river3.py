@@ -1,11 +1,7 @@
 import logging
-from collections.abc import Sequence
-from dataclasses import dataclass
-from typing import Any
 
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
-from google.protobuf.message import Message
 
 from ..commands import TimeCommands
 from ..devicebase import DeviceBase
@@ -18,13 +14,20 @@ from ..props import (
     proto_attr_mapper,
     repeated_pb_field_type,
 )
+from ..props.enums import IntFieldValue
 
 _LOGGER = logging.getLogger(__name__)
 
 pb = proto_attr_mapper(pr705_pb2.DisplayPropertyUpload)
 
 
-@dataclass
+class DcChargingType(IntFieldValue):
+    UNKNOWN = -1
+    AUTO = 0
+    CAR = 1
+    SOLAR = 2
+
+
 class _StatField(
     repeated_pb_field_type(
         list_field=pb.display_statistics_sum.list_info,
@@ -98,11 +101,16 @@ class Device(DeviceBase, ProtobufProps):
     dc_12v_port = pb_field(pb.flow_info_12v, _flow_is_on)
     ac_ports = pb_field(pb.flow_info_ac_out, _flow_is_on)
 
+    dc_charging_type = pb_field(pb.pv_chg_type, lambda x: DcChargingType.from_value(x))
+    dc_charging_max_amps = pb_field(pb.plug_in_info_pv_dc_amp_max)
+    dc_charging_current_max = Field[int]()
+
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
     ) -> None:
         super().__init__(ble_dev, adv_data, sn)
         self._time_commands = TimeCommands(self)
+        self.dc_charging_current_max = 8
 
     @classmethod
     def check(cls, sn):
@@ -131,8 +139,8 @@ class Device(DeviceBase, ProtobufProps):
         if packet.src == 0x02 and packet.cmdSet == 0xFE and packet.cmdId == 0x15:
             p = pr705_pb2.DisplayPropertyUpload()
             p.ParseFromString(packet.payload)
-            _LOGGER.debug("%s: %s: Parsed data: %r", self.address, self.name, packet)
-            # _LOGGER.debug("River 3 Parsed Message \n %s", str(p))
+            # _LOGGER.debug("%s: %s: Parsed data: %r", self.address, self.name, packet)
+            _LOGGER.debug("River 3 Parsed Message \n %s", str(p))
             self.update_from_message(p)
             processed = True
         elif (
@@ -229,5 +237,23 @@ class Device(DeviceBase, ProtobufProps):
 
         await self._send_config_packet(
             pr705_pb2.ConfigWrite(cfg_plug_in_info_ac_in_chg_pow_max=value)
+        )
+        return True
+
+    async def set_dc_charging_type(self, state: DcChargingType):
+        await self._send_config_packet(
+            pr705_pb2.ConfigWrite(cfg_pv_chg_type=state.value)
+        )
+
+    async def set_dc_charging_amps_max(self, value: int):
+        if (
+            self.dc_charging_current_max is None
+            or value < 0
+            or value > self.dc_charging_current_max
+        ):
+            return False
+
+        await self._send_config_packet(
+            pr705_pb2.ConfigWrite(cfg_plug_in_info_pv_dc_amp_max=value)
         )
         return True

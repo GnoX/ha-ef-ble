@@ -12,7 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from custom_components.ef_ble.eflib import DeviceBase
 
 from . import DeviceConfigEntry
-from .eflib.devices import river3plus
+from .eflib.devices import river3, river3_plus
 from .entity import EcoflowEntity
 
 
@@ -23,12 +23,28 @@ class EcoflowSelectEntityDescription[T: DeviceBase](SelectEntityDescription):
 
 SELECT_TYPES: list[EcoflowSelectEntityDescription] = [
     # River 3 Plus
-    EcoflowSelectEntityDescription[river3plus.Device](
+    EcoflowSelectEntityDescription[river3_plus.Device](
         key="led_mode",
         name="LED",
-        options=[opt.name.lower() for opt in river3plus.LedMode],
+        options=[opt.name.lower() for opt in river3_plus.LedMode],
         set_state=(
-            lambda device, value: device.set_led_mode(river3plus.LedMode[value.upper()])
+            lambda device, value: device.set_led_mode(
+                river3_plus.LedMode[value.upper()]
+            )
+        ),
+    ),
+    EcoflowSelectEntityDescription[river3.Device](
+        key="dc_charging_type",
+        name="DC Charging Type",
+        options=[
+            opt.name.lower()
+            for opt in river3.DcChargingType
+            if opt is not river3.DcChargingType.UNKNOWN
+        ],
+        set_state=(
+            lambda device, value: device.set_dc_charging_type(
+                river3.DcChargingType[value.upper()]
+            )
         ),
     ),
 ]
