@@ -7,13 +7,13 @@ from homeassistant.components.number import (
     NumberEntity,
     NumberEntityDescription,
 )
-from homeassistant.const import PERCENTAGE
+from homeassistant.const import PERCENTAGE, UnitOfPower
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import DeviceConfigEntry
 from .eflib import DeviceBase
-from .eflib.devices import river3
+from .eflib.devices import delta3, delta3_plus, delta_pro_3, river3
 from .entity import EcoflowEntity
 
 
@@ -66,6 +66,20 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
         min_value_prop="battery_charge_limit_min",
         async_set_native_value=(
             lambda device, value: device.set_battery_charge_limit_max(int(value))
+        ),
+    ),
+    EcoflowNumberEntityDescription[
+        river3.Device | delta3.Device | delta3_plus.Device | delta_pro_3.Device
+    ](
+        key="ac_charging_speed",
+        name="AC Charging Speed",
+        device_class=NumberDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        native_step=1,
+        native_min_value=0,
+        max_value_prop="max_ac_charging_power",
+        async_set_native_value=(
+            lambda device, value: device.set_ac_charging_speed(int(value))
         ),
     ),
 ]
