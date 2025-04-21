@@ -1,5 +1,4 @@
 import logging
-from enum import IntEnum
 
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
@@ -14,7 +13,9 @@ from ..props import (
     ProtobufProps,
     pb_field,
     proto_attr_mapper,
+    repeated_pb_field_type,
 )
+from ..props.enums import IntFieldValue
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,23 +33,41 @@ def _flow_is_on(x):
 pb = proto_attr_mapper(pd335_sys_pb2.DisplayPropertyUpload)
 
 
-class DCPortState(IntEnum):
+class _DcChargingMaxField(
+    repeated_pb_field_type(
+        list_field=pb.plug_in_info_pv_chg_max_list.pv_chg_max_item,
+        value_field=lambda x: x.pv_chg_amp_max,
+    )
+):
+    vol_type: int
+
+    def process_item(self, value: pd335_sys_pb2.PvChgMaxItem) -> int | None:
+        return value.pv_chg_amp_max if value.pv_chg_vol_type == self.vol_type else None
+
+
+class _DcAmpSettingField(
+    repeated_pb_field_type(
+        list_field=pb.pv_dc_chg_setting_list.list_info,
+        value_field=lambda x: x.pv_chg_amp_limit,
+    )
+):
+    vol_type: int
+    plug_index: int
+
+    def process_item(self, value: pd335_sys_pb2.PvDcChgSetting) -> int | None:
+        return (
+            value.pv_chg_amp_limit
+            if value.pv_plug_index == self.plug_index
+            and value.pv_chg_vol_spec == self.vol_type
+            else None
+        )
+
+
+class DCPortState(IntFieldValue):
     UNKNOWN = -1
     OFF = 0
     CAR = 1
     SOLAR = 2
-
-    @classmethod
-    def from_value(cls, value: int):
-        try:
-            return cls(value)
-        except ValueError:
-            logging.debug("Encountered invalid value %s for DCPortState", value)
-            return cls.UNKNOWN
-
-    @property
-    def state_name(self):
-        return self.name.lower()
 
 
 class Device(DeviceBase, ProtobufProps):
@@ -95,6 +114,11 @@ class Device(DeviceBase, ProtobufProps):
 
     ac_charging_speed = pb_field(pb.plug_in_info_ac_in_chg_pow_max)
     max_ac_charging_power = Field[int]()
+
+    dc_charging_max_amps = _DcAmpSettingField(
+        pd335_sys_pb2.PV_CHG_VOL_SPEC_12V, pd335_sys_pb2.PV_PLUG_INDEX_1
+    )
+    dc_charging_current_max = _DcChargingMaxField(pd335_sys_pb2.PV_CHG_VOL_SPEC_12V)
 
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
@@ -228,4 +252,24 @@ class Device(DeviceBase, ProtobufProps):
                 cfg_plug_in_info_ac_in_chg_pow_max=value,
             )
         )
+        return True
+
+    async def set_dc_charging_amps_max(
+        self,
+        value: int,
+        plug_index: pd335_sys_pb2.PV_PLUG_INDEX = pd335_sys_pb2.PV_PLUG_INDEX_1,
+    ) -> bool:
+        if (
+            self.dc_charging_current_max is None
+            or value < 0
+            or value > self.dc_charging_current_max
+        ):
+            return False
+
+        config = pd335_sys_pb2.ConfigWrite()
+        config.cfg_pv_dc_chg_setting.pv_plug_index = plug_index
+        config.cfg_pv_dc_chg_setting.pv_chg_vol_spec = pd335_sys_pb2.PV_CHG_VOL_SPEC_12V
+        config.cfg_pv_dc_chg_setting.pv_chg_amp_limit = value
+
+        await self._send_config_packet(config)
         return True
