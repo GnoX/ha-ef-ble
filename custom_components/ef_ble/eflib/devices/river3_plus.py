@@ -23,8 +23,6 @@ class Device(river3.Device):
         self, ble_dev: river3.BLEDevice, adv_data: river3.AdvertisementData, sn: str
     ) -> None:
         super().__init__(ble_dev, adv_data, sn)
-        self.car_input_max_amps = 8
-        self.solar_input_max_amps = 13
 
     led_mode = pb_field(river3.pb.led_mode, lambda num: LedMode.from_value(num))
 

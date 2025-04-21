@@ -1,5 +1,4 @@
 import logging
-from dataclasses import dataclass
 
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
@@ -29,7 +28,6 @@ class DcChargingType(IntFieldValue):
     SOLAR = 2
 
 
-@dataclass
 class _StatField(
     repeated_pb_field_type(
         list_field=pb.display_statistics_sum.list_info,
@@ -105,16 +103,14 @@ class Device(DeviceBase, ProtobufProps):
 
     dc_charging_type = pb_field(pb.pv_chg_type, lambda x: DcChargingType.from_value(x))
     dc_charging_max_amps = pb_field(pb.plug_in_info_pv_dc_amp_max)
-    dc_amp_max_limit = Field[int]()
-    solar_input_max_amps = Field[int]()
-    car_input_max_amps = Field[int]()
+    dc_charging_current_max = Field[int]()
 
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
     ) -> None:
         super().__init__(ble_dev, adv_data, sn)
         self._time_commands = TimeCommands(self)
-        self.car_input_max_amps = self.solar_input_max_amps = 8
+        self.dc_charging_current_max = 8
 
     @classmethod
     def check(cls, sn):
@@ -173,16 +169,6 @@ class Device(DeviceBase, ProtobufProps):
                 + self.usbc_output_energy
                 + self.dc12v_output_energy
             )
-
-        match self.dc_charging_type:
-            case DcChargingType.CAR:
-                self.dc_amp_max_limit = self.car_input_max_amps
-            case DcChargingType.SOLAR:
-                self.dc_amp_max_limit = self.solar_input_max_amps
-            case DcChargingType.AUTO:
-                self.dc_amp_max_limit = max(
-                    self.car_input_max_amps or 0, self.solar_input_max_amps or 0
-                )
 
         for field_name in self.updated_fields:
             self.update_callback(field_name)
@@ -260,17 +246,14 @@ class Device(DeviceBase, ProtobufProps):
         )
 
     async def set_dc_charging_amps_max(self, value: int):
-        if self.dc_amp_max_limit is None or value < 0 or value > self.dc_amp_max_limit:
+        if (
+            self.dc_charging_current_max is None
+            or value < 0
+            or value > self.dc_charging_current_max
+        ):
             return False
 
         await self._send_config_packet(
-            pr705_pb2.ConfigWrite(
-                cfg_plug_in_info_pv_dc_amp_max=value,
-                cfg_pv_chg_type=(
-                    self.dc_charging_type.value
-                    if self.dc_charging_type is not None
-                    else None
-                ),
-            )
+            pr705_pb2.ConfigWrite(cfg_plug_in_info_pv_dc_amp_max=value)
         )
         return True

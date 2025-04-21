@@ -1,6 +1,7 @@
 import abc
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Callable, cast
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Callable, cast, dataclass_transform
 
 from google.protobuf.message import Message
 
@@ -10,12 +11,16 @@ if TYPE_CHECKING:
     from .protobuf_props import ProtobufProps
 
 
+@dataclass_transform()
 class ProtobufRepeatedField[T_ITEM, T_OUT](ProtobufField[T_OUT]):
     """
     Represents field for repeated protobuf fields
 
     Do not use this class directly - use `repeated_pb_field_type` for better typing
     """
+
+    def __init_subclass__(cls) -> None:
+        dataclass(cls)
 
     def get_list(self, value: Message) -> Sequence[Message]:
         """
@@ -57,9 +62,13 @@ class ProtobufRepeatedField[T_ITEM, T_OUT](ProtobufField[T_OUT]):
         self._set_value(instance, value)
 
 
+def _raise[T_IN](v: T_IN, exc: type[Exception]) -> T_IN:
+    raise exc
+
+
 def repeated_pb_field_type[T_ITEM, T_OUT](
     list_field: Sequence[T_ITEM],
-    value_field: Callable[[T_ITEM], T_OUT] = lambda x: x,
+    value_field: Callable[[T_ITEM], T_OUT] = lambda x: _raise(x, NotImplementedError),
 ) -> type[ProtobufRepeatedField[T_ITEM, T_OUT]]:
     """
     Create repeated field type from protobuf accessor repesenting sequence type
@@ -93,5 +102,8 @@ def repeated_pb_field_type[T_ITEM, T_OUT](
 
     class CustomRepeatedField(ProtobufRepeatedField[T_ITEM, T_OUT]):
         pb_field = list_field
+
+        def process_item(self, value: T_ITEM) -> T_OUT | None:
+            return value_field(value)
 
     return CustomRepeatedField
