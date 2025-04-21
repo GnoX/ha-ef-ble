@@ -42,10 +42,10 @@ Recognized devices:
 | *Sensors*                       | *Switches*     | *Sliders*            | *Selects*            |
 |---------------------------------|----------------|----------------------|----------------------|
 | AC Input Energy                 | AC Port        | Backup Reserve Level | Led Mode (Plus only) |
-| AC Input Power                  | DC Port        | Max Charge Limit     |                      |
+| AC Input Power                  | DC Port        | Max Charge Limit     | DC Charging Type     |
 | AC Output Energy                | Backup Reserve | Min Discharge Limit  |                      |
 | AC Output Power                 |                | AC Charging Speed    |                      |
-| Main Battery Level (Plus only)  |                |                      |                      |
+| Main Battery Level (Plus only)  |                | DC Charging Max Amps |                      |
 | Battery Level                   |                |                      |                      |
 | DC 12V Port Output Energy       |                |                      |                      |
 | DC 12V Port Output Power        |                |                      |                      |
