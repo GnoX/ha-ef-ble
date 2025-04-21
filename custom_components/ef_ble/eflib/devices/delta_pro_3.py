@@ -84,6 +84,9 @@ class Device(DeviceBase, ProtobufProps):
     usba_output_power = pb_field(pb.pow_get_qcusb1, _out_power)
     usba2_output_power = pb_field(pb.pow_get_qcusb2, _out_power)
 
+    ac_charging_speed = pb_field(pb.plug_in_info_ac_in_chg_pow_max)
+    max_ac_charging_power = pb_field(pb.plug_in_info_ac_in_chg_hal_pow_max)
+
     plugged_in_ac = pb_field(pb.plug_in_info_ac_charger_flag)
     energy_backup = pb_field(pb.energy_backup_en)
     energy_backup_battery_level = pb_field(pb.energy_backup_start_soc)
@@ -208,4 +211,17 @@ class Device(DeviceBase, ProtobufProps):
             return False
 
         await self._send_config_packet(mr521_pb2.ConfigWrite(cfg_max_chg_soc=limit))
+        return True
+
+    async def set_ac_charging_speed(self, value: int):
+        if (
+            self.max_ac_charging_power is None
+            or value > self.max_ac_charging_power
+            or value < 0
+        ):
+            return False
+
+        await self._send_config_packet(
+            mr521_pb2.ConfigWrite(cfg_plug_in_info_ac_in_chg_pow_max=value)
+        )
         return True

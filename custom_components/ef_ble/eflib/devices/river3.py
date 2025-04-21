@@ -81,6 +81,9 @@ class Device(DeviceBase, ProtobufProps):
     usba_output_power = pb_field(pb.pow_get_qcusb1, _out_power)
     usba_output_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_USBA_OUT_ENERGY)
 
+    ac_charging_speed = pb_field(pb.plug_in_info_ac_in_chg_pow_max)
+    max_ac_charging_power = pb_field(pb.plug_in_info_ac_in_chg_hal_pow_max)
+
     plugged_in_ac = pb_field(pb.plug_in_info_ac_charger_flag)
     energy_backup = pb_field(pb.energy_backup_en)
     energy_backup_battery_level = pb_field(pb.energy_backup_start_soc)
@@ -187,14 +190,12 @@ class Device(DeviceBase, ProtobufProps):
         await self._send_config_packet(config)
 
     async def enable_dc_12v_port(self, enabled: bool):
-        config = pr705_pb2.ConfigWrite()
-        config.cfg_dc_12v_out_open = enabled
-        await self._send_config_packet(config)
+        await self._send_config_packet(
+            pr705_pb2.ConfigWrite(cfg_dc_12v_out_open=enabled)
+        )
 
     async def enable_ac_ports(self, enabled: bool):
-        config = pr705_pb2.ConfigWrite()
-        config.cfg_ac_out_open = enabled
-        await self._send_config_packet(config)
+        await self._send_config_packet(pr705_pb2.ConfigWrite(cfg_ac_out_open=enabled))
 
     async def set_battery_charge_limit_min(self, limit: int):
         if (
@@ -203,10 +204,7 @@ class Device(DeviceBase, ProtobufProps):
         ):
             return False
 
-        config = pr705_pb2.ConfigWrite()
-        config.cfg_min_dsg_soc = limit
-
-        await self._send_config_packet(config)
+        await self._send_config_packet(pr705_pb2.ConfigWrite(cfg_min_dsg_soc=limit))
         return True
 
     async def set_battery_charge_limit_max(self, limit: int):
@@ -216,8 +214,20 @@ class Device(DeviceBase, ProtobufProps):
         ):
             return False
 
-        config = pr705_pb2.ConfigWrite()
-        config.cfg_max_chg_soc = limit
+        await self._send_config_packet(
+            message=pr705_pb2.ConfigWrite(cfg_max_chg_soc=limit)
+        )
+        return True
 
-        await self._send_config_packet(config)
+    async def set_ac_charging_speed(self, value: int):
+        if (
+            self.max_ac_charging_power is None
+            or value > self.max_ac_charging_power
+            or value < 0
+        ):
+            return False
+
+        await self._send_config_packet(
+            pr705_pb2.ConfigWrite(cfg_plug_in_info_ac_in_chg_pow_max=value)
+        )
         return True

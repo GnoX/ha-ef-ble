@@ -44,7 +44,7 @@ Recognized devices:
 | AC Input Energy                 | AC Port        | Backup Reserve Level | Led Mode (Plus only) |
 | AC Input Power                  | DC Port        | Max Charge Limit     |                      |
 | AC Output Energy                | Backup Reserve | Min Discharge Limit  |                      |
-| AC Output Power                 |                |                      |                      |
+| AC Output Power                 |                | AC Charging Speed    |                      |
 | Main Battery Level (Plus only)  |                |                      |                      |
 | Battery Level                   |                |                      |                      |
 | DC 12V Port Output Energy       |                |                      |                      |
@@ -73,7 +73,7 @@ Recognized devices:
 | Main Battery Level                  | AC Ports       | Backup Reserve Level |
 | Battery Level                       | DC Ports       | Max Charge Limit     |
 | AC Input Power                      | Backup Reserve | Min Discharge Limit  |
-| AC Output Power                     | USB Ports      |                      |
+| AC Output Power                     | USB Ports      | AC Charging Speed    |
 | DC 12V Port Output Power            |                |                      |
 | DC Port Input Power                 |                |                      |
 | DC Port Input State                 |                |                      |
@@ -102,7 +102,7 @@ Recognized devices:
 | Main Battery Level          | AC Ports       | Backup Reserve Level |
 | Battery Level               | DC Ports       | Max Charge Limit     |
 | AC Input Power              | Backup Reserve | Min Discharge Limit  |
-| AC LV Output Power          |                |                      |
+| AC LV Output Power          |                | AC Charging Speed    |
 | AC HV Output Power          |                |                      |
 | DC 12V Output Power         |                |                      |
 | DC LV Input Power           |                |                      |

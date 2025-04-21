@@ -93,11 +93,15 @@ class Device(DeviceBase, ProtobufProps):
 
     solar_input_power = Field[float]()
 
+    ac_charging_speed = pb_field(pb.plug_in_info_ac_in_chg_pow_max)
+    max_ac_charging_power = Field[int]()
+
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
     ) -> None:
         super().__init__(ble_dev, adv_data, sn)
         self._time_commands = TimeCommands(self)
+        self.max_ac_charging_power = 1500
 
     @classmethod
     def check(cls, sn):
@@ -209,3 +213,19 @@ class Device(DeviceBase, ProtobufProps):
 
     async def enable_usb_ports(self, enabled: bool):
         await self._send_config_packet(pd335_sys_pb2.ConfigWrite(cfg_usb_open=enabled))
+
+    async def set_ac_charging_speed(self, value: int):
+        if (
+            self.max_ac_charging_power is None
+            or value > self.max_ac_charging_power
+            or value < 0
+        ):
+            return False
+
+        await self._send_config_packet(
+            pd335_sys_pb2.ConfigWrite(
+                cfg_ac_in_chg_mode=pd335_sys_pb2.AC_IN_CHG_MODE_SELF_DEF_POW,
+                cfg_plug_in_info_ac_in_chg_pow_max=value,
+            )
+        )
+        return True
