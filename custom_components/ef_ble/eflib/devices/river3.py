@@ -139,8 +139,8 @@ class Device(DeviceBase, ProtobufProps):
         if packet.src == 0x02 and packet.cmdSet == 0xFE and packet.cmdId == 0x15:
             p = pr705_pb2.DisplayPropertyUpload()
             p.ParseFromString(packet.payload)
-            # _LOGGER.debug("%s: %s: Parsed data: %r", self.address, self.name, packet)
-            _LOGGER.debug("River 3 Parsed Message \n %s", str(p))
+            _LOGGER.debug("%s: %s: Parsed data: %r", self.address, self.name, packet)
+            # _LOGGER.debug("River 3 Parsed Message \n %s", str(p))
             self.update_from_message(p)
             processed = True
         elif (

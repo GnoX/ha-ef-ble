@@ -79,7 +79,7 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
             lambda device, value: device.set_ac_charging_speed(int(value))
         ),
     ),
-    EcoflowNumberEntityDescription[river3.Device](
+    EcoflowNumberEntityDescription[river3.Device | delta3.Device](
         key="dc_charging_max_amps",
         name="DC Charging Max Amps",
         device_class=NumberDeviceClass.CURRENT,
@@ -89,6 +89,18 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
         max_value_prop="dc_charging_current_max",
         async_set_native_value=(
             lambda device, value: device.set_dc_charging_amps_max(int(value))
+        ),
+    ),
+    EcoflowNumberEntityDescription[delta3_plus.Device](
+        key="dc_charging_max_amps_2",
+        name="DC (2) Charging Max Amps",
+        device_class=NumberDeviceClass.CURRENT,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        native_step=1,
+        native_min_value=0,
+        max_value_prop="dc_charging_current_max_2",
+        async_set_native_value=(
+            lambda device, value: device.set_dc_charging_amps_max_2(int(value))
         ),
     ),
 ]

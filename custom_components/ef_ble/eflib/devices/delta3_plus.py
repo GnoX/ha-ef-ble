@@ -1,12 +1,21 @@
+from functools import partialmethod
+
+from custom_components.ef_ble.eflib.pb import pd335_sys_pb2
+
 from ..props import Field, pb_field
 from . import delta3
-from .delta3 import DCPortState, pb
+from .delta3 import DCPortState, _DcAmpSettingField, _DcChargingMaxField, pb
 
 
 class Device(delta3.Device):
     """Delta 3 Plus"""
 
     SN_PREFIX = (b"P351",)
+
+    dc_charging_max_amps_2 = _DcAmpSettingField(
+        pd335_sys_pb2.PV_CHG_VOL_SPEC_12V, pd335_sys_pb2.PV_PLUG_INDEX_2
+    )
+    dc_charging_current_max_2 = _DcChargingMaxField(pd335_sys_pb2.PV_CHG_VOL_SPEC_12V)
 
     dc_port_2_input_power = pb_field(pb.pow_get_pv2)
     dc_port_2_state = pb_field(
@@ -24,3 +33,7 @@ class Device(delta3.Device):
             )
             else 0
         )
+
+    set_dc_charging_amps_max_2 = partialmethod(
+        delta3.Device.set_dc_charging_amps_max, plug_index=pd335_sys_pb2.PV_PLUG_INDEX_2
+    )
