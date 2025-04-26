@@ -1,3 +1,4 @@
+import abc
 import logging
 from collections import defaultdict
 from collections.abc import Callable
@@ -13,10 +14,14 @@ from .packet import Packet
 _LOGGER = logging.getLogger(__name__)
 
 
-class DeviceBase:
+class DeviceBase(abc.ABC):
     """Device Base"""
 
     MANUFACTURER_KEY = 0xB5B5
+
+    @classmethod
+    @abc.abstractmethod
+    def check(cls, sn: bytes) -> bool: ...
 
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str

@@ -1,7 +1,21 @@
+import importlib
 from pathlib import Path
+from types import ModuleType
+from typing import TYPE_CHECKING, Protocol
 
-modules = Path(__file__).parent.glob("*.py")
+if TYPE_CHECKING:
+    from ..devicebase import DeviceBase
 
-__all__ = [f.name[:-3] for f in modules if f.is_file() and f.name == "__init__.py"]
+    class ModuleWithDevice(Protocol):
+        Device: type[DeviceBase]
 
-from . import *  # noqa: E402, F403
+
+__all__ = [
+    f.stem
+    for f in Path(__file__).parent.glob("*.py")
+    if f.is_file() and f.stem != "__init__"
+]
+
+devices: list["ModuleWithDevice | ModuleType"] = [
+    importlib.import_module(f".{device}", __name__) for device in __all__
+]
