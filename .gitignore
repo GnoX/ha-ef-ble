@@ -234,3 +234,5 @@ pyrightconfig.json
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,homeassistant,python
+
+custom_components/ef_ble/eflib/pb/*.pyi

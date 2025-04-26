@@ -6,13 +6,13 @@ import logging
 
 from homeassistant.components import bluetooth
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_ADDRESS, CONF_TYPE, CONF_NAME, Platform
+from homeassistant.const import CONF_ADDRESS, CONF_NAME, CONF_TYPE, Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers.device_registry import DeviceInfo
 
 from . import eflib
-from .const import DOMAIN, MANUFACTURER, CONF_USER_ID
+from .const import CONF_USER_ID, DOMAIN, MANUFACTURER
 
 PLATFORMS: list[Platform] = [
     Platform.SENSOR,

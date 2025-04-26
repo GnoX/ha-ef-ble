@@ -1,0 +1,172 @@
+syntax = "proto3";
+
+package pd335_bms_bp;
+
+enum AppDateType {
+  NONE_SET = 0;
+  APP_AUTO_SET = 1;
+  APP_MANUAL_SET = 2;
+  BMS_AUTO_SET = 3;
+}
+
+enum BpResetType {
+  NONE_RESET_VAL = 0;
+  HAS_RESET_VAL = 1;
+  NEED_RESET_VAL = 2;
+  MASTER_RESET = 3;
+}
+
+message BMSHeartBeatReport {
+  optional uint32 num = 1;
+  optional uint32 type = 2;
+  optional uint32 cell_id = 3;
+  optional uint32 err_code = 4;
+  optional uint32 sys_ver = 5;
+  optional uint32 soc = 6;
+  optional uint32 vol = 7;
+  optional int32 amp = 8;
+  optional int32 temp = 9;
+  optional uint32 open_bms_flag = 10;
+  optional uint32 design_cap = 11;
+  optional uint32 remain_cap = 12;
+  optional uint32 full_cap = 13;
+  optional uint32 cycles = 14;
+  optional uint32 soh = 15;
+  optional uint32 max_cell_vol = 16;
+  optional uint32 min_cell_vol = 17;
+  optional int32 max_cell_temp = 18;
+  optional int32 min_cell_temp = 19;
+  optional int32 max_mos_temp = 20;
+  optional int32 min_mos_temp = 21;
+  optional uint32 bms_fault = 22;
+  optional uint32 bq_sys_stat_reg = 23;
+  optional uint32 tag_chg_amp = 24;
+  optional float f32_show_soc = 25;
+  optional uint32 input_watts = 26;
+  optional uint32 output_watts = 27;
+  optional uint32 remain_time = 28;
+  optional uint32 mos_state = 29;
+  optional uint32 balance_state = 30;
+  optional uint32 max_vol_diff = 31;
+  optional uint32 cell_series_num = 32;
+  repeated uint32 cell_vol = 33;
+  optional uint32 cell_ntc_num = 34;
+  repeated int32 cell_temp = 35;
+  optional string hw_ver = 36;
+  optional uint32 bms_heartbeat_ver = 37;
+  optional uint32 ecloud_ocv = 38;
+  optional string bms_sn = 39;
+  optional uint32 product_type = 40;
+  optional uint32 product_detail = 41;
+  optional float act_soc = 42;
+  optional float diff_soc = 43;
+  optional float target_soc = 44;
+  optional uint32 sys_loader_ver = 45;
+  optional uint32 sys_state = 46;
+  optional uint32 chg_dsg_state = 47;
+  optional uint32 all_err_code = 48;
+  optional uint32 all_bms_fault = 49;
+  optional uint32 accu_chg_cap = 50;
+  optional uint32 accu_dsg_cap = 51;
+  optional float real_soh = 52;
+  optional float calendar_soh = 53;
+  optional float cycle_soh = 54;
+  optional uint32 mos_ntc_num = 55;
+  repeated int32 mos_temp = 56;
+  optional uint32 env_ntc_num = 57;
+  repeated int32 env_temp = 58;
+  optional uint32 heatfilm_ntc_num = 59;
+  repeated int32 heatfilm_temp = 60;
+  optional uint32 cur_sensor_ntc_num = 61;
+  repeated int32 cur_sensor_temp = 62;
+  optional int32 max_env_temp = 63;
+  optional int32 min_env_temp = 64;
+  optional int32 max_heatfilm_temp = 65;
+  optional int32 min_heatfilm_temp = 66;
+  optional int32 max_cur_sensor_temp = 67;
+  optional int32 min_cur_sensor_temp = 68;
+  optional uint32 balance_cmd = 69;
+  repeated uint32 remain_balance_time = 70;
+  optional uint32 afe_sys_status = 71;
+  optional uint32 mcu_pin_in_status = 72;
+  optional uint32 mcu_pin_out_status = 73;
+  optional uint32 bms_alarm_state1 = 74;
+  optional uint32 bms_alarm_state2 = 75;
+  optional uint32 bms_protect_state1 = 76;
+  optional uint32 bms_protect_state2 = 77;
+  optional uint32 bms_fault_state = 78;
+  optional uint32 accu_chg_energy = 79;
+  optional uint32 accu_dsg_energy = 80;
+  optional string pack_sn = 81;
+  optional uint32 water_in_flag = 82;
+}
+
+message ems_heartbeat_pack_v1p0_t {
+  optional uint32 chg_state = 1;
+  optional uint32 chg_cmd = 2;
+  optional uint32 dsg_cmd = 3;
+  optional uint32 chg_vol = 4;
+  optional uint32 chg_amp = 5;
+  optional uint32 fan_level = 6;
+  optional uint32 max_charge_soc = 7;
+  optional uint32 bms_model = 8;
+  optional uint32 lcd_show_soc = 9;
+  optional uint32 open_ups_flag = 10;
+  optional uint32 bms_warning_state = 11;
+  optional uint32 chg_remain_time = 12;
+  optional uint32 dsg_remain_time = 13;
+  optional uint32 ems_is_normal_flag = 14;
+  optional float f32_lcd_show_soc = 15;
+  repeated uint32 bms_is_connt = 16;
+  optional uint32 max_available_num = 17;
+  optional uint32 open_bms_idx = 18;
+  optional uint32 para_vol_min = 19;
+  optional uint32 para_vol_max = 20;
+  optional uint32 min_dsg_soc = 21;
+  optional uint32 min_open_oil_eb_soc = 22;
+  optional uint32 max_close_oil_eb_soc = 23;
+}
+
+message ems_heartbeat_pack_v1p3_t {
+  optional uint32 chg_disable_cond = 1;
+  optional uint32 dsg_disable_cond = 2;
+  optional uint32 chg_line_plug_in_flag = 3;
+  optional uint32 sys_chg_dsg_state = 4;
+  optional uint32 ems_heartbeat_ver = 5;
+}
+
+message CMSHeartBeatReport {
+  optional ems_heartbeat_pack_v1p0_t v1p0 = 1;
+  optional ems_heartbeat_pack_v1p3_t v1p3 = 2;
+}
+
+message AppRuquestBpEuLawData {
+  optional string pack_sn = 1;
+  optional uint32 app_to_bms_launch_date = 2;
+  optional uint32 app_launch_date_set_type = 3;
+  optional uint32 app_to_bms_reset_flag = 4;
+  optional uint32 bms_data_upload_en = 5;
+}
+
+message AppRuquestBpEuLawDataAck {
+  optional string bms_sn = 1;
+  optional uint32 soh = 2;
+  optional uint32 accu_chg_cap = 3;
+  optional uint32 accu_dsg_cap = 4;
+  optional uint32 accu_chg_energy = 5;
+  optional uint32 accu_dsg_energy = 6;
+  optional uint32 deep_dsg_cnt = 7;
+  optional uint32 high_temp_use_time = 8;
+  optional uint32 low_temp_use_time = 9;
+  optional uint32 high_temp_chg_time = 10;
+  optional uint32 low_temp_chg_time = 11;
+  optional uint32 bp_launch_date = 12;
+  optional uint32 bp_cycles = 13;
+  optional float bp_power_capability = 14;
+  optional float bp_round_trip_eff = 15;
+  optional float bp_self_dsg_rate = 16;
+  optional float bp_ohm_res = 17;
+  optional BpResetType bp_reset_flag = 18;
+  optional AppDateType bp_launch_date_flag = 19;
+  optional uint32 num = 20;
+}
