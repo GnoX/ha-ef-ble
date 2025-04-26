@@ -5,8 +5,8 @@
 [![Validation HACS](https://github.com/rabits/ha-ef-ble/actions/workflows/validate-hacs.yaml/badge.svg)](https://github.com/rabits/ha-ef-ble/actions/workflows/validate-hacs.yaml)
 
 **NOTE**: This fork includes the latest features but may not be fully stable on devices
-other than the River 3 and Delta 3 Plus. If you are not actively testing or developing 
-new features, it is recommended that you use the 
+other than the River 3 and Delta 3 Plus. If you are not actively testing or developing
+new features, it is recommended that you use the
 [original repository](https://github.com/rabits/ha-ef-ble).
 
 ---
@@ -151,11 +151,11 @@ support anything you will find here.
 Install the integration as custom_component and it will automatically find the supported devices.
 It will also require your user id that was created during initialization of your device with app.
 
-Please refer to the wiki page to find more info: https://github.com/rabits/ha-ef-ble/wiki
+Please refer to the wiki page to find more info: <https://github.com/rabits/ha-ef-ble/wiki>
 
 ## Development & Reverse
 
-Information about how that was reversed you can find here: https://github.com/rabits/ef-ble-reverse
+Information about how that was reversed you can find here: <https://github.com/rabits/ef-ble-reverse>
 
 If you want to help with this integration - your changes will be most welcomed, but I recommend to
 create a ticket first to discuss the needed features or upcoming changes to make sure they fit the

@@ -1,4 +1,4 @@
-import subprocess
+import subprocess  # noqa: INP001
 from pathlib import Path
 
 from custom_components.ef_ble.eflib import pb

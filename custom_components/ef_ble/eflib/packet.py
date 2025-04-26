@@ -35,7 +35,7 @@ class Packet:
         self._dsrc = dsrc
         self._ddst = ddst
         self._version = version
-        self._seq = seq if seq != None else b"\x00\x00\x00\x00"
+        self._seq = seq if seq is not None else b"\x00\x00\x00\x00"
         self._product_id = product_id
 
         # For representation
@@ -138,8 +138,9 @@ class Packet:
         if payload_length > 0:
             payload = data[18 : 18 + payload_length]
 
-            # If first byte of seq is set - we need to xor payload with it to get the real data
-            if is_xor == True and seq[0] != b"\x00":
+            # If first byte of seq is set - we need to xor payload with it to get the
+            # real data
+            if is_xor is True and seq[0] != b"\x00":
                 payload = bytes([c ^ seq[0] for c in payload])
 
             if version == 19 and payload[-2:] == b"\xbb\xbb":
@@ -168,13 +169,15 @@ class Packet:
         return data
 
     def productByte(self):
-        """Returns magics depends on product id"""
+        """Return magics depends on product id"""
         if self._product_id >= 0:
             return b"\x0d"
-        else:
-            return b"\x0c"
+
+        return b"\x0c"
 
     def __repr__(self):
-        return "Packet(0x{_src:02X}, 0x{_dst:02X}, 0x{_cmd_set:02X}, 0x{_cmd_id:02X}, bytes.fromhex('{_payload_hex}'), 0x{_dsrc:02X}, 0x{_ddst:02X}, 0x{_version:02X}, {_seq}, 0x{_product_id:02X})".format(
-            **vars(self)
+        return (
+            "Packet(0x{_src:02X}, 0x{_dst:02X}, 0x{_cmd_set:02X}, 0x{_cmd_id:02X}, "
+            "bytes.fromhex('{_payload_hex}'), 0x{_dsrc:02X}, 0x{_ddst:02X}, "
+            "0x{_version:02X}, {_seq}, 0x{_product_id:02X})".format(**vars(self))
         )

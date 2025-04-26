@@ -39,6 +39,8 @@ class Device(DeviceBase):
         self._data_error_count = 0
         self._data_battery_level = None
 
+        self._tasks = []
+
     @property
     def battery_level(self) -> int | None:
         """Battery level as a percentage."""
@@ -141,10 +143,11 @@ class Device(DeviceBase):
                 if p.HasField("backup_incre_info"):
                     info = p.backup_incre_info
                     if info.HasField("errcode"):
-                        errors = []
-                        for e in info.errcode.err_code:
-                            if e != b"\x00\x00\x00\x00\x00\x00\x00\x00":
-                                errors.append(e)
+                        errors = [
+                            e
+                            for e in info.errcode.err_code
+                            if e != b"\x00\x00\x00\x00\x00\x00\x00\x00"
+                        ]
                         if self._data_error_count != len(errors):
                             if len(errors) > self._data_error_count:
                                 _LOGGER.warning(
@@ -183,14 +186,14 @@ class Device(DeviceBase):
             # Device requested for time and timezone offset, so responding with that
             # otherwise it will not be able to send us predictions and config data
             if len(packet.payload) == 0:
-                asyncio.create_task(self.sendUtcTime())
-                asyncio.create_task(self.sendRTCRespond())
-                asyncio.create_task(self.sendRTCCheck())
+                self._tasks.append(asyncio.create_task(self.sendUtcTime()))
+                self._tasks.append(asyncio.create_task(self.sendRTCRespond()))
+                self._tasks.append(asyncio.create_task(self.sendRTCCheck()))
             processed = True
 
         elif packet.src == 0x0B and packet.cmdSet == 0x01 and packet.cmdId == 0x55:
             # Device reply that it's online and ready
-            asyncio.create_task(self.setConfigFlag(True))
+            self._tasks.append(asyncio.create_task(self.setConfigFlag(True)))
             processed = True
 
         for prop_name in updated_fields:
@@ -199,7 +202,7 @@ class Device(DeviceBase):
         return processed
 
     async def setConfigFlag(self, enable):
-        """Sends command to enable/disable sending config data from device to the host"""
+        """Send command to enable/disable sending config data from device to the host"""
         _LOGGER.debug("%s: setConfigFlag: %s", self._address, enable)
 
         ppas = pd303_pb2.ProtoPushAndSet()
@@ -210,7 +213,7 @@ class Device(DeviceBase):
         await self._conn.sendPacket(packet)
 
     async def sendUtcTime(self):
-        """Sends UTC time as unix timestamp seconds through PB"""
+        """Send UTC time as unix timestamp seconds through PB"""
         _LOGGER.debug("%s: sendUtcTime", self._address)
 
         utcs = utc_sys_pb2.SysUTCSync()
@@ -221,7 +224,7 @@ class Device(DeviceBase):
         await self._conn.sendPacket(packet)
 
     async def sendRTCRespond(self):
-        """Sends RTC timestamp seconds and TZ as respond to device's request"""
+        """Send RTC timestamp seconds and TZ as respond to device's request"""
         _LOGGER.debug("%s: sendRTCRespond", self._address)
 
         # Building payload
@@ -255,7 +258,7 @@ class Device(DeviceBase):
         await self._conn.sendPacket(packet)
 
     async def sendRTCCheck(self):
-        """Sends command to check RTC of the device"""
+        """Send command to check RTC of the device"""
         _LOGGER.debug("%s: sendRTCCheck", self._address)
 
         # Building payload
@@ -289,7 +292,7 @@ class Device(DeviceBase):
         await self._conn.sendPacket(packet)
 
     async def setCircuitPower(self, circuit_id, enable):
-        """Sends command to power on / off the specific circuit of the panel"""
+        """Send command to power on / off the specific circuit of the panel"""
         _LOGGER.debug(
             "%s: setCircuitPower for %d: %s", self._address, circuit_id, enable
         )

@@ -1,10 +1,7 @@
-import glob
-from os.path import basename, dirname, isfile, join
+from pathlib import Path
 
-modules = glob.glob(join(dirname(__file__), "*.py"))
+modules = Path(__file__).parent.glob("*.py")
 
-__all__ = [
-    basename(f)[:-3] for f in modules if isfile(f) and not f.endswith("__init__.py")
-]
+__all__ = [f.name[:-3] for f in modules if f.is_file() and f.name == "__init__.py"]
 
-from . import *
+from . import *  # noqa: E402, F403
