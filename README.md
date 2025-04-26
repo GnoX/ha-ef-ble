@@ -4,6 +4,13 @@
 [![Validation hassfest](https://github.com/rabits/ha-ef-ble/actions/workflows/validate-hassfest.yaml/badge.svg)](https://github.com/rabits/ha-ef-ble/actions/workflows/validate-hassfest.yaml)
 [![Validation HACS](https://github.com/rabits/ha-ef-ble/actions/workflows/validate-hacs.yaml/badge.svg)](https://github.com/rabits/ha-ef-ble/actions/workflows/validate-hacs.yaml)
 
+**NOTE**: This fork includes the latest features but may not be fully stable on devices
+other than the River 3 and Delta 3 Plus. If you are not actively testing or developing 
+new features, it is recommended that you use the 
+[original repository](https://github.com/rabits/ha-ef-ble).
+
+---
+
 Unofficial EcoFlow BLE devices Home Assistant integration will allow you to communicate with a
 number of EcoFlow devices through bluetooth and monitor their status / control parameters.
 
