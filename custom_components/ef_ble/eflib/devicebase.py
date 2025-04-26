@@ -58,11 +58,11 @@ class DeviceBase:
         return self._name_by_user
 
     def isValid(self):
-        return self._sn != None
+        return self._sn is not None
 
     @property
     def is_connected(self) -> bool:
-        return self._conn != None and self._conn.is_connected
+        return self._conn is not None and self._conn.is_connected
 
     @property
     def connection_state(self):
@@ -94,20 +94,20 @@ class DeviceBase:
         await self._conn.connect(max_attempts=max_attempts)
 
     async def disconnect(self):
-        if self._conn == None:
+        if self._conn is None:
             _LOGGER.error("%s: Device has no connection", self._address)
             return
 
         await self._conn.disconnect()
 
     async def waitConnected(self, timeout: int = 20):
-        if self._conn == None:
+        if self._conn is None:
             _LOGGER.error("%s: Device has no connection", self._address)
             return
         await self._conn.waitConnected(timeout=timeout)
 
     async def waitDisconnected(self):
-        if self._conn == None:
+        if self._conn is None:
             _LOGGER.error("%s: Device has no connection", self._address)
             return
 

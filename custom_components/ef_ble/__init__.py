@@ -6,7 +6,7 @@ import logging
 
 from homeassistant.components import bluetooth
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_ADDRESS, CONF_NAME, CONF_TYPE, Platform
+from homeassistant.const import CONF_ADDRESS, CONF_TYPE, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -29,7 +29,6 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bool:
     """Set up EF BLE device from a config entry."""
-
     _LOGGER.debug("Init EcoFlow BLE Integration")
 
     address = entry.data.get(CONF_ADDRESS)
@@ -63,9 +62,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> b
     device = entry.runtime_data
     await device.disconnect()
     await device.waitDisconnected()
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-
-    return unload_ok
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
 def device_info(entry: ConfigEntry) -> DeviceInfo:

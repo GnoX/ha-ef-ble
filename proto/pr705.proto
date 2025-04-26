@@ -106,7 +106,7 @@ message EventPush {
     optional uint32 event_no = 3;
     repeated float event_detail = 4;
   }
-  
+
   optional uint32 event_ver = 1;
   optional uint32 event_seq = 2;
   repeated EventPush.LogItem event_item = 3;

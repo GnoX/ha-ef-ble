@@ -397,14 +397,20 @@ async def async_setup_entry(
 
     # SHP2 sensors
     if hasattr(device, "circuit_power"):
-        for i in range(len(device.circuit_power)):
-            new_sensors.append(CircuitPowerSensor(device, i))
+        new_sensors.extend(
+            [CircuitPowerSensor(device, i) for i in range(len(device.circuit_power))]
+        )
     if hasattr(device, "circuit_current"):
-        for i in range(len(device.circuit_current)):
-            new_sensors.append(CircuitCurrentSensor(device, i))
+        new_sensors.extend(
+            [
+                CircuitCurrentSensor(device, i)
+                for i in range(len(device.circuit_current))
+            ]
+        )
     if hasattr(device, "channel_power"):
-        for i in range(len(device.channel_power)):
-            new_sensors.append(ChannelPowerSensor(device, i))
+        new_sensors.extend(
+            [ChannelPowerSensor(device, i) for i in range(len(device.channel_power))]
+        )
 
     if new_sensors:
         async_add_entities(new_sensors)

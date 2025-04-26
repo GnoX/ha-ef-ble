@@ -38,8 +38,7 @@ class _ProtoAttrAccessor[T1: Message]:
 
 
 def proto_attr_mapper[T: Message](pb: type[T]) -> type[T]:
-    """
-    Create proxy object for protobuf class that returns accessed attributes
+    """Create proxy object for protobuf class that returns accessed attributes
 
     This function is a convenience function for creating typed fields from protobuf
     message classes.
@@ -47,13 +46,13 @@ def proto_attr_mapper[T: Message](pb: type[T]) -> type[T]:
     Returns
     -------
         Proxy object that tracks all accessed attributes
+
     """
     return _ProtoAttrAccessor(pb)  # type: ignore reportReturnType
 
 
 class ProtobufField[T](Field[T]):
-    """
-    Field that allows value assignment from protocol buffer message
+    """Field that allows value assignment from protocol buffer message
 
     It is recommented to not use this class directly - use `pb_field` instead for
     better typing.
@@ -62,8 +61,7 @@ class ProtobufField[T](Field[T]):
     def __init__(
         self, pb_field: _ProtoAttr, transform_value: Callable[[Any], T] = lambda x: x
     ):
-        """
-        Create protobuf field that allows value assignment from protobuf message
+        """Create protobuf field that allows value assignment from protobuf message
 
         Parameters
         ----------
@@ -71,6 +69,7 @@ class ProtobufField[T](Field[T]):
             Instance of protobuf accessor created with `proto_attr_mapper`
         transform_value, optional
             Function that takes protobuf attribute
+
         """
         self.pb_field = pb_field
         self.transform_value = transform_value
@@ -110,8 +109,7 @@ def pb_field[T_ATTR, T_OUT](
 def pb_field(
     attr: Any, transform: Callable[[Any], Any] | None = None
 ) -> "ProtobufField[Any]":
-    """
-    Create field that allows value assignment from protocol buffer messages
+    """Create field that allows value assignment from protocol buffer messages
 
     Parameters
     ----------
@@ -119,6 +117,7 @@ def pb_field(
         Protobuf field attribute of instance returned from `proto_attr_mapper`
     transform, optional
         Function that is applied to raw protobuf value
+
     """
     if not isinstance(attr, _ProtoAttr):
         raise TypeError(
