@@ -1,7 +1,6 @@
 """Library for EcoFlow BLE protocol"""
 
 import logging
-from types import ModuleType
 
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
@@ -25,12 +24,8 @@ def NewDevice(ble_dev: BLEDevice, adv_data: AdvertisementData) -> DeviceBase | N
     sn = man_data[1:17]
 
     # Check if known devices fits the found serial number
-    for item in devices.__dict__.values():
-        if (
-            isinstance(item, ModuleType)
-            and item.__package__.endswith("eflib.devices")
-            and item.Device.check(sn)
-        ):
+    for item in devices.devices:
+        if item.Device.check(sn):
             return item.Device(ble_dev, adv_data, sn.decode("ASCII"))
 
     _LOGGER.warning("%s: Unknown SN: %s", ble_dev.address, sn)
