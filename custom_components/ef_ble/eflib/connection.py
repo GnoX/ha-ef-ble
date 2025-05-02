@@ -57,7 +57,8 @@ class ConnectionState(Enum):
 
 
 class Connection:
-    """Connection object manages client creation, authentification and sends the packets
+    """
+    Connection object manages client creation, authentification and sends the packets
     to parse back
     """
 

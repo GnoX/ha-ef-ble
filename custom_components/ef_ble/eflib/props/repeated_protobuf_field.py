@@ -13,7 +13,8 @@ if TYPE_CHECKING:
 
 @dataclass_transform()
 class ProtobufRepeatedField[T_ITEM, T_OUT](ProtobufField[T_OUT]):
-    """Represents field for repeated protobuf fields
+    """
+    Represents field for repeated protobuf fields
 
     Do not use this class directly - use `repeated_pb_field_type` for better typing
     """
@@ -22,7 +23,8 @@ class ProtobufRepeatedField[T_ITEM, T_OUT](ProtobufField[T_OUT]):
         dataclass(cls)
 
     def get_list(self, value: Message) -> Sequence[Message]:
-        """Get sequence from protobuf message
+        """
+        Get sequence from protobuf message
 
         Parameters
         ----------
@@ -69,7 +71,8 @@ def repeated_pb_field_type[T_ITEM, T_OUT](
     list_field: Sequence[T_ITEM],
     value_field: Callable[[T_ITEM], T_OUT] = lambda x: _raise(x, NotImplementedError),
 ) -> type[ProtobufRepeatedField[T_ITEM, T_OUT]]:
-    """Create repeated field type from protobuf accessor repesenting sequence type
+    """
+    Create repeated field type from protobuf accessor repesenting sequence type
 
     Usage
     -----

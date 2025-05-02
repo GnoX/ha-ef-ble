@@ -9,7 +9,8 @@ from .updatable_props import UpdatableProps
 
 
 class ProtobufProps(UpdatableProps):
-    """Mixin for augmenting device classes with properties parsed from protobuf messages
+    """
+    Mixin for augmenting device classes with properties parsed from protobuf messages
 
     This mixin provides method `update_from_message` that should be called for each
     incoming protobuf message and updates every defined `ProtobufField`.
@@ -47,7 +48,8 @@ class ProtobufProps(UpdatableProps):
         return super().reset_updated()
 
     def update_from_message(self, message: Message):
-        """Update defined fields values from provided message
+        """
+        Update defined fields values from provided message
 
         Parameters
         ----------

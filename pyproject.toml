@@ -23,6 +23,7 @@ select = [
     "B905", # zip() without an explicit strict= parameter
     "BLE",
     "COM818", # Trailing comma on bare tuple prohibited
+    "D213",
     "DTZ003", # Use datetime.now(tz=) instead of datetime.utcnow()
     "DTZ004", # Use datetime.fromtimestamp(ts, tz=) instead of datetime.utcfromtimestamp(ts)
     "E", # pycodestyle
