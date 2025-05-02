@@ -1,5 +1,109 @@
 {
     "entity": {
+        "sensor": {
+            "input_power": {
+                "default": "mdi:home-lightning-bolt-outline"
+            },
+            "output_power": {
+                "default": "mdi:home-lightning-bolt-outline"
+            },
+            "ac_input_power": {
+                "default": "mdi:current-ac"
+            },
+            "ac_output_power": {
+                "default": "mdi:current-ac"
+            },
+            "ac_input_energy": {
+                "default": "mdi:current-ac"
+            },
+            "ac_output_energy": {
+                "default": "mdi:current-ac"
+            },
+            "dc_input_power": {
+                "default": "mdi:current-dc"
+            },
+            "dc_input_energy": {
+                "default": "mdi:current-dc"
+            },
+            "dc12v_output_power": {
+                "default": "mdi:current-dc"
+            },
+            "dc12v_output_energy": {
+                "default": "mdi:current-dc"
+            },
+            "usbc_output_power": {
+                "default": "mdi:usb-c-port"
+            },
+            "usbc_output_energy": {
+                "default": "mdi:usb-c-port"
+            },
+            "usba_output_power": {
+                "default": "mdi:usb-port"
+            },
+            "usba_output_energy": {
+                "default": "mdi:usb-port"
+            },
+            "usbc2_output_power": {
+                "default": "mdi:usb-c-port"
+            },
+            "usba2_output_power": {
+                "default": "mdi:usb-port"
+            },
+            "dc_port_input_power": {
+                "default": "mdi:current-dc"
+            },
+            "dc_port_input_power_2": {
+                "default": "mdi:current-dc"
+            },
+            "dc_port_state": {
+                "default": "mdi:current-dc"
+            },
+            "dc_port_2_state": {
+                "default": "mdi:current-dc"
+            },
+            "input_power_solar": {
+                "default": "mdi:solar-power-variant-outline"
+            },
+            "input_power_solar_2": {
+                "default": "mdi:solar-power-variant-outline"
+            },
+            "ac_lv_output_power": {
+                "default": "mdi:current-ac"
+            },
+            "ac_hv_output_power": {
+                "default": "mdi:current-ac"
+            },
+            "input_power_solar_lv": {
+                "default": "mdi:solar-power-variant-outline"
+            },
+            "input_power_solar_hv": {
+                "default": "mdi:solar-power-variant-outline"
+            },
+            "dc_lv_input_power": {
+                "default": "mdi:current-dc"
+            },
+            "dc_hv_input_power": {
+                "default": "mdi:current-dc"
+            },
+            "dc_lv_state": {
+                "default": "mdi:current-dc"
+            },
+            "dc_hv_state": {
+                "default": "mdi:current-dc"
+            },
+            "grid_power": {
+                "default": "mdi:transmission-tower"
+            },
+            "in_use_power": {
+                "default": "mdi:home-lightning-bolt-outline"
+            },
+            "lv_solar_power": {
+                "default": "mdi:solar-panel"
+            },
+            "hv_solar_power": {
+                "default": "mdi:solar-panel-large"
+            }
+        },
         "switch": {
             "battery_sync": {
                 "default": "mdi:battery-sync",
@@ -9,5 +113,4 @@
             }
         }
     }
-
 }
