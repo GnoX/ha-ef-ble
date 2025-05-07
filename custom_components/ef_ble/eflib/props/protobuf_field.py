@@ -10,8 +10,9 @@ if TYPE_CHECKING:
 
 
 class _ProtoAttr:
-    def __init__(self, name: str):
+    def __init__(self, message_type: type[Message], name: str):
         self.attrs = [name]
+        self.message_type = message_type
 
     def __getattr__(self, name):
         self.attrs.append(name)
@@ -34,7 +35,7 @@ class _ProtoAttrAccessor[T1: Message]:
             raise AttributeError(
                 f"{self.message_type} does not contain field named '{name}'"
             )
-        return _ProtoAttr(name)
+        return _ProtoAttr(self.message_type, name)
 
 
 def proto_attr_mapper[T: Message](pb: type[T]) -> type[T]:

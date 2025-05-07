@@ -7,7 +7,7 @@ from google.protobuf.message import Message
 from ..commands import TimeCommands
 from ..devicebase import DeviceBase
 from ..packet import Packet
-from ..pb import pd335_sys_pb2
+from ..pb import pd335_bms_bp_pb2, pd335_sys_pb2
 from ..props import (
     Field,
     ProtobufProps,
@@ -31,6 +31,7 @@ def _flow_is_on(x):
 
 
 pb = proto_attr_mapper(pd335_sys_pb2.DisplayPropertyUpload)
+pb_bms = proto_attr_mapper(pd335_bms_bp_pb2.BMSHeartBeatReport)
 
 
 class _DcChargingMaxField(
@@ -120,6 +121,8 @@ class Device(DeviceBase, ProtobufProps):
     )
     dc_charging_current_max = _DcChargingMaxField(pd335_sys_pb2.PV_CHG_VOL_SPEC_12V)
 
+    cycles = pb_field(pb_bms.cycles)
+
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
     ) -> None:
@@ -150,9 +153,15 @@ class Device(DeviceBase, ProtobufProps):
         if packet.src == 0x02 and packet.cmdSet == 0xFE and packet.cmdId == 0x15:
             p = pd335_sys_pb2.DisplayPropertyUpload()
             p.ParseFromString(packet.payload)
-            # _LOGGER.debug("%s: %s: Parsed data: %r", self.address, self.name, packet)
-            _LOGGER.debug("Delta 3 Parsed Message \n %s", str(p))
+            _LOGGER.debug("%s: %s: Parsed data: %r", self.address, self.name, packet)
+            # _LOGGER.debug("Delta 3 Parsed Message \n %s", str(p))
+            self.update_from_message(p, reset=True)
+
+            p = pd335_bms_bp_pb2.BMSHeartBeatReport()
+            p.ParseFromString(packet.payload)
             self.update_from_message(p)
+
+            # _LOGGER.debug("Delta 3 BMS Report \n %s", str(p))
             processed = True
         elif (
             packet.src == 0x35

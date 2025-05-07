@@ -1,5 +1,8 @@
 """EcoFlow BLE sensor"""
 
+from dataclasses import dataclass, field
+from typing import Any
+
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -21,13 +24,20 @@ from custom_components.ef_ble.eflib import DeviceBase
 from . import DeviceConfigEntry
 from .entity import EcoflowEntity
 
+
+@dataclass(frozen=True, kw_only=True)
+class EcoflowSensorEntityDescription(SensorEntityDescription):
+    state_attribute_fields: list[str] = field(default_factory=list)
+
+
 SENSOR_TYPES: dict[str, SensorEntityDescription] = {
     # Common
-    "battery_level": SensorEntityDescription(
+    "battery_level": EcoflowSensorEntityDescription(
         key="battery_level",
         native_unit_of_measurement=PERCENTAGE,
         device_class=SensorDeviceClass.BATTERY,
         state_class=SensorStateClass.MEASUREMENT,
+        state_attribute_fields=["cycles"],
     ),
     "battery_level_main": SensorEntityDescription(
         key="battery_level_main",
@@ -362,10 +372,27 @@ class EcoflowSensor(EcoflowEntity, SensorEntity):
         else:
             self._attr_state_class = SensorStateClass.MEASUREMENT
 
+        self._attribute_fields = (
+            self.entity_description.state_attribute_fields
+            if isinstance(self.entity_description, EcoflowSensorEntityDescription)
+            else []
+        )
+
     @property
     def native_value(self):
         """Return the value of the sensor."""
         return getattr(self._device, self._sensor, None)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        if not self._attribute_fields:
+            return {}
+
+        return {
+            field_name: getattr(self._device, field_name)
+            for field_name in self._attribute_fields
+            if hasattr(self._device, field_name)
+        }
 
     async def async_added_to_hass(self):
         """Run when this Entity has been added to HA."""
