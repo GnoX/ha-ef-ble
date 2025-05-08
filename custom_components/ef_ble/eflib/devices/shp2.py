@@ -1,16 +1,58 @@
-import asyncio
 import logging
-import struct
-import time
+from collections.abc import Sequence
+from dataclasses import dataclass
 
+from ..commands import TimeCommands
 from ..devicebase import AdvertisementData, BLEDevice, DeviceBase
 from ..packet import Packet
-from ..pb import pd303_pb2, utc_sys_pb2
+from ..pb import pd303_pb2
+from ..props import (
+    Field,
+    ProtobufProps,
+    pb_field,
+    proto_attr_mapper,
+    repeated_pb_field_type,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
+pb_time = proto_attr_mapper(pd303_pb2.ProtoTime)
+pb_push_set = proto_attr_mapper(pd303_pb2.ProtoPushAndSet)
 
-class Device(DeviceBase):
+
+@dataclass
+class CircuitPowerField(
+    repeated_pb_field_type(list_field=pb_time.load_info.hall1_watt)
+):
+    idx: int
+
+    def get_item(self, value: Sequence[float]) -> float | None:
+        return value[self.idx]
+
+
+@dataclass
+class CircuitCurrentField(
+    repeated_pb_field_type(list_field=pb_time.load_info.hall1_curr)
+):
+    idx: int
+
+    def get_item(self, value: Sequence[float]) -> float | None:
+        return round(value[self.idx], 4)
+
+
+@dataclass
+class ChannelPowerField(repeated_pb_field_type(list_field=pb_time.watt_info.ch_watt)):
+    idx: int
+
+    def get_item(self, value: Sequence[float]) -> float | None:
+        return round(value[self.idx], 2)
+
+
+def _errors(error_codes: pd303_pb2.ErrCode):
+    return [e for e in error_codes.err_code if e != b"\x00\x00\x00\x00\x00\x00\x00\x00"]
+
+
+class Device(DeviceBase, ProtobufProps):
     """Smart Home Panel 2"""
 
     SN_PREFIX = b"HD31"
@@ -18,6 +60,44 @@ class Device(DeviceBase):
 
     NUM_OF_CIRCUITS = 12
     NUM_OF_CHANNELS = 3
+
+    battery_level = pb_field(pb_push_set.backup_incre_info.backup_bat_per)
+
+    circuit_power_1 = CircuitPowerField(0)
+    circuit_power_2 = CircuitPowerField(1)
+    circuit_power_3 = CircuitPowerField(2)
+    circuit_power_4 = CircuitPowerField(3)
+    circuit_power_5 = CircuitPowerField(4)
+    circuit_power_6 = CircuitPowerField(5)
+    circuit_power_7 = CircuitPowerField(6)
+    circuit_power_8 = CircuitPowerField(7)
+    circuit_power_9 = CircuitPowerField(8)
+    circuit_power_10 = CircuitPowerField(9)
+    circuit_power_11 = CircuitPowerField(10)
+    circuit_power_12 = CircuitPowerField(11)
+
+    circuit_current_1 = CircuitCurrentField(0)
+    circuit_current_2 = CircuitCurrentField(1)
+    circuit_current_3 = CircuitCurrentField(2)
+    circuit_current_4 = CircuitCurrentField(3)
+    circuit_current_5 = CircuitCurrentField(4)
+    circuit_current_6 = CircuitCurrentField(5)
+    circuit_current_7 = CircuitCurrentField(6)
+    circuit_current_8 = CircuitCurrentField(7)
+    circuit_current_9 = CircuitCurrentField(8)
+    circuit_current_10 = CircuitCurrentField(9)
+    circuit_current_11 = CircuitCurrentField(10)
+    circuit_current_12 = CircuitCurrentField(11)
+
+    channel_power_1 = ChannelPowerField(0)
+    channel_power_2 = ChannelPowerField(1)
+    channel_power_3 = ChannelPowerField(2)
+
+    in_use_power = pb_field(attr=pb_time.watt_info.all_hall_watt)
+
+    errors = pb_field(pb_push_set.backup_incre_info.errcode, _errors)
+    error_count = Field[int]()
+    error_happened = Field[bool]()
 
     @staticmethod
     def check(sn):
@@ -27,66 +107,15 @@ class Device(DeviceBase):
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
     ) -> None:
         super().__init__(ble_dev, adv_data, sn)
-
-        self._data_circuit_power = [None] * Device.NUM_OF_CIRCUITS
-        self._data_circuit_current = [None] * Device.NUM_OF_CIRCUITS
-
-        self._data_grid_power = None
-        self._data_in_use_power = None
-
-        self._data_channel_power = [None] * Device.NUM_OF_CHANNELS
-
-        self._data_error_count = 0
-        self._data_battery_level = None
-
-        self._tasks = []
-
-    @property
-    def battery_level(self) -> int | None:
-        """Battery level as a percentage."""
-        return self._data_battery_level
-
-    @battery_level.setter
-    def battery_level(self, value: int) -> None:
-        """Sets Battery level as a percentage and calls callbacks."""
-        if self._data_battery_level != value:
-            self._data_battery_level = value
-            self.update_callback("battery_level")
-
-    @property
-    def channel_power(self) -> list[int | None]:
-        """Backup channels wattage in W."""
-        return self._data_channel_power
-
-    @property
-    def circuit_power(self) -> list[int | None]:
-        """Circuit consuming wattage in W."""
-        return self._data_circuit_power
-
-    @property
-    def circuit_current(self) -> list[float | None]:
-        """Circuit consuming amperage in A."""
-        return self._data_circuit_current
-
-    @property
-    def grid_power(self) -> int | None:
-        """Grid intake wattage in W."""
-        return self._data_grid_power
-
-    @property
-    def in_use_power(self) -> int | None:
-        """In use wattage in W."""
-        return self._data_in_use_power
-
-    @property
-    def error_happened(self) -> bool:
-        """Will return true if error happened during the last update."""
-        return self._data_error_count > 0
+        self._time_commands = TimeCommands(self)
 
     async def data_parse(self, packet: Packet) -> bool:
         """Processing the incoming notifications from the device"""
         processed = False
-        updated_fields = []
+        self.reset_updated()
+
+        prev_error_count = self.error_count
+
         if packet.src == 0x0B and packet.cmdSet == 0x0C:
             if (
                 packet.cmdId == 0x01
@@ -95,39 +124,11 @@ class Device(DeviceBase):
 
                 p = pd303_pb2.ProtoTime()
                 p.ParseFromString(packet.payload)
+                self.update_from_message(p)
+
                 _LOGGER.debug(
                     "%s: %s: Parsed data: %r", self.address, self.name, packet
                 )
-
-                if p.HasField("load_info"):
-                    for i, w in enumerate(p.load_info.hall1_watt):
-                        if self._data_circuit_power[i] != w:
-                            self._data_circuit_power[i] = w
-                            updated_fields.append(f"circuit_power_{i}")
-                    for i, a in enumerate(p.load_info.hall1_curr):
-                        if self._data_circuit_current[i] != a:
-                            self._data_circuit_current[i] = a
-                            updated_fields.append(f"circuit_current_{i}")
-
-                if p.HasField("watt_info"):
-                    wi = p.watt_info
-                    if wi.HasField("grid_watt"):
-                        if self._data_grid_power != wi.grid_watt:
-                            self._data_grid_power = wi.grid_watt
-                            updated_fields.append("grid_power")
-                    elif self._data_grid_power != 0:
-                        self._data_grid_power = 0
-                        updated_fields.append("grid_power")
-
-                    for i, w in enumerate(wi.ch_watt):
-                        if self._data_channel_power[i] != w:
-                            self._data_channel_power[i] = w
-                            updated_fields.append(f"channel_power_{i}")
-
-                    if wi.HasField("all_hall_watt"):
-                        if self._data_in_use_power != wi.all_hall_watt:
-                            self._data_in_use_power = wi.all_hall_watt
-                            updated_fields.append("in_use_power")
 
                 processed = True
 
@@ -136,33 +137,14 @@ class Device(DeviceBase):
 
                 p = pd303_pb2.ProtoPushAndSet()
                 p.ParseFromString(packet.payload)
+                self.update_from_message(p)
+
                 _LOGGER.debug(
                     "%s: %s: Parsed data: %r", self.address, self.name, packet
                 )
 
-                if p.HasField("backup_incre_info"):
-                    info = p.backup_incre_info
-                    if info.HasField("errcode"):
-                        errors = [
-                            e
-                            for e in info.errcode.err_code
-                            if e != b"\x00\x00\x00\x00\x00\x00\x00\x00"
-                        ]
-                        if self._data_error_count != len(errors):
-                            if len(errors) > self._data_error_count:
-                                _LOGGER.warning(
-                                    "%s: %s: Error happened on device: %s",
-                                    self.address,
-                                    self.name,
-                                    errors,
-                                )
-                            self._data_error_count = len(errors)
-
-                    if info.HasField("backup_bat_per"):
-                        self.battery_level = info.backup_bat_per
-
-                    # TODO: Energy2_info.pv_height_charge_watts
-                    # TODO: Energy2_info.pv_low_charge_watts
+                # TODO: Energy2_info.pv_height_charge_watts
+                # TODO: Energy2_info.pv_low_charge_watts
 
                 processed = True
 
@@ -186,22 +168,36 @@ class Device(DeviceBase):
             # Device requested for time and timezone offset, so responding with that
             # otherwise it will not be able to send us predictions and config data
             if len(packet.payload) == 0:
-                self._tasks.append(asyncio.create_task(self.sendUtcTime()))
-                self._tasks.append(asyncio.create_task(self.sendRTCRespond()))
-                self._tasks.append(asyncio.create_task(self.sendRTCCheck()))
+                self._time_commands.async_send_all()
             processed = True
 
         elif packet.src == 0x0B and packet.cmdSet == 0x01 and packet.cmdId == 0x55:
             # Device reply that it's online and ready
-            self._tasks.append(asyncio.create_task(self.setConfigFlag(True)))
+            await self._conn._add_task(self.set_config_flag(True))
             processed = True
 
-        for prop_name in updated_fields:
-            self.update_callback(prop_name)
+        self.error_count = len(self.errors) if self.errors is not None else None
+
+        if (
+            self.error_count is not None
+            and prev_error_count is not None
+            and self.error_count > prev_error_count
+        ) or (self.error_count is not None and prev_error_count is None):
+            self.error_happened = True
+            _LOGGER.warning(
+                "%s: %s: Error happened on device: %s",
+                self.address,
+                self.name,
+                self.errors,
+            )
+
+        for field_name in self.updated_fields:
+            self.update_callback(field_name)
+            self.update_state(field_name, getattr(self, field_name))
 
         return processed
 
-    async def setConfigFlag(self, enable):
+    async def set_config_flag(self, enable):
         """Send command to enable/disable sending config data from device to the host"""
         _LOGGER.debug("%s: setConfigFlag: %s", self._address, enable)
 
@@ -212,86 +208,7 @@ class Device(DeviceBase):
 
         await self._conn.sendPacket(packet)
 
-    async def sendUtcTime(self):
-        """Send UTC time as unix timestamp seconds through PB"""
-        _LOGGER.debug("%s: sendUtcTime", self._address)
-
-        utcs = utc_sys_pb2.SysUTCSync()
-        utcs.sys_utc_time = int(time.time())
-        payload = utcs.SerializeToString()
-        packet = Packet(0x21, 0x0B, 0x01, 0x55, payload, 0x01, 0x01, 0x13)
-
-        await self._conn.sendPacket(packet)
-
-    async def sendRTCRespond(self):
-        """Send RTC timestamp seconds and TZ as respond to device's request"""
-        _LOGGER.debug("%s: sendRTCRespond", self._address)
-
-        # Building payload
-        tz_offset = (
-            (time.timezone if (time.localtime().tm_isdst == 0) else time.altzone)
-            / 60
-            / 60
-            * -1
-        )
-        tz_maj = int(tz_offset)
-        tz_min = int((tz_offset - tz_maj) * 100)
-        time_sec = int(time.time())
-        payload = (
-            struct.pack("<L", time_sec)
-            + struct.pack("<b", tz_maj)
-            + struct.pack("<b", tz_min)
-        )
-
-        # Forming packet
-        packet = Packet(
-            0x21,
-            0x35,
-            0x01,
-            Packet.NET_BLE_COMMAND_CMD_SET_RET_TIME,
-            payload,
-            0x01,
-            0x01,
-            0x03,
-        )
-
-        await self._conn.sendPacket(packet)
-
-    async def sendRTCCheck(self):
-        """Send command to check RTC of the device"""
-        _LOGGER.debug("%s: sendRTCCheck", self._address)
-
-        # Building payload
-        tz_offset = (
-            (time.timezone if (time.localtime().tm_isdst == 0) else time.altzone)
-            / 60
-            / 60
-            * -1
-        )
-        tz_maj = int(tz_offset)
-        tz_min = int((tz_offset - tz_maj) * 100)
-        time_sec = int(time.time())
-        payload = (
-            struct.pack("<L", time_sec)
-            + struct.pack("<b", tz_maj)
-            + struct.pack("<b", tz_min)
-        )
-
-        # Forming packet
-        packet = Packet(
-            0x21,
-            0x35,
-            0x01,
-            Packet.NET_BLE_COMMAND_CMD_CHECK_RET_TIME,
-            payload,
-            0x01,
-            0x01,
-            0x03,
-        )
-
-        await self._conn.sendPacket(packet)
-
-    async def setCircuitPower(self, circuit_id, enable):
+    async def set_circuit_power(self, circuit_id, enable):
         """Send command to power on / off the specific circuit of the panel"""
         _LOGGER.debug(
             "%s: setCircuitPower for %d: %s", self._address, circuit_id, enable
@@ -302,11 +219,9 @@ class Device(DeviceBase):
             ppas.load_incre_info.hall1_incre_info, "ch" + str(circuit_id + 1) + "_sta"
         )
         sta.load_sta = (
-            pd303_pb2.LOAD_CH_STA.LOAD_CH_POWER_ON
-            if enable
-            else pd303_pb2.LOAD_CH_STA.LOAD_CH_POWER_OFF
+            pd303_pb2.LOAD_CH_POWER_ON if enable else pd303_pb2.LOAD_CH_POWER_OFF
         )
-        sta.ctrl_mode = pd303_pb2.CTRL_MODE.RLY_HAND_CTRL_MODE
+        sta.ctrl_mode = pd303_pb2.RLY_HAND_CTRL_MODE
         payload = ppas.SerializeToString()
         packet = Packet(0x21, 0x0B, 0x0C, 0x21, payload, 0x01, 0x01, 0x13)
 

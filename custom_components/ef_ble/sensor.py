@@ -19,9 +19,9 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from custom_components.ef_ble.eflib import DeviceBase
-
 from . import DeviceConfigEntry
+from .eflib import DeviceBase
+from .eflib.devices import shp2
 from .entity import EcoflowEntity
 
 
@@ -62,7 +62,6 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
     # SHP2
     "grid_power": SensorEntityDescription(
         key="grid_power",
-        name="Grid Power",
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
@@ -70,16 +69,48 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
     ),
     "in_use_power": SensorEntityDescription(
         key="in_use_power",
-        name="In Use Power",
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
     ),
+    **{
+        f"circuit_power_{i}": SensorEntityDescription(
+            key=f"circuit_power_{i}",
+            device_class=SensorDeviceClass.POWER,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            state_class=SensorStateClass.MEASUREMENT,
+            suggested_display_precision=2,
+            translation_key="circuit_power",
+            translation_placeholders={"index": f"{i}"},
+        )
+        for i in range(1, shp2.Device.NUM_OF_CIRCUITS + 1)
+    },
+    **{
+        f"circuit_current_{i}": SensorEntityDescription(
+            key=f"circuit_current_{i}",
+            device_class=SensorDeviceClass.CURRENT,
+            native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+            suggested_display_precision=2,
+            entity_registry_enabled_default=False,
+            translation_key="circuit_current",
+        )
+        for i in range(1, shp2.Device.NUM_OF_CIRCUITS + 1)
+    },
+    **{
+        f"channel_power_{i}": SensorEntityDescription(
+            key=f"channel_power_{i}",
+            device_class=SensorDeviceClass.POWER,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            suggested_display_precision=2,
+            translation_key="channel_power",
+            translation_placeholders={"index": f"{i}"},
+        )
+        for i in range(1, shp2.Device.NUM_OF_CHANNELS + 1)
+    },
     # DPU
     "lv_solar_power": SensorEntityDescription(
         key="lv_solar_power",
-        name="LV Solar Power",
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
@@ -87,7 +118,6 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
     ),
     "hv_solar_power": SensorEntityDescription(
         key="hv_solar_power",
-        name="HV Solar Power",
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
@@ -335,23 +365,6 @@ async def async_setup_entry(
         if hasattr(device, sensor)
     ]
 
-    # SHP2 sensors
-    if hasattr(device, "circuit_power"):
-        new_sensors.extend(
-            [CircuitPowerSensor(device, i) for i in range(len(device.circuit_power))]
-        )
-    if hasattr(device, "circuit_current"):
-        new_sensors.extend(
-            [
-                CircuitCurrentSensor(device, i)
-                for i in range(len(device.circuit_current))
-            ]
-        )
-    if hasattr(device, "channel_power"):
-        new_sensors.extend(
-            [ChannelPowerSensor(device, i) for i in range(len(device.channel_power))]
-        )
-
     if new_sensors:
         async_add_entities(new_sensors)
 
@@ -368,9 +381,8 @@ class EcoflowSensor(EcoflowEntity, SensorEntity):
 
         if sensor in SENSOR_TYPES:
             self.entity_description = SENSOR_TYPES[sensor]
-            self._attr_translation_key = self.entity_description.key
-        else:
-            self._attr_state_class = SensorStateClass.MEASUREMENT
+            if self.entity_description.translation_key is None:
+                self._attr_translation_key = self.entity_description.key
 
         self._attribute_fields = (
             self.entity_description.state_attribute_fields
@@ -401,67 +413,3 @@ class EcoflowSensor(EcoflowEntity, SensorEntity):
     async def async_will_remove_from_hass(self):
         """Entity being removed from hass."""
         self._device.remove_callback(self.async_write_ha_state, self._sensor)
-
-
-class CircuitPowerSensor(EcoflowSensor):
-    """Represents circuit consumed wattage."""
-
-    device_class = SensorDeviceClass.POWER
-    _attr_native_unit_of_measurement = UnitOfPower.WATT
-    _attr_suggested_display_precision = 2
-
-    def __init__(self, device, index):
-        """Initialize the sensor."""
-        super().__init__(device, f"circuit_power_{index}")
-
-        self._attr_unique_id = f"{self._device.name}_circuit_power_{index + 1}"
-        self._attr_name = f"Circuit Power {index + 1:02d}"
-        self._index = index
-
-    @property
-    def native_value(self) -> float:
-        """Return the value of the sensor."""
-        return self._device.circuit_power[self._index]
-
-
-class CircuitCurrentSensor(EcoflowSensor):
-    """Represents circuit consumed amperage."""
-
-    device_class = SensorDeviceClass.CURRENT
-    _attr_native_unit_of_measurement = UnitOfElectricCurrent.AMPERE
-    _attr_suggested_display_precision = 2
-    _attr_entity_registry_enabled_default = False
-
-    def __init__(self, device, index):
-        """Initialize the sensor."""
-        super().__init__(device, f"circuit_current_{index}")
-
-        self._attr_unique_id = f"{self._device.name}_circuit_current_{index + 1}"
-        self._attr_name = f"Circuit Current {index + 1:02d}"
-        self._index = index
-
-    @property
-    def native_value(self) -> float:
-        """Return the value of the sensor."""
-        return self._device.circuit_current[self._index]
-
-
-class ChannelPowerSensor(EcoflowSensor):
-    """Represents backup channel wattage."""
-
-    device_class = SensorDeviceClass.POWER
-    _attr_native_unit_of_measurement = UnitOfPower.WATT
-    _attr_suggested_display_precision = 2
-
-    def __init__(self, device, index):
-        """Initialize the sensor."""
-        super().__init__(device, f"channel_power_{index}")
-
-        self._attr_unique_id = f"{self._device.name}_channel_power_{index + 1}"
-        self._attr_name = f"Channel Power {index + 1}"
-        self._index = index
-
-    @property
-    def native_value(self) -> float:
-        """Return the value of the sensor."""
-        return self._device.channel_power[self._index]

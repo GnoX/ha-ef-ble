@@ -71,6 +71,27 @@
       "output_power": {
         "name": "Output Power"
       },
+      "grid_power": {
+        "name": "Grid Power"
+      },
+      "in_use_power": {
+        "name": "In Use Power"
+      },
+      "lv_solar_power": {
+        "name": "LV Solar Power"
+      },
+      "hv_solar_power": {
+        "name": "HV Solar Power"
+      },
+      "circuit_power": {
+        "name": "Circuit Power {index}"
+      },
+      "circuit_current": {
+        "name": "Circuit Current {index}"
+      },
+      "channel_power": {
+        "name": "Channel Power {index}"
+      },
       "input_energy": {
         "name": "Input Energy Total"
       },
