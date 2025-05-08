@@ -93,7 +93,8 @@ class Device(DeviceBase, ProtobufProps):
     channel_power_2 = ChannelPowerField(1)
     channel_power_3 = ChannelPowerField(2)
 
-    in_use_power = pb_field(attr=pb_time.watt_info.all_hall_watt)
+    in_use_power = pb_field(pb_time.watt_info.all_hall_watt)
+    grid_power = pb_field(pb_time.watt_info.grid_watt)
 
     errors = pb_field(pb_push_set.backup_incre_info.errcode, _errors)
     error_count = Field[int]()
