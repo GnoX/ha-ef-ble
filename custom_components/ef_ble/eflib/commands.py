@@ -94,7 +94,7 @@ class TimeCommands:
 
         await self.device._conn.sendPacket(packet)
 
-    def async_send_all(self):
-        asyncio.create_task(self.sendUtcTime())
-        asyncio.create_task(self.sendRTCRespond())
-        asyncio.create_task(self.sendRTCCheck())
+    async def async_send_all(self):
+        await self.device._conn._add_task(asyncio.create_task(self.sendUtcTime()))
+        await self.device._conn._add_task(asyncio.create_task(self.sendRTCRespond()))
+        await self.device._conn._add_task(asyncio.create_task(self.sendRTCCheck()))

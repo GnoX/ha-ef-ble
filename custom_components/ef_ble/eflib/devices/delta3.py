@@ -171,7 +171,7 @@ class Device(DeviceBase, ProtobufProps):
             and packet.cmdId == Packet.NET_BLE_COMMAND_CMD_SET_RET_TIME
         ):
             if len(packet.payload) == 0:
-                self._time_commands.async_send_all()
+                await self._time_commands.async_send_all()
             processed = True
 
         self.solar_input_power = (
