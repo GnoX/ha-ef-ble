@@ -1,7 +1,15 @@
 import abc
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable, cast, dataclass_transform
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Literal,
+    cast,
+    dataclass_transform,
+    overload,
+)
 
 from google.protobuf.message import Message
 
@@ -49,28 +57,61 @@ class ProtobufRepeatedField[T_ITEM, T_OUT](ProtobufField[T_OUT]):
         return cast(Sequence[Message], value)
 
     @abc.abstractmethod
-    def process_item(self, value: T_ITEM) -> T_OUT | None:
+    def get_item(self, value: Sequence[T_ITEM]) -> T_OUT | None:
         """Process item from sequence returned from `get_list`"""
 
     def __set_name__(self, owner: type["ProtobufProps"], name: str):
         super().__set_name__(owner, name)
         owner.add_repeated_field(self)
 
-    def __set__(self, instance: "ProtobufProps", value: Any):
-        if (value := self.process_item(value)) is None:
+    def __set__(self, instance: "ProtobufProps", value: Sequence[Any]):
+        if (item := self.get_item(value)) is None:
             return
 
-        self._set_value(instance, value)
+        self._set_value(instance, item)
+
+
+class ProtobufCompositeRepeatedField[T_ITEM, T_OUT](
+    ProtobufRepeatedField[T_ITEM, T_OUT]
+):
+    def get_item(self, value: Sequence[T_ITEM]) -> T_OUT | None:
+        for item in value:
+            if (result := self.get_value(item)) is not None:
+                return result
+        return None
+
+    @abc.abstractmethod
+    def get_value(self, item: T_ITEM) -> T_OUT | None: ...
 
 
 def _raise[T_IN](v: T_IN, exc: type[Exception]) -> T_IN:
     raise exc
 
 
+@overload
 def repeated_pb_field_type[T_ITEM, T_OUT](
     list_field: Sequence[T_ITEM],
     value_field: Callable[[T_ITEM], T_OUT] = lambda x: _raise(x, NotImplementedError),
-) -> type[ProtobufRepeatedField[T_ITEM, T_OUT]]:
+    per_item: Literal[True] = True,
+) -> type[ProtobufCompositeRepeatedField[T_ITEM, T_OUT]]: ...
+
+
+@overload
+def repeated_pb_field_type[T_ITEM, T_OUT](
+    list_field: Sequence[T_ITEM],
+    value_field: Callable[[T_ITEM], T_OUT] = lambda x: _raise(x, NotImplementedError),
+    per_item: Literal[False] = False,
+) -> type[ProtobufRepeatedField[T_ITEM, T_OUT]]: ...
+
+
+def repeated_pb_field_type[T_ITEM, T_OUT](
+    list_field: Sequence[T_ITEM],
+    value_field: Callable[[T_ITEM], T_OUT] = lambda x: _raise(x, NotImplementedError),
+    per_item: bool = False,
+) -> (
+    type[ProtobufRepeatedField[T_ITEM, T_OUT]]
+    | type[ProtobufCompositeRepeatedField[T_ITEM, T_OUT]]
+):
     """
     Create repeated field type from protobuf accessor repesenting sequence type
 
@@ -92,8 +133,8 @@ def repeated_pb_field_type[T_ITEM, T_OUT](
             value_field=lambda x: x.value,
         )
     ):
-        def process_item(self, value: some_pb2.RecordType):
-            return x.value
+        def get_item(self, value: Sequence[some_pb2.RecordType]):
+            return value[1].value
     ```
 
     Returns
@@ -101,11 +142,14 @@ def repeated_pb_field_type[T_ITEM, T_OUT](
         Type of repeated protobuf message
 
     """
+    if not per_item:
 
-    class CustomRepeatedField(ProtobufRepeatedField[T_ITEM, T_OUT]):
+        class CustomRepeatedField(ProtobufRepeatedField[T_ITEM, T_OUT]):
+            pb_field = list_field
+
+        return CustomRepeatedField
+
+    class CustomPerItemRepeatedField(ProtobufCompositeRepeatedField[T_ITEM, T_OUT]):
         pb_field = list_field
 
-        def process_item(self, value: T_ITEM) -> T_OUT | None:
-            return value_field(value)
-
-    return CustomRepeatedField
+    return CustomPerItemRepeatedField

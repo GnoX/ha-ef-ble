@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Self, overload
 
 
 class UpdatableProps:
@@ -63,7 +63,17 @@ class Field[T]:
         instance.updated = True
         instance.updated_fields.append(self.public_name)
 
+    @overload
+    def __get__(self, instance: None, owner: type[UpdatableProps]) -> Self: ...
+
+    @overload
     def __get__(
         self, instance: UpdatableProps, owner: type[UpdatableProps]
-    ) -> T | None:
+    ) -> T | None: ...
+
+    def __get__(
+        self, instance: UpdatableProps | None, owner: type[UpdatableProps]
+    ) -> T | Self | None:
+        if instance is None:
+            return self
         return getattr(instance, self.private_name, None)
