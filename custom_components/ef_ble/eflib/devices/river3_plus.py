@@ -1,8 +1,7 @@
-from custom_components.ef_ble.eflib.devices import river3
-
 from ..pb import pr705_pb2
 from ..props import pb_field
 from ..props.enums import IntFieldValue
+from . import river3
 
 
 class LedMode(IntFieldValue):
