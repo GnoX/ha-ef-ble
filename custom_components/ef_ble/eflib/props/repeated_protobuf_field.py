@@ -48,8 +48,12 @@ class ProtobufRepeatedField[T_ITEM, T_OUT](ProtobufField[T_OUT]):
         if not list_attrs:
             raise ValueError(f"Received accessor with no attributes: '{self.pb_field}'")
 
-        if not value.HasField(list_attrs[0]):
-            return []
+        try:
+            if not value.HasField(list_attrs[0]):
+                return []
+        except ValueError as e:
+            if "not have presence" not in str(e):
+                return []
 
         for attr in list_attrs:
             value = getattr(value, attr)

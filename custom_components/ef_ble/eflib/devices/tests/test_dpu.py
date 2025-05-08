@@ -130,6 +130,11 @@ def show_heartbeat_report_message():
 
 
 @pytest.fixture
+def bp_info_message():
+    return text_format.Merge(_bp_info_message_str, yj751_sys_pb2.BpInfoReport())
+
+
+@pytest.fixture
 def device(mocker: MockerFixture):
     device = dpu.Device(mocker.AsyncMock(), mocker.Mock(), "[sn]")
     device._conn = mocker.AsyncMock()
@@ -156,6 +161,31 @@ async def test_dpu_updates_from_show_heartbeat_report_message(
         dpu.Device.input_power,
         dpu.Device.output_power,
     ]
+
+    for field in expected_updated_fields:
+        assert field.public_name in device.updated_fields
+        assert getattr(device, field.public_name) is not None
+
+
+async def test_dpu_updates_from_bp_info_message(device, bp_info_message):
+    to_process = Packet(
+        src=0x02,
+        dst=0x00,
+        cmd_set=0x02,
+        cmd_id=0x04,
+        payload=bp_info_message.SerializeToString(),
+    )
+
+    await device.data_parse(to_process)
+
+    expected_updated_fields: list[Field] = [
+        dpu.Device.battery_1_battery_level,
+        dpu.Device.battery_2_battery_level,
+        dpu.Device.battery_3_battery_level,
+    ]
+
+    # for field in device.updated_fields:
+    #     print(f"{field}: {getattr(device, field)}")
 
     for field in expected_updated_fields:
         assert field.public_name in device.updated_fields

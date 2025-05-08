@@ -62,6 +62,9 @@
       "battery_level": {
         "name": "Battery Level"
       },
+      "additional_battery_level": {
+        "name": "Battery {index} Level"
+      },
       "battery_level_main": {
         "name": "Main Battery Level"
       },
@@ -77,11 +80,14 @@
       "in_use_power": {
         "name": "In Use Power"
       },
-      "lv_solar_power": {
-        "name": "LV Solar Power"
+      "port_voltage": {
+        "name": "{name} Voltage"
       },
-      "hv_solar_power": {
-        "name": "HV Solar Power"
+      "port_current": {
+        "name": "{name} Current"
+      },
+      "port_power": {
+        "name": "{name} Power"
       },
       "circuit_power": {
         "name": "Circuit Power {index}"
