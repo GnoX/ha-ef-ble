@@ -1,4 +1,3 @@
-import itertools
 from collections import defaultdict
 from functools import cached_property
 
@@ -86,5 +85,5 @@ class ProtobufProps(UpdatableProps):
             if field_list is None:
                 continue
 
-            for item, field in itertools.product(field_list, repeated_fields):
-                setattr(self, field.public_name, item)
+            for field in repeated_fields:
+                setattr(self, field.public_name, field_list)

@@ -32,14 +32,13 @@ class _StatField(
     repeated_pb_field_type(
         list_field=pb.display_statistics_sum.list_info,
         value_field=lambda x: x.statistics_content,
+        per_item=True,
     )
 ):
     stat: pr705_pb2.STATISTICS_OBJECT
 
-    def process_item(self, value: pr705_pb2.StatisticsRecordItem) -> int | None:
-        return (
-            value.statistics_content if value.statistics_object == self.stat else None
-        )
+    def get_value(self, item: pr705_pb2.StatisticsRecordItem) -> int | None:
+        return item.statistics_content if item.statistics_object == self.stat else None
 
 
 def _out_power(x) -> float:
@@ -135,6 +134,7 @@ class Device(DeviceBase, ProtobufProps):
 
     async def data_parse(self, packet: Packet):
         processed = False
+        self.reset_updated()
 
         if packet.src == 0x02 and packet.cmdSet == 0xFE and packet.cmdId == 0x15:
             p = pr705_pb2.DisplayPropertyUpload()
