@@ -57,7 +57,10 @@ class ConnectionState(Enum):
 
 
 class Connection:
-    """Connection object manages client creation, authentification and sends the packets to parse back"""
+    """
+    Connection object manages client creation, authentification and sends the packets
+    to parse back
+    """
 
     NOTIFY_CHARACTERISTIC = "00000003-0000-1000-8000-00805f9b34fb"
     WRITE_CHARACTERISTIC = "00000002-0000-1000-8000-00805f9b34fb"

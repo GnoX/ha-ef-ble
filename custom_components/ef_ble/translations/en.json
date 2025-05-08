@@ -19,41 +19,162 @@
     },
     "step": {
       "bluetooth_confirm": {
-          "title": "Discovered Device Config",
-          "data": {
-            "user_id": "Ecoflow User ID",
-            "address": "BLE Device"
-          },
-          "sections": {
-            "login": {
-              "name": "Ecoflow Login (skip if you already have user id)",
-              "data": {
-                "email": "Email",
-                "password": "Password"
-              }
+        "title": "Discovered Device Config",
+        "data": {
+          "user_id": "Ecoflow User ID",
+          "address": "BLE Device"
+        },
+        "sections": {
+          "login": {
+            "name": "Ecoflow Login (skip if you already have user id)",
+            "data": {
+              "email": "Email",
+              "password": "Password"
             }
           }
+        }
       },
       "user": {
-          "title": "Add Ecoflow Device",
-          "data": {
-            "user_id": "Ecoflow User ID",
-            "address": "BLE Device"
-          },
-          "sections": {
-            "login": {
-              "name": "Ecoflow Login (skip if you already have user id)",
-              "data": {
-                "email": "Email",
-                "password": "Password"
-              }
+        "title": "Add Ecoflow Device",
+        "data": {
+          "user_id": "Ecoflow User ID",
+          "address": "BLE Device"
+        },
+        "sections": {
+          "login": {
+            "name": "Ecoflow Login (skip if you already have user id)",
+            "data": {
+              "email": "Email",
+              "password": "Password"
             }
           }
+        }
       },
       "reconfigure": {
         "data": {
           "user_id": "Ecoflow User ID"
         }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "battery_level": {
+        "name": "Battery Level"
+      },
+      "battery_level_main": {
+        "name": "Main Battery Level"
+      },
+      "input_power": {
+        "name": "Input Power"
+      },
+      "output_power": {
+        "name": "Output Power"
+      },
+      "input_energy": {
+        "name": "Input Energy Total"
+      },
+      "output_energy": {
+        "name": "Output Energy Total"
+      },
+      "ac_input_power": {
+        "name": "AC Input Power"
+      },
+      "ac_output_power": {
+        "name": "AC Output Power"
+      },
+      "ac_input_energy": {
+        "name": "AC Input Energy"
+      },
+      "ac_output_energy": {
+        "name": "AC Output Energy"
+      },
+      "dc_input_power": {
+        "name": "DC Input Power"
+      },
+      "dc_input_energy": {
+        "name": "DC Input Energy"
+      },
+      "dc12v_output_power": {
+        "name": "DC 12V Output Power"
+      },
+      "dc12v_output_energy": {
+        "name": "DC 12V Output Energy"
+      },
+      "usbc_output_power": {
+        "name": "USB C Output Power"
+      },
+      "usbc_output_energy": {
+        "name": "USB C Output Energy"
+      },
+      "usba_output_power": {
+        "name": "USB A Output Power"
+      },
+      "usba_output_energy": {
+        "name": "USB A Output Energy"
+      },
+      "usbc2_output_power": {
+        "name": "USB C (2) Output Power"
+      },
+      "usbc2_output_energy": {
+        "name": "USB C (2) Output Energy"
+      },
+      "usba2_output_power": {
+        "name": "USB A (2) Output Power"
+      },
+      "usba2_output_energy": {
+        "name": "USB A (2) Output Energy"
+      },
+      "battery_input_power": {
+        "name": "Battery Input Power"
+      },
+      "battery_output_power": {
+        "name": "Battery Output Power"
+      },
+      "cell_temperature": {
+        "name": "Cell Temperature"
+      },
+      "dc_port_input_power": {
+        "name": "DC Port Input Power"
+      },
+      "dc_port_input_power_2": {
+        "name": "DC Port (2) Input Power"
+      },
+      "dc_port_state": {
+        "name": "DC Input Port State"
+      },
+      "dc_port_2_state": {
+        "name": "DC Input Port (2) State"
+      },
+      "input_power_solar": {
+        "name": "Solar Power"
+      },
+      "input_power_solar_2": {
+        "name": "Solar Power (2)"
+      },
+      "ac_lv_output_power": {
+        "name": "AC LV Output Power"
+      },
+      "ac_hv_output_power": {
+        "name": "AC HV Output Power"
+      },
+      "input_power_solar_lv": {
+        "name": "LV Solar Power"
+      },
+      "input_power_solar_hv": {
+        "name": "HV Solar Power"
+      },
+      "dc_lv_input_power": {
+        "name": "LV DC Port Input Power"
+      },
+      "dc_hv_input_power": {
+        "name": "LV DC Port Input Power"
+      },
+      "dc_lv_state": {
+        "name": "LV DC Input Port State"
+      },
+      "dc_hv_state": {
+        "name": "HV DC Input Port State"
       }
     }
   }
