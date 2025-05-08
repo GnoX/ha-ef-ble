@@ -235,4 +235,5 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,homeassistant,python
 
+.vscode
 custom_components/ef_ble/eflib/pb/*.pyi
