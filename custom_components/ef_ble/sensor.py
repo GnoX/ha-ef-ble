@@ -82,7 +82,7 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
             state_class=SensorStateClass.MEASUREMENT,
             suggested_display_precision=2,
             translation_key="circuit_power",
-            translation_placeholders={"index": f"{i}"},
+            translation_placeholders={"index": f"{i:02}"},
         )
         for i in range(1, shp2.Device.NUM_OF_CIRCUITS + 1)
     },
@@ -94,6 +94,7 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
             suggested_display_precision=2,
             entity_registry_enabled_default=False,
             translation_key="circuit_current",
+            translation_placeholders={"index": f"{i:02}"},
         )
         for i in range(1, shp2.Device.NUM_OF_CIRCUITS + 1)
     },
@@ -104,7 +105,7 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
             native_unit_of_measurement=UnitOfPower.WATT,
             suggested_display_precision=2,
             translation_key="channel_power",
-            translation_placeholders={"index": f"{i}"},
+            translation_placeholders={"index": f"{i:02}"},
         )
         for i in range(1, shp2.Device.NUM_OF_CHANNELS + 1)
     },

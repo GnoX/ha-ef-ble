@@ -24,7 +24,7 @@ class Device(DeviceBase, ProtobufProps):
     battery_level = pb_field(pb.soc)
 
     hv_solar_power = pb_field(pb.in_hv_mppt_pwr, lambda x: round(x, 2))
-    lv_solar_power = pb_field(pb.in_lv_mppt_pwr)
+    lv_solar_power = pb_field(pb.in_lv_mppt_pwr, lambda x: round(x, 2))
 
     input_power = pb_field(pb.watts_in_sum)
     output_power = pb_field(pb.watts_out_sum)
