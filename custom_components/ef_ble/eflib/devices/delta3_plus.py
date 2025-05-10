@@ -17,7 +17,7 @@ class Device(delta3.Device):
     )
     dc_charging_current_max_2 = _DcChargingMaxField(pd335_sys_pb2.PV_CHG_VOL_SPEC_12V)
 
-    dc_port_2_input_power = pb_field(pb.pow_get_pv2)
+    dc_port_2_input_power = pb_field(pb.pow_get_pv2, lambda value: round(value, 2))
     dc_port_2_state = pb_field(
         pb.plug_in_info_pv2_type, lambda v: DCPortState.from_value(v).state_name
     )

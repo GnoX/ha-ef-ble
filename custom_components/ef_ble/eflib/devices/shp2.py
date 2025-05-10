@@ -8,7 +8,7 @@ from ..packet import Packet
 from ..pb import pd303_pb2
 from ..props import (
     Field,
-    ProtobufProps,
+    ThrottledProtobufProps,
     pb_field,
     proto_attr_mapper,
     repeated_pb_field_type,
@@ -52,7 +52,17 @@ def _errors(error_codes: pd303_pb2.ErrCode):
     return [e for e in error_codes.err_code if e != b"\x00\x00\x00\x00\x00\x00\x00\x00"]
 
 
-class Device(DeviceBase, ProtobufProps):
+class Device(
+    DeviceBase,
+    ThrottledProtobufProps.with_field_discriminators(
+        [
+            pb_time.load_info,
+            pb_push_set.load_incre_info,
+            pb_push_set.master_incre_info,
+            pb_push_set.backup_incre_info,
+        ]
+    ),
+):
     """Smart Home Panel 2"""
 
     SN_PREFIX = b"HD31"
@@ -121,28 +131,22 @@ class Device(DeviceBase, ProtobufProps):
             if (
                 packet.cmdId == 0x01
             ):  # master_info, load_info, backup_info, watt_info, master_ver_info
-                await self._conn.replyPacket(packet)
-
-                p = pd303_pb2.ProtoTime()
-                p.ParseFromString(packet.payload)
-                self.update_from_message(p)
-
                 _LOGGER.debug(
                     "%s: %s: Parsed data: %r", self.address, self.name, packet
                 )
+
+                await self._conn.replyPacket(packet)
+
+                self.update_throttled(pd303_pb2.ProtoTime, packet.payload)
 
                 processed = True
-
             elif packet.cmdId == 0x20:  # backup_incre_info
-                await self._conn.replyPacket(packet)
-
-                p = pd303_pb2.ProtoPushAndSet()
-                p.ParseFromString(packet.payload)
-                self.update_from_message(p)
-
                 _LOGGER.debug(
                     "%s: %s: Parsed data: %r", self.address, self.name, packet
                 )
+
+                await self._conn.replyPacket(packet)
+                self.update_throttled(pd303_pb2.ProtoPushAndSet, packet.payload)
 
                 # TODO: Energy2_info.pv_height_charge_watts
                 # TODO: Energy2_info.pv_low_charge_watts
@@ -150,11 +154,10 @@ class Device(DeviceBase, ProtobufProps):
                 processed = True
 
             elif packet.cmdId == 0x21:  # is_get_cfg_flag
-                p = pd303_pb2.ProtoPushAndSet()
-                p.ParseFromString(packet.payload)
                 _LOGGER.debug(
                     "%s: %s: Parsed data: %r", self.address, self.name, packet
                 )
+                self.update_throttled(pd303_pb2.ProtoPushAndSet, packet.payload)
                 processed = True
 
         elif packet.src == 0x35 and packet.cmdSet == 0x35 and packet.cmdId == 0x20:
