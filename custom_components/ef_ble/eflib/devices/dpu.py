@@ -1,21 +1,15 @@
 import logging
 from dataclasses import dataclass
 
-from custom_components.ef_ble.eflib.props import (
-    ProtobufProps,
-    pb_field,
-    proto_attr_mapper,
-    repeated_pb_field_type,
-)
-
 from ..commands import TimeCommands
 from ..devicebase import AdvertisementData, BLEDevice, DeviceBase
 from ..packet import Packet
 from ..pb import yj751_sys_pb2_v4 as yj751_sys_pb2
 from ..props import (
-    ProtobufProps,
+    ThrottledProtobufProps,
     pb_field,
     proto_attr_mapper,
+    repeated_pb_field_type,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,7 +30,12 @@ class _BatteryLevel(
         return item.bp_soc if item.bp_no == self.battery_no else None
 
 
-class Device(DeviceBase, ProtobufProps):
+class Device(
+    DeviceBase,
+    ThrottledProtobufProps.with_field_discriminators(
+        [pb_heartbeat.soc, pb_bp_info.bp_info]
+    ),
+):
     """Delta Pro Ultra"""
 
     SN_PREFIX = b"Y711"
@@ -87,27 +86,27 @@ class Device(DeviceBase, ProtobufProps):
         if packet.src == 0x02 and packet.cmdSet == 0x02:
             if packet.cmdId == 0x01:  # Ping
                 await self._conn.replyPacket(packet)
-
-                p = yj751_sys_pb2.AppShowHeartbeatReport()
-                p.ParseFromString(packet.payload)
                 _LOGGER.debug(
                     "%s: %s: Parsed data: %r", self.address, self.name, packet
+                )
+                self.update_throttled(
+                    yj751_sys_pb2.AppShowHeartbeatReport, packet.payload
                 )
                 # _LOGGER.debug("DPU AppShowHeartbeatReport: \n %s", str(p))
 
-                self.update_from_message(p)
                 processed = True
             elif packet.cmdId == 0x04:
                 await self._conn.replyPacket(packet)
-
-                p = yj751_sys_pb2.BpInfoReport()
-                p.ParseFromString(packet.payload)
                 _LOGGER.debug(
                     "%s: %s: Parsed data: %r", self.address, self.name, packet
                 )
+
+                self.update_throttled(yj751_sys_pb2.BpInfoReport, packet.payload)
                 # _LOGGER.debug("DPU BpInfoReport: \n %s", str(p))
 
-                self.update_from_message(p)
+                self.update_throttled(
+                    yj751_sys_pb2.AppShowHeartbeatReport, packet.payload
+                )
                 processed = True
         elif packet.src == 0x35 and packet.cmdSet == 0x35 and packet.cmdId == 0x20:
             _LOGGER.debug("%s: %s: Ping received: %r", self.address, self.name, packet)

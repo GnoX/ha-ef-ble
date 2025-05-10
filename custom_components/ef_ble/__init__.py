@@ -12,7 +12,8 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from . import eflib
-from .const import CONF_USER_ID, DOMAIN, MANUFACTURER
+from .const import CONF_UPDATE_PERIOD, CONF_USER_ID, DOMAIN, MANUFACTURER
+from .eflib.props import ThrottledProtobufProps
 
 PLATFORMS: list[Platform] = [
     Platform.SENSOR,
@@ -34,6 +35,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
 
     address = entry.data.get(CONF_ADDRESS)
     user_id = entry.data.get(CONF_USER_ID)
+    update_period = entry.data.get(CONF_UPDATE_PERIOD, 0)
 
     if address is None or user_id is None:
         return False
@@ -46,6 +48,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
     device = eflib.NewDevice(discovery_info.device, discovery_info.advertisement)
     if device is None:
         raise ConfigEntryNotReady("EcoFlow BLE Device unable to create")
+
+    if isinstance(device, ThrottledProtobufProps):
+        device = device.with_update_period(update_period)
 
     await device.connect(user_id)
     entry.runtime_data = device

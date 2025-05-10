@@ -14,11 +14,11 @@ class _ProtoAttr:
         self.attrs = [name]
         self.message_type = message_type
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         self.attrs.append(name)
         return self
 
-    def __str__(self):
+    def __repr__(self):
         return f"proto_attr({self.attrs})"
 
     @property
@@ -130,3 +130,24 @@ def pb_field(
         pb_field=attr,
         transform_value=transform if transform is not None else lambda x: x,
     )
+
+
+def proto_attr_name(proto_attr: _ProtoAttr | Any) -> str:
+    """Get name of attribute from proto attr returned from `proto_attr_mapper`"""
+    return proto_attr.name
+
+
+def proto_has_attr(msg: Message, proto_attr: _ProtoAttr | Any) -> bool:
+    """Return True if protobuf message has specified attribute"""
+    if proto_attr is None:
+        return False
+
+    for attr in proto_attr.attrs:
+        try:
+            if not msg.HasField(attr):
+                return False
+        except ValueError as e:
+            if "not have pressence" not in str(e):
+                return len(getattr(msg, attr)) > 0
+        msg = getattr(msg, attr)
+    return True
