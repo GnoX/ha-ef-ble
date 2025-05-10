@@ -22,7 +22,11 @@
         "title": "Discovered Device Configuration",
         "data": {
           "user_id": "EcoFlow User ID",
-          "address": "BLE Device"
+          "address": "BLE Device",
+          "update_period": "Update Period"
+        },
+        "data_description": {
+          "update_period": "Number of seconds to wait before processing the next device update. A default value of 0 means all updates are processed (may result in a high number of DB writes)."
         },
         "sections": {
           "login": {
@@ -38,7 +42,11 @@
         "title": "Add EcoFlow Device",
         "data": {
           "user_id": "EcoFlow User ID",
-          "address": "BLE Device"
+          "address": "BLE Device",
+          "update_period": "Update Period"
+        },
+        "data_description": {
+          "update_period": "Number of seconds to wait before processing the next device update. A default value of 0 means all updates are processed (may result in a high number of DB writes)."
         },
         "sections": {
           "login": {
@@ -52,7 +60,11 @@
       },
       "reconfigure": {
         "data": {
-          "user_id": "EcoFlow User ID"
+          "user_id": "EcoFlow User ID",
+          "update_period": "Update Period"
+        },
+        "data_description": {
+          "update_period": "Number of seconds to wait before processing the next device update. A default value of 0 means all updates are processed (may result in a high number of DB writes)."
         }
       }
     }
