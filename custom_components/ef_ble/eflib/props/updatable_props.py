@@ -3,7 +3,8 @@ from typing import Any, ClassVar, Self, overload
 
 
 class UpdatableProps:
-    """Mixin for augmenting device classes with advanced properties
+    """
+    Mixin for augmenting device classes with advanced properties
 
     If any property changed its value after calling `reset_updated`, attribute
     `updated` is set to True and all updated field names are added to

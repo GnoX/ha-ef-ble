@@ -73,7 +73,7 @@ class DeviceBase(abc.ABC):
     def connection_state(self):
         return None if self._conn is None else self._conn._state
 
-    async def data_parse(self, packet: Packet):
+    async def data_parse(self, packet: Packet) -> bool:
         """Function to parse incoming data and trigger sensors update"""
         return False
 

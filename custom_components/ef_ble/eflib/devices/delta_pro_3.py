@@ -11,7 +11,7 @@ from ..packet import Packet
 from ..pb import mr521_pb2
 from ..props import (
     Field,
-    ProtobufProps,
+    ThrottledProtobufProps,
     pb_field,
     proto_attr_mapper,
 )
@@ -52,7 +52,12 @@ class DCPortState(IntEnum):
         return self.name.lower()
 
 
-class Device(DeviceBase, ProtobufProps):
+class Device(
+    DeviceBase,
+    ThrottledProtobufProps.with_field_discriminators(
+        [pb.cms_batt_soc, pb.plug_in_info_ac_charger_flag]
+    ),
+):
     """Delta Pro 3"""
 
     SN_PREFIX = (b"MR51",)
@@ -120,11 +125,9 @@ class Device(DeviceBase, ProtobufProps):
         processed = False
 
         if packet.src == 0x02 and packet.cmdSet == 0xFE and packet.cmdId == 0x15:
-            p = mr521_pb2.DisplayPropertyUpload()
-            p.ParseFromString(packet.payload)
             _LOGGER.debug("%s: %s: Parsed data: %r", self.address, self.name, packet)
-            # _LOGGER.debug("Delta Pro 3 Parsed Message \n %s", str(p))
-            self.update_from_message(p)
+            self.update_throttled(mr521_pb2.DisplayPropertyUpload, packet.payload)
+
             processed = True
         elif (
             packet.src == 0x35
@@ -161,6 +164,7 @@ class Device(DeviceBase, ProtobufProps):
         payload = message.SerializeToString()
         packet = Packet(0x20, 0x02, 0xFE, 0x11, payload, 0x01, 0x01, 0x13)
         await self._conn.sendPacket(packet)
+        self.allow_next_update()
 
     async def set_energy_backup_battery_level(self, value: int):
         config = mr521_pb2.ConfigWrite()
