@@ -27,7 +27,7 @@ class CircuitPowerField(
     idx: int
 
     def get_item(self, value: Sequence[float]) -> float | None:
-        return value[self.idx]
+        return value[self.idx] if value and len(value) > self.idx else None
 
 
 @dataclass
@@ -37,7 +37,7 @@ class CircuitCurrentField(
     idx: int
 
     def get_item(self, value: Sequence[float]) -> float | None:
-        return round(value[self.idx], 4)
+        return round(value[self.idx], 4) if value and len(value) > self.idx else None
 
 
 @dataclass
@@ -45,7 +45,7 @@ class ChannelPowerField(repeated_pb_field_type(list_field=pb_time.watt_info.ch_w
     idx: int
 
     def get_item(self, value: Sequence[float]) -> float | None:
-        return round(value[self.idx], 2)
+        return round(value[self.idx], 2) if value and len(value) > self.idx else None
 
 
 def _errors(error_codes: pd303_pb2.ErrCode):
