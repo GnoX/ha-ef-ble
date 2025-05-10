@@ -2,9 +2,9 @@
   "config": {
     "abort": {
       "already_configured": "Device is already configured",
-      "not_supported": "Device not supported",
-      "no_devices_found": "No supported Ecoflow devices found",
-      "reconfigure_successful": "Re-configuration was successful"
+      "not_supported": "Device is not supported",
+      "no_devices_found": "No supported EcoFlow devices found",
+      "reconfigure_successful": "Reconfiguration was successful"
     },
     "error": {
       "cannot_connect": "Cannot connect",
@@ -12,21 +12,25 @@
       "unknown": "Unexpected error, check logs",
       "email_empty": "Email cannot be empty",
       "password_empty": "Password cannot be empty",
-      "device_auth_failed": "Device authentification failed, user id may be incorrect",
-      "bt_timeout": "Could not connect to device, exceeded maximum tries",
-      "bt_general_eror": "Could not connect to device, see logs for details",
-      "error_try_refresh": "Connection is in invalid state, try refreshing before adding device"
+      "device_auth_failed": "Device authentication failed - user ID may be incorrect",
+      "bt_timeout": "Could not connect to the device - exceeded maximum attempts",
+      "bt_general_error": "Could not connect to the device - see logs for details",
+      "error_try_refresh": "Connection is in an invalid state - try refreshing before adding the device"
     },
     "step": {
       "bluetooth_confirm": {
-        "title": "Discovered Device Config",
+        "title": "Discovered Device Configuration",
         "data": {
-          "user_id": "Ecoflow User ID",
-          "address": "BLE Device"
+          "user_id": "EcoFlow User ID",
+          "address": "BLE Device",
+          "update_period": "Update Period"
+        },
+        "data_description": {
+          "update_period": "Number of seconds to wait before processing the next device update. A default value of 0 means all updates are processed (may cause higher CPU usage)."
         },
         "sections": {
           "login": {
-            "name": "Ecoflow Login (skip if you already have user id)",
+            "name": "EcoFlow Login (skip if you already know your user ID)",
             "data": {
               "email": "Email",
               "password": "Password"
@@ -35,14 +39,18 @@
         }
       },
       "user": {
-        "title": "Add Ecoflow Device",
+        "title": "Add EcoFlow Device",
         "data": {
-          "user_id": "Ecoflow User ID",
-          "address": "BLE Device"
+          "user_id": "EcoFlow User ID",
+          "address": "BLE Device",
+          "update_period": "Update Period"
+        },
+        "data_description": {
+          "update_period": "Number of seconds to wait before processing the next device update. A default value of 0 means all updates are processed."
         },
         "sections": {
           "login": {
-            "name": "Ecoflow Login (skip if you already have user id)",
+            "name": "EcoFlow Login (skip if you already know your user ID)",
             "data": {
               "email": "Email",
               "password": "Password"
@@ -52,7 +60,7 @@
       },
       "reconfigure": {
         "data": {
-          "user_id": "Ecoflow User ID"
+          "user_id": "EcoFlow User ID"
         }
       }
     }
