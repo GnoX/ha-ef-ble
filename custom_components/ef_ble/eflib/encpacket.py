@@ -1,8 +1,9 @@
 import struct
 
-from .crc import crc16
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
+
+from .crc import crc16
 
 
 class EncPacket:

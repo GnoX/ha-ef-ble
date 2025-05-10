@@ -6,8 +6,8 @@ from types import ModuleType
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
-from .devicebase import DeviceBase
 from . import devices
+from .devicebase import DeviceBase
 
 _LOGGER = logging.getLogger(__name__)
 

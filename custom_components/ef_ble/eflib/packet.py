@@ -1,7 +1,7 @@
 import logging
 import struct
 
-from .crc import crc16, crc8
+from .crc import crc8, crc16
 
 _LOGGER = logging.getLogger(__name__)
 
