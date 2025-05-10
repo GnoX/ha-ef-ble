@@ -22,8 +22,6 @@ from homeassistant.data_entry_flow import section
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 
-from custom_components.ef_ble.eflib.props import ThrottledProtobufProps
-
 from . import CONF_UPDATE_PERIOD, eflib
 from .const import CONF_USER_ID, DOMAIN
 from .eflib.connection import ConnectionState
@@ -110,7 +108,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                         {"collapsed": self._collapsed},
                     ),
                     vol.Required(CONF_ADDRESS): vol.In([f"{title} ({device.address})"]),
-                    **self._get_device_period_option(device),
+                    **self._get_device_period_option(),
                 }
             ),
         )
@@ -172,9 +170,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                         {"collapsed": self._collapsed},
                     ),
                     vol.Required(CONF_ADDRESS): vol.In(self._discovered_devices.keys()),
-                    **self._get_device_period_option(
-                        list(self._discovered_devices.values())[0]
-                    ),
+                    **self._get_device_period_option(),
                 }
             ),
         )
@@ -198,14 +194,6 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
 
-        update_period_option = (
-            self._get_device_period_option(
-                default=reconfigure_entry.data[CONF_UPDATE_PERIOD]
-            )
-            if CONF_UPDATE_PERIOD in reconfigure_entry.data
-            else {}
-        )
-
         return self.async_show_form(
             step_id="reconfigure",
             data_schema=vol.Schema(
@@ -213,7 +201,9 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                     vol.Required(
                         CONF_USER_ID, default=reconfigure_entry.data.get(CONF_USER_ID)
                     ): str,
-                    **update_period_option,
+                    **self._get_device_period_option(
+                        default=reconfigure_entry.data.get(CONF_UPDATE_PERIOD, 0)
+                    ),
                 }
             ),
             errors=errors,
@@ -305,15 +295,9 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         self._collapsed = True
         return {}
 
-    def _get_device_period_option(
-        self, device: eflib.DeviceBase | None = None, default: int = 0
-    ):
-        return (
-            {
-                vol.Optional(CONF_UPDATE_PERIOD, default=default): vol.All(
-                    int, vol.Range(min=0)
-                )
-            }
-            if device is None or isinstance(device, ThrottledProtobufProps)
-            else {}
-        )
+    def _get_device_period_option(self, default: int = 0):
+        return {
+            vol.Optional(CONF_UPDATE_PERIOD, default=default): vol.All(
+                int, vol.Range(min=0)
+            )
+        }

@@ -6,7 +6,7 @@ from ..devicebase import AdvertisementData, BLEDevice, DeviceBase
 from ..packet import Packet
 from ..pb import yj751_sys_pb2
 from ..props import (
-    ThrottledProtobufProps,
+    ProtobufProps,
     pb_field,
     proto_attr_mapper,
     repeated_pb_field_type,
@@ -30,12 +30,7 @@ class _BatteryLevel(
         return item.bp_soc if item.bp_no == self.battery_no else None
 
 
-class Device(
-    DeviceBase,
-    ThrottledProtobufProps.with_field_discriminators(
-        [pb_heartbeat.soc, pb_bp_info.bp_info]
-    ),
-):
+class Device(DeviceBase, ProtobufProps):
     """Delta Pro Ultra"""
 
     SN_PREFIX = b"Y711"
@@ -89,7 +84,7 @@ class Device(
                 _LOGGER.debug(
                     "%s: %s: Parsed data: %r", self.address, self.name, packet
                 )
-                self.update_throttled(
+                self.update_from_bytes(
                     yj751_sys_pb2.AppShowHeartbeatReport, packet.payload
                 )
                 # _LOGGER.debug("DPU AppShowHeartbeatReport: \n %s", str(p))
@@ -101,10 +96,10 @@ class Device(
                     "%s: %s: Parsed data: %r", self.address, self.name, packet
                 )
 
-                self.update_throttled(yj751_sys_pb2.BpInfoReport, packet.payload)
+                self.update_from_bytes(yj751_sys_pb2.BpInfoReport, packet.payload)
                 # _LOGGER.debug("DPU BpInfoReport: \n %s", str(p))
 
-                self.update_throttled(
+                self.update_from_bytes(
                     yj751_sys_pb2.AppShowHeartbeatReport, packet.payload
                 )
                 processed = True
