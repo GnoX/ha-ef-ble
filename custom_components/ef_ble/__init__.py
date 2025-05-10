@@ -13,7 +13,6 @@ from homeassistant.helpers.device_registry import DeviceInfo
 
 from . import eflib
 from .const import CONF_UPDATE_PERIOD, CONF_USER_ID, DOMAIN, MANUFACTURER
-from .eflib.props import ThrottledProtobufProps
 
 PLATFORMS: list[Platform] = [
     Platform.SENSOR,
@@ -48,10 +47,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
     if device is None:
         raise ConfigEntryNotReady("EcoFlow BLE Device unable to create")
 
-    if isinstance(device, ThrottledProtobufProps):
-        device = device.with_update_period(update_period)
-
-    await device.connect(user_id)
+    await device.with_update_period(update_period).connect(user_id)
     entry.runtime_data = device
 
     _LOGGER.debug("Creating entities")

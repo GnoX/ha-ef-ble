@@ -10,7 +10,7 @@ from ..packet import Packet
 from ..pb import pd335_bms_bp_pb2, pd335_sys_pb2
 from ..props import (
     Field,
-    ThrottledProtobufProps,
+    ProtobufProps,
     pb_field,
     proto_attr_mapper,
     repeated_pb_field_type,
@@ -73,17 +73,7 @@ class DCPortState(IntFieldValue):
     SOLAR = 2
 
 
-class Device(
-    DeviceBase,
-    ThrottledProtobufProps.with_field_discriminators(
-        [
-            pb.cms_batt_soc,
-            pb.energy_backup_en,
-            pb.plug_in_info_ac_charger_flag,
-            pb_bms.cycles,
-        ]
-    ),
-):
+class Device(DeviceBase, ProtobufProps):
     """Delta 3"""
 
     SN_PREFIX = (b"P231", b"D361")
@@ -165,8 +155,8 @@ class Device(
 
         if packet.src == 0x02 and packet.cmdSet == 0xFE and packet.cmdId == 0x15:
             _LOGGER.debug("%s: %s: Parsed data: %r", self.address, self.name, packet)
-            self.update_throttled(pd335_sys_pb2.DisplayPropertyUpload, packet.payload)
-            self.update_throttled(pd335_bms_bp_pb2.BMSHeartBeatReport, packet.payload)
+            self.update_from_bytes(pd335_sys_pb2.DisplayPropertyUpload, packet.payload)
+            self.update_from_bytes(pd335_bms_bp_pb2.BMSHeartBeatReport, packet.payload)
 
             processed = True
         elif (
@@ -201,7 +191,6 @@ class Device(
         payload = message.SerializeToString()
         packet = Packet(0x20, 0x02, 0xFE, 0x11, payload, 0x01, 0x01, 0x13)
         await self._conn.sendPacket(packet)
-        self.allow_next_update()
 
     async def set_energy_backup_battery_level(self, value: int):
         config = pd335_sys_pb2.ConfigWrite()

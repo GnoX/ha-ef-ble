@@ -1,5 +1,6 @@
 import abc
 import logging
+import time
 from collections import defaultdict
 from collections.abc import Callable
 from typing import Any
@@ -45,6 +46,10 @@ class DeviceBase(abc.ABC):
         self._state_update_callbacks: dict[str, set[Callable[[Any], None]]] = (
             defaultdict(set)
         )
+        self._update_period = 0
+        self._last_updated = 0
+        self._props_to_update = set()
+        self._wait_until_throttle = 0
 
     @property
     def device(self):
@@ -72,6 +77,10 @@ class DeviceBase(abc.ABC):
     @property
     def connection_state(self):
         return None if self._conn is None else self._conn._state
+
+    def with_update_period(self, period: int):
+        self._update_period = period
+        return self
 
     async def data_parse(self, packet: Packet) -> bool:
         """Function to parse incoming data and trigger sensors update"""
@@ -141,8 +150,29 @@ class DeviceBase(abc.ABC):
 
     def update_callback(self, propname: str) -> None:
         """Find the registered callbacks in the map and then calling the callbacks"""
-        for callback in self._callbacks_map.get(propname, set()):
-            callback()
+
+        self._props_to_update.add(propname)
+
+        if self._update_period != 0:
+            now = time.time()
+            if now - self._last_updated < self._update_period:
+                if self._wait_until_throttle is None:
+                    return
+
+                # let first few messages update as soon as they come, otherwise everything
+                # would display unknown until first period ends
+                if self._wait_until_throttle == 0:
+                    self._wait_until_throttle = now + 5
+                elif self._wait_until_throttle < now:
+                    self._wait_until_throttle = None
+
+            self._last_updated = now
+
+        for prop in self._props_to_update:
+            for callback in self._callbacks_map.get(prop, set()):
+                callback()
+
+        self._props_to_update.clear()
 
     def register_state_update_callback(
         self, state_update_callback: Callable[[Any], None], propname: str
@@ -160,5 +190,6 @@ class DeviceBase(abc.ABC):
         """Run callback for updated state"""
         if propname not in self._state_update_callbacks:
             return
+
         for update in self._state_update_callbacks[propname]:
             update(value)

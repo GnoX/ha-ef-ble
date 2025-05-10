@@ -87,3 +87,13 @@ class ProtobufProps(UpdatableProps):
 
             for field in repeated_fields:
                 setattr(self, field.public_name, field_list)
+
+    def update_from_bytes(
+        self,
+        message_type: type[Message],
+        serialized_message: bytes,
+        reset: bool = False,
+    ):
+        msg = message_type()
+        msg.ParseFromString(serialized_message)
+        self.update_from_message(msg, reset=reset)
