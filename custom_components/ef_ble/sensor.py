@@ -1,5 +1,6 @@
 """EcoFlow BLE sensor"""
 
+import itertools
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -23,6 +24,17 @@ from . import DeviceConfigEntry
 from .eflib import DeviceBase
 from .eflib.devices import shp2
 from .entity import EcoflowEntity
+
+_UPPER_WORDS = ["ac", "dc", "lv", "hv", "tt", "5p8"]
+
+
+def _auto_name_from_key(key: str):
+    return " ".join(
+        [
+            part.capitalize() if part.lower() not in _UPPER_WORDS else part.upper()
+            for part in key.split("_")
+        ]
+    )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -110,20 +122,43 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         for i in range(1, shp2.Device.NUM_OF_CHANNELS + 1)
     },
     # DPU
-    "lv_solar_power": SensorEntityDescription(
-        key="lv_solar_power",
-        native_unit_of_measurement=UnitOfPower.WATT,
-        device_class=SensorDeviceClass.POWER,
-        state_class=SensorStateClass.MEASUREMENT,
-        suggested_display_precision=2,
-    ),
-    "hv_solar_power": SensorEntityDescription(
-        key="hv_solar_power",
-        native_unit_of_measurement=UnitOfPower.WATT,
-        device_class=SensorDeviceClass.POWER,
-        state_class=SensorStateClass.MEASUREMENT,
-        suggested_display_precision=2,
-    ),
+    **{
+        f"{sensor}_{measurement}": SensorEntityDescription(
+            key=f"{sensor}_{measurement}",
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            translation_key=f"port_{measurement}",
+            translation_placeholders={"name": _auto_name_from_key(sensor)},
+            suggested_display_precision=2,
+        )
+        for measurement, sensor in itertools.product(
+            ["power"],
+            [
+                "lv_solar",
+                "hv_solar",
+                "ac_l1_1_out",
+                "ac_l1_2_out",
+                "ac_l2_1_out",
+                "ac_l2_2_out",
+                "ac_l14_out",
+                "ac_tt_out",
+                "ac_5p8_out",
+            ],
+        )
+    },
+    **{
+        f"battery_{i}_battery_level": SensorEntityDescription(
+            key=f"battery_{i}_battery_level",
+            native_unit_of_measurement=PERCENTAGE,
+            device_class=SensorDeviceClass.BATTERY,
+            state_class=SensorStateClass.MEASUREMENT,
+            translation_key="additional_battery_level",
+            translation_placeholders={"index": f"{i}"},
+            entity_registry_enabled_default=False,
+        )
+        for i in range(1, 6)
+    },
     # River 3, Delta 3
     "input_energy": SensorEntityDescription(
         key="input_energy",

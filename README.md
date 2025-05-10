@@ -34,13 +34,21 @@ Recognized devices:
 <b>Delta Pro Ultra (EF-YJ####, FW Version: 5.0.0.25, WiFi Version: 2.0.2.4)</b>
 </summary>
 
-| *Sensors*                |
-|--------------------------|
-| Battery Level            |
-| Input Power              |
-| Output Power             |
-| Low Voltage Solar Power  |
-| High Voltage Solar Power |
+| *Sensors*                            |
+|--------------------------------------|
+| Battery Level                        |
+| Individual Battery Levels (disabled) |
+| Input Power                          |
+| Output Power                         |
+| Low Voltage Solar Power              |
+| High Voltage Solar Power             |
+| AC L1 (1) Output Power               |
+| AC L1 (2) Output Power               |
+| AC L2 (1) Output Power               |
+| AC L2 (2) Output Power               |
+| AC TT-30R Output Power               |
+| AC L14-30P Output Power              |
+| AC I/O Output Power                  |
 </details>
 <details><summary>
 <b>River 3 (Plus, UPS) (EF-R3####, FW Version: 1.0.0.0)</b>
