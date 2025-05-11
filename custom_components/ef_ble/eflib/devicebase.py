@@ -53,7 +53,7 @@ class DeviceBase(abc.ABC):
 
     @property
     def device(self):
-        return self.__doc__
+        return self.__doc__ if self.__doc__ else ""
 
     @property
     def address(self):
