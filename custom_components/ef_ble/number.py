@@ -191,6 +191,9 @@ class EcoflowNumber(EcoflowEntity, NumberEntity):
             setattr(self, entity_attr, state)
             self.async_write_ha_state()
 
+        if state := getattr(self._device, prop_name, None):
+            setattr(self, entity_attr, state)
+
         self._update_callbacks.append((prop_name, state_updated))
 
     async def async_added_to_hass(self) -> None:
