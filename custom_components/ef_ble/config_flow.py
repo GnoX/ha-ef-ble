@@ -49,7 +49,6 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
 
         self._user_id: str = ""
         self._email: str = ""
-        self._password: str = ""
         self._user_id_validated: bool = False
         self._collapsed = True
 
@@ -166,7 +165,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Schema(
                     {
                         vol.Optional(CONF_EMAIL, default=self._email): str,
-                        vol.Optional(CONF_PASSWORD, default=self._password): str,
+                        vol.Optional(CONF_PASSWORD): str,
                     }
                 ),
                 {"collapsed": self._collapsed},
@@ -217,19 +216,19 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         self._user_id_validated = False
 
         self._email = user_input.get("login", {}).get(CONF_EMAIL, "")
-        self._password = user_input.get("login", {}).get(CONF_PASSWORD, "")
+        password = user_input.get("login", {}).get(CONF_PASSWORD, "")
         user_id = user_input.get(CONF_USER_ID, "")
         self._collapsed = False
 
-        if not self._email and not self._password and not user_id:
+        if not self._email and not password and not user_id:
             return {CONF_USER_ID: "User ID cannot be empty"}
 
-        if self._email or self._password:
+        if self._email or password:
             if not self._email:
                 return {"login": "email_empty"}
-            if not self._password:
+            if not password:
                 return {"login": "password_empty"}
-            return await self._ecoflow_login(self._email, self._password)
+            return await self._ecoflow_login(self._email, password)
 
         self._user_id = user_id
 
@@ -293,7 +292,6 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
 
             self._user_id = result_json["data"]["user"]["userId"]
         self._email = ""
-        self._password = ""
         self._collapsed = True
         return {}
 
