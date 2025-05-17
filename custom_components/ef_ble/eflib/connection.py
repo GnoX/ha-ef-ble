@@ -1,5 +1,4 @@
 import asyncio
-import contextlib
 import hashlib
 import logging
 import struct
@@ -23,9 +22,8 @@ from Crypto.Util.Padding import pad, unpad
 from . import keydata
 from .crc import crc16
 from .encpacket import EncPacket
+from .logging_util import ConnectionLogger, LogOptions
 from .packet import Packet
-
-_LOGGER = logging.getLogger(__name__)
 
 
 class PacketParseError(Exception):
@@ -94,6 +92,9 @@ class Connection:
         self._enc_packet_buffer = b""
         self._tasks: set[asyncio.Task] = set()
         self._cancelling = False
+        self._debug_mode = False
+
+        self._logger = ConnectionLogger(self)
 
     @property
     def is_connected(self) -> bool:
@@ -101,6 +102,10 @@ class Connection:
 
     def ble_dev(self) -> BLEDevice:
         return self._ble_dev
+
+    def with_logging_options(self, options: LogOptions):
+        self._logger.set_options(options)
+        return self
 
     async def connect(self, max_attempts: int = MAX_CONNECT_ATTEMPTS):
         self._connected.clear()
@@ -110,12 +115,12 @@ class Connection:
         try:
             if self._client is not None:
                 if self._client.is_connected:
-                    _LOGGER.warning("%s: Device is already connected", self._address)
+                    self._logger.warning("Device is already connected")
                     return
-                _LOGGER.info("%s: Reconnecting to device", self._address)
+                self._logger.info("Reconnecting to device")
                 await self._client.connect()
             else:
-                _LOGGER.info("%s: Connecting to device", self._address)
+                self._logger.info("Connecting to device")
                 self._client = await establish_connection(
                     BleakClientWithServiceCache,
                     self.ble_dev(),
@@ -136,57 +141,52 @@ class Connection:
 
         if error is not None:
             self._last_error_msg = str(error)
-            _LOGGER.error(
-                "%s: Failed to connect to the device: %s", self._address, error
-            )
+            self._logger.error("Failed to connect to the device: %s", error)
             self.disconnected()
             return
 
-        _LOGGER.info(
-            "%s: Connected",
-            self._address,
-        )
+        self._logger.info("Connected")
         self._errors = 0
         self._retry_on_disconnect = True
         self._retry_on_disconnect_delay = 10
 
         if self._client._backend.__class__.__name__ == "BleakClientBlueZDBus":
             await self._client._backend._acquire_mtu()
-        _LOGGER.debug("%s: MTU: %d", self._address, self._client.mtu_size)
 
-        _LOGGER.info("%s: Init completed, starting auth routine...", self._address)
+        self._logger.log_filtered(
+            LogOptions.CONNECTION_DEBUG, "MTU: %d", self._client.mtu_size
+        )
+
+        self._logger.info("Init completed, starting auth routine...")
 
         await self.initBleSessionKey()
 
     def disconnected(self, *args, **kwargs) -> None:
-        _LOGGER.warning("%s: Disconnected from device", self._address)
+        self._logger.warning("Disconnected from device")
         if self._retry_on_disconnect:
-            loop = asyncio.get_event_loop()
-            reconnect_task = loop.create_task(self.reconnect())
-            self._tasks.add(reconnect_task)
-            reconnect_task.add_done_callback(self._tasks.discard)
+            self._add_task(self.reconnect(), asyncio.get_event_loop())
         else:
             self._connected.set()
             self._disconnected.set()
 
     async def reconnect(self) -> None:
         # Wait before reconnect
-        _LOGGER.warning(
-            "%s: Reconnecting to the device in %d seconds...",
-            self._address,
+        self._logger.warning(
+            "Reconnecting to the device in %d seconds...",
             self._retry_on_disconnect_delay,
         )
         await asyncio.sleep(self._retry_on_disconnect_delay)
         if not self._retry_on_disconnect:
-            _LOGGER.warning("%s: Reconnect is aborted", self._address)
+            self._logger.warning("Reconnect is aborted")
             return
         self._retry_on_disconnect_delay += 10
         await self.connect()
 
     async def disconnect(self) -> None:
-        _LOGGER.info("%s: Disconnecting from device", self._address)
+        self._logger.info("Disconnecting from device")
         self._retry_on_disconnect = False
         if self._client is not None and self._client.is_connected:
+            self._cancel_tasks()
             await self._client.disconnect()
 
     async def waitConnected(self, timeout: int = 20):
@@ -202,13 +202,12 @@ class Connection:
 
     async def errorsAdd(self, exception: Exception):
         tb = traceback.format_tb(exception.__traceback__)
-        _LOGGER.error(
-            "%s: Captured exception: %s:\n%s", self._address, exception, "".join(tb)
-        )
+        self._logger.error("Captured exception: %s:\n%s", exception, "".join(tb))
         if self._errors > 5:
             # Too much errors happened - let's reconnect
             self._errors = 0
             if self._client is not None and self._client.is_connected:
+                self._logger.warning("Client disconnected after encountering 5 errors")
                 await self._client.disconnect()
 
     # En/Decrypt functions must create AES object every time, because
@@ -259,7 +258,11 @@ class Connection:
 
     async def parseSimple(self, data: str):
         """Deserializes bytes stream into the simple bytes"""
-        _LOGGER.debug("%s: parseSimple: Data: %r", self._address, bytearray(data).hex())
+        self._logger.log_filtered(
+            LogOptions.ENCRYPTED_PAYLOADS,
+            "parseSimple: Data: %r",
+            bytearray(data).hex(),
+        )
 
         header = data[0:6]
         data_end = 6 + struct.unpack("<H", header[4:6])[0]
@@ -268,9 +271,8 @@ class Connection:
 
         # Check the payload CRC16
         if crc16(header + payload_data) != struct.unpack("<H", payload_crc)[0]:
-            _LOGGER.error(
-                "%s: parseSimple: Unable to parse simple packet - incorrect CRC16: %r",
-                self._address,
+            self._logger.error(
+                "parseSimple: Unable to parse simple packet - incorrect CRC16: %r",
                 bytearray(payload_data).hex(),
             )
             raise PacketParseError
@@ -285,13 +287,14 @@ class Connection:
             data = self._enc_packet_buffer + data
             self._enc_packet_buffer = b""
 
-        _LOGGER.debug(
-            "%s: parseEncPackets: Data: %r", self._address, bytearray(data).hex()
+        self._logger.log_filtered(
+            LogOptions.ENCRYPTED_PAYLOADS,
+            "parseEncPackets: Data: %r",
+            bytearray(data).hex(),
         )
         if len(data) < 8:
-            _LOGGER.error(
-                "%s: parseEncPackets: Unable to parse encrypted packet - too small: %r",
-                self._address,
+            self._logger.error(
+                "parseEncPackets: Unable to parse encrypted packet - too small: %r",
                 bytearray(data).hex(),
             )
             raise EncPacketParseError
@@ -301,12 +304,8 @@ class Connection:
         packets = []
         while data:
             if not data.startswith(EncPacket.PREFIX):
-                _LOGGER.error(
-                    (
-                        "%s: parseEncPackets: Unable to parse encrypted packet - "
-                        "prefix is incorrect: %r"
-                    ),
-                    self._address,
+                self._logger.error(
+                    "parseEncPackets: Unable to parse encrypted packet - prefix is incorrect: %r",
                     bytearray(data).hex(),
                 )
                 return packets
@@ -326,23 +325,27 @@ class Connection:
             try:
                 # Check the packet CRC16
                 if crc16(header + payload_data) != struct.unpack("<H", payload_crc)[0]:
-                    _LOGGER.error(
-                        "%s: Unable to parse encrypted packet - incorrect CRC16: %r",
-                        self._address,
+                    self._logger.error(
+                        "Unable to parse encrypted packet - incorrect CRC16: %r",
                         bytearray(payload_data).hex(),
                     )
                     raise PacketParseError  # noqa: TRY301
 
                 # Decrypt the payload packet
                 payload = await self.decryptSession(payload_data)
-                _LOGGER.debug(
-                    "%s: parseEncPackets: decrypted payload: %r",
-                    self._address,
+                self._logger.log_filtered(
+                    LogOptions.DECRYPTED_PAYLOADS,
+                    "parseEncPackets: decrypted payload: %r",
                     bytearray(payload).hex(),
                 )
 
                 # Parse packet
                 packet = await self._packet_parse(payload)
+                self._logger.log_filtered(
+                    LogOptions.PACKETS,
+                    "Parsed packet: %s",
+                    packet,
+                )
                 if packet is not None:
                     packets.append(packet)
             except Exception as e:  # noqa: BLE001
@@ -352,13 +355,26 @@ class Connection:
         return packets
 
     async def sendRequest(self, send_data: bytes, response_handler=None):
-        _LOGGER.debug("%s: Sending: %r", self._address, bytearray(send_data).hex())
+        self._logger.log_filtered(
+            LogOptions.CONNECTION_DEBUG, "Sending: %r", bytearray(send_data).hex()
+        )
         # In case exception happens we need to try again
         err = None
-        for retry in range(3):
+        for retry in range(4):
             try:
                 await self._sendRequest(send_data, response_handler)
             except Exception as e:  # noqa: BLE001, PERF203
+                self._logger.log_filtered(
+                    LogOptions.CONNECTION_DEBUG,
+                    (
+                        "Exception occured when sending request on try %d: %s, "
+                        "retrying in %d seconds"
+                    ),
+                    retry,
+                    str(e),
+                    retry + 1,
+                    level=logging.WARNING,
+                )
                 if err is None:
                     err = e
                 await asyncio.sleep(retry + 1)
@@ -371,9 +387,9 @@ class Connection:
     async def _sendRequest(self, send_data: bytes, response_handler=None):
         # Make sure the connection is here, otherwise just skipping
         if not self._client.is_connected:
-            _LOGGER.debug(
-                "%s: Skip sending: disconnected: %r",
-                self._address,
+            self._logger.log_filtered(
+                LogOptions.CONNECTION_DEBUG,
+                "Skip sending: disconnected: %r",
                 bytearray(send_data).hex(),
             )
             return
@@ -386,7 +402,9 @@ class Connection:
         )
 
     async def sendPacket(self, packet: Packet, response_handler=None):
-        _LOGGER.debug("%s: Sending packet: %r", self._address, packet)
+        self._logger.log_filtered(
+            LogOptions.CONNECTION_DEBUG, "Sending packet: %r", packet
+        )
         # Wrapping and encrypting with session key
         to_send = EncPacket(
             EncPacket.FRAME_TYPE_PROTOCOL,
@@ -418,10 +436,12 @@ class Connection:
             packet.productId,
         )
         # Running reply asynchroneously
-        await self._add_task(self.sendPacket(reply_packet))
+        self._add_task(self.sendPacket(reply_packet))
 
     async def initBleSessionKey(self):
-        _LOGGER.debug("%s: initBleSessionKey: Pub key exchange", self._address)
+        self._logger.log_filtered(
+            LogOptions.CONNECTION_DEBUG, "initBleSessionKey: Pub key exchange"
+        )
         self._private_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP160r1)
         self._public_key = self._private_key.get_verifying_key()
 
@@ -468,7 +488,9 @@ class Connection:
         await self.getKeyInfoReq()
 
     async def getKeyInfoReq(self):
-        _LOGGER.debug("%s: getKeyInfoReq: Receiving session key", self._address)
+        self._logger.log_filtered(
+            LogOptions.CONNECTION_DEBUG, "getKeyInfoReq: Receiving session key"
+        )
         to_send = EncPacket(
             EncPacket.FRAME_TYPE_COMMAND,
             EncPacket.PAYLOAD_TYPE_VX_PROTOCOL,
@@ -498,7 +520,9 @@ class Connection:
         await self.getAuthStatus()
 
     async def getAuthStatus(self):
-        _LOGGER.debug("%s: getKeyInfoReq: Receiving auth status", self._address)
+        self._logger.log_filtered(
+            LogOptions.CONNECTION_DEBUG, "getKeyInfoReq: Receiving auth status"
+        )
 
         # Preparing packet with empty payload
         packet = Packet(0x21, 0x35, 0x35, 0x89, b"", 0x01, 0x01, 0x03)
@@ -514,18 +538,17 @@ class Connection:
             raise PacketReceiveError
         data = packets[0].payload
 
-        _LOGGER.debug(
-            "%s: getAuthStatusHandler: data: %r", self._address, bytearray(data).hex()
+        self._logger.log_filtered(
+            LogOptions.CONNECTION_DEBUG,
+            "getAuthStatusHandler: data: %r",
+            bytearray(data).hex(),
         )
         await self.autoAuthentication()
 
     async def autoAuthentication(self):
-        _LOGGER.info(
-            (
-                "%s: autoAuthentication: Sending secretKey consists of user id and "
-                "device serial number"
-            ),
-            self._address,
+        self._logger.info(
+            "autoAuthentication: Sending secretKey consists of user id and device "
+            "serial number",
         )
 
         # Building payload for auth
@@ -557,14 +580,12 @@ class Connection:
                 if packet.payload != b"\x00":
                     # TODO: Most probably we need to follow some other way for auth, but
                     # happens rarely
-                    _LOGGER.error(
-                        "%s: Auth failed with response: %r", self._address, packet
-                    )
+                    self._logger.error("Auth failed with response: %r", packet)
                     self._state = ConnectionState.ERROR_AUTH_FAILED
                     self._connected.set()
                     raise AuthFailedError
                 processed = True
-                _LOGGER.info("%s: Auth completed, everything is fine", self._address)
+                self._logger.info("Auth completed, everything is fine")
                 self._state = ConnectionState.AUTHENTICATED
                 self._connected.set()
             else:
@@ -572,23 +593,20 @@ class Connection:
                 processed = await self._data_parse(packet)
 
             if not processed:
-                _LOGGER.debug("%s: listenForDataHandler: %r", self._address, packet)
+                self._logger.log_filtered(
+                    LogOptions.CONNECTION_DEBUG, "listenForDataHandler: %r", packet
+                )
 
-    async def _cancel_tasks(self):
+    def _cancel_tasks(self):
         for task in self._tasks:
             task.cancel()
 
-            with contextlib.suppress(asyncio.CancelledError):
-                await task
-
-        async with self._cancel_lock:
-            self._tasks.clear()
-
-    async def _add_task(self, task: Coroutine):
-        async with self._cancel_lock:
-            new_task = asyncio.create_task(task)
-            self._tasks.add(new_task)
-            new_task.add_done_callback(self._tasks.discard)
+    def _add_task(
+        self, coro: Coroutine, event_loop: asyncio.AbstractEventLoop | None = None
+    ):
+        task = event_loop.create_task(coro) if event_loop else asyncio.create_task(coro)
+        self._tasks.add(task)
+        task.add_done_callback(self._tasks.discard)
 
 
 def getEcdhTypeSize(curve_num: int):
