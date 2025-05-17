@@ -167,7 +167,7 @@ class Device(DeviceBase, ProtobufProps):
 
         elif packet.src == 0x0B and packet.cmdSet == 0x01 and packet.cmdId == 0x55:
             # Device reply that it's online and ready
-            await self._conn._add_task(self.set_config_flag(True))
+            self._conn._add_task(self.set_config_flag(True))
             processed = True
 
         self.error_count = len(self.errors) if self.errors is not None else None
