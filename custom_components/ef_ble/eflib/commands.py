@@ -1,8 +1,6 @@
-import asyncio
 import logging
 import struct
 import time
-from collections.abc import Coroutine
 from dataclasses import dataclass
 
 from .devicebase import DeviceBase
@@ -98,12 +96,7 @@ class TimeCommands:
 
         await self.device._conn.sendPacket(packet)
 
-    def _add_task(self, task: Coroutine):
-        bg_task = asyncio.create_task(task)
-        self._bg_tasks.add(bg_task)
-        bg_task.add_done_callback(self._bg_tasks.discard)
-
     def async_send_all(self):
-        self._add_task(self.sendUtcTime())
-        self._add_task(self.sendRTCRespond())
-        self._add_task(self.sendRTCCheck())
+        self.device._conn._add_task(self.sendUtcTime())
+        self.device._conn._add_task(self.sendRTCRespond())
+        self.device._conn._add_task(self.sendRTCCheck())
