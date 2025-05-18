@@ -1,3 +1,31 @@
+[project]
+name = "ha-ef-ble"
+dynamic = ["version"]
+dependencies = [
+    "bluetooth_adapters",
+    "ecdsa",
+    "crc",
+    "PyCryptodome",
+    "protobuf",
+]
+requires-python = ">=3.13"
+
+[dependency-groups]
+dev = [
+    "homeassistant>=2025.4.0",
+    "pyserial",
+    "aiousbwatcher",
+    "pre-commit",
+    "ruff",
+    "pytest",
+    "pytest-mock",
+    "pytest-asyncio",
+    "coverage",
+]
+
+[tool.setuptools]
+packages = ["custom_components.ef_ble"]
+
 [tool.ruff.lint]
 select = [
     "A001", # Variable {name} is shadowing a Python builtin
@@ -160,3 +188,7 @@ ignore = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "module"
+filterwarnings = [
+    "ignore:Inheritance class HomeAssistantApplication from web.Application is discouraged:DeprecationWarning",
+]

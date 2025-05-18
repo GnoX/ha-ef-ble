@@ -129,7 +129,7 @@ class Connection:
                     ble_device_callback=self.ble_dev,
                     max_attempts=max_attempts,
                 )
-        except asyncio.TimeoutError as err:
+        except TimeoutError as err:
             error = err
             self._state = ConnectionState.ERROR_TIMEOUT
         except BleakNotFoundError as err:
@@ -193,7 +193,7 @@ class Connection:
         """Will release when connection is happened and authenticated"""
         try:
             await asyncio.wait_for(self._connected.wait(), timeout=timeout)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             self._state = ConnectionState.ERROR_TIMEOUT
 
     async def waitDisconnected(self):
@@ -363,7 +363,7 @@ class Connection:
         for retry in range(4):
             try:
                 await self._sendRequest(send_data, response_handler)
-            except Exception as e:  # noqa: BLE001, PERF203
+            except Exception as e:  # noqa: BLE001
                 self._logger.log_filtered(
                     LogOptions.CONNECTION_DEBUG,
                     (

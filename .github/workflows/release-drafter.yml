@@ -1,0 +1,19 @@
+name: Draft a release note
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  draft_release:
+    permissions:
+      contents: write
+      pull-requests: write
+    name: Release Drafter
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run release-drafter
+        uses: release-drafter/release-drafter@v6
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
