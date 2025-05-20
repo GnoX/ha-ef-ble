@@ -22,8 +22,6 @@ def generate_proto_typedefs():
         check=True,
     )
 
-    subprocess.run(["ruff", "format", f"{PB_OUT_PATH}"], check=False)
-
 
 if __name__ == "__main__":
     generate_proto_typedefs()
