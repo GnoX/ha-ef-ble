@@ -131,6 +131,7 @@ def show_heartbeat_report_message():
 
 @pytest.fixture
 def device(mocker: MockerFixture):
+    mocker.patch("custom_components.ef_ble.eflib.devicebase.DeviceLogger")
     device = dpu.Device(mocker.AsyncMock(), mocker.Mock(), "[sn]")
     device._conn = mocker.AsyncMock()
     return device
