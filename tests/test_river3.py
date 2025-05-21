@@ -199,6 +199,7 @@ def pr705_message_3():
 
 @pytest.fixture
 def device(mocker: MockerFixture):
+    mocker.patch("custom_components.ef_ble.eflib.devicebase.DeviceLogger")
     device = river3.Device(mocker.AsyncMock(), mocker.Mock(), "[sn]")
     device._conn = mocker.AsyncMock()
     return device

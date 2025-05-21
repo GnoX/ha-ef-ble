@@ -154,6 +154,7 @@ def shp2_proto_push_and_set():
 
 @pytest.fixture
 def device(mocker: MockerFixture):
+    mocker.patch("custom_components.ef_ble.eflib.devicebase.DeviceLogger")
     device = Device(mocker.AsyncMock(), mocker.Mock(), "[sn]")
     device._conn = mocker.AsyncMock()
     return device
@@ -228,3 +229,17 @@ async def test_shp2_updates_from_proto_push_and_set_message(
     for field in expected_updated_fields:
         assert field.public_name in device.updated_fields
         assert getattr(device, field.public_name) is not None
+
+
+async def test_shp2_sets_default_for_grid_watt_if_missing(device, shp2_proto_time):
+    to_process = Packet(
+        src=0x0B,
+        dst=0x00,
+        cmd_set=0x0C,
+        cmd_id=0x01,
+        payload=shp2_proto_time.SerializeToString(),
+    )
+
+    await device.data_parse(to_process)
+
+    assert getattr(device, Device.grid_power.public_name) == 0.0
