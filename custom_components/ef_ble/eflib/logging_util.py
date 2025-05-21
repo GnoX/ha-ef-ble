@@ -11,8 +11,6 @@ if TYPE_CHECKING:
     from .connection import Connection
     from .devicebase import DeviceBase
 
-_LOGGERS = []
-
 
 class SensitiveMaskingFilter(logging.Filter):
     def __init__(
@@ -44,10 +42,14 @@ class SensitiveMaskingFilter(logging.Filter):
                 replaced = True
         return msg_str if replaced else msg
 
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, SensitiveMaskingFilter):
+            return False
+        return self.name == value.name
+
 
 class LogOptions(Flag):
     MASKED = auto()
-    MASKED_GLOBAL = auto()
 
     ENCRYPTED_PAYLOADS = auto()
     DECRYPTED_PAYLOADS = auto()
