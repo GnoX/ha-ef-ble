@@ -243,3 +243,15 @@ async def test_shp2_sets_default_for_grid_watt_if_missing(device, shp2_proto_tim
     await device.data_parse(to_process)
 
     assert getattr(device, Device.grid_power.public_name) == 0.0
+
+    shp2_proto_time.watt_info.grid_watt = 10.5
+    to_process = Packet(
+        src=0x0B,
+        dst=0x00,
+        cmd_set=0x0C,
+        cmd_id=0x01,
+        payload=shp2_proto_time.SerializeToString(),
+    )
+
+    await device.data_parse(to_process)
+    assert getattr(device, Device.grid_power.public_name) == 10.5
