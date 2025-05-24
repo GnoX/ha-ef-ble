@@ -38,6 +38,11 @@ BINARY_SENSOR_TYPES = {
         name="AC Plugged In",
         device_class=BinarySensorDeviceClass.PLUG,
     ),
+    "collecting_data": BinarySensorEntityDescription(
+        key="collecting_data",
+        name="Collecting data",
+        translation_key="collecting_data",
+    ),
 }
 
 
