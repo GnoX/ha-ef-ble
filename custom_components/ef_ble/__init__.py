@@ -36,6 +36,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
     user_id = entry.data.get(CONF_USER_ID)
     merged_options = entry.data | entry.options
     update_period = merged_options.get(CONF_UPDATE_PERIOD, 0)
+    local_name = entry.data.get("local_name")
 
     if address is None or user_id is None:
         return False
@@ -50,7 +51,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
         raise ConfigEntryNotReady("EcoFlow BLE Device unable to create")
 
     await (
-        device.with_update_period(update_period)
+        device.with_name(local_name)
+        .with_update_period(update_period)
         .with_logging_options(ConfLogOptions.from_config(merged_options))
         .connect(user_id)
     )
@@ -76,7 +78,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> b
 def device_info(entry: ConfigEntry) -> DeviceInfo:
     """Device info."""
     return DeviceInfo(
-        identifiers={(DOMAIN, entry.data.get(CONF_ADDRESS))},
+        identifiers={(DOMAIN, entry.data[CONF_ADDRESS])},
         name=entry.title,
         manufacturer=MANUFACTURER,
         model=entry.data.get(CONF_TYPE),
