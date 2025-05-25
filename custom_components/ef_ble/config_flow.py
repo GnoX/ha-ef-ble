@@ -150,7 +150,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
             return await self.async_step_device_confirm()
 
         current_addresses = self._async_current_ids()
-        for discovery_info in async_discovered_service_info(self.hass, False):
+        for discovery_info in async_discovered_service_info(self.hass):
             address = discovery_info.address
             if address in current_addresses or address in self._discovered_devices:
                 continue
@@ -158,7 +158,6 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
             device = eflib.NewDevice(
                 discovery_info.device, discovery_info.advertisement
             )
-
             if device is not None:
                 self._discovered_devices[address] = device
                 self._set_name_from_discovery(discovery_info, device.name)
