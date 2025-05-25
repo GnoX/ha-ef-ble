@@ -94,21 +94,21 @@ class ProtobufField[T](Field[T]):
         self.transform_value = transform_value
         self.process_if_missing = process_if_missing
 
-    def _get_value(self, value: Message):
-        for attr in self.pb_field.attrs:
+    def _get_value(self, value: Message | Any):
+        if not isinstance(value, Message):
+            return value
+
+        n_attrs = len(self.pb_field.attrs)
+        for i, attr in enumerate(self.pb_field.attrs):
             if not value.HasField(attr):
-                return None
+                if i == n_attrs - 1 and self.process_if_missing:
+                    return None
+                return Skip
             value = getattr(value, attr)
         return value
 
     def __set__(self, instance: "ProtobufProps", value: Any):
-        if not isinstance(value, Message):
-            raise TypeError(
-                f"Can only set value from protobuf message but received: '{value}', "
-                f"field {self.pb_field}"
-            )
-
-        if (value := self._get_value(value)) is None and not self.process_if_missing:
+        if (value := self._get_value(value)) is Skip:
             return
 
         value = self.transform_value(value)

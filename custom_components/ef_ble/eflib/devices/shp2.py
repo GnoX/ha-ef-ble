@@ -94,7 +94,7 @@ class Device(DeviceBase, ProtobufProps):
     in_use_power = pb_field(pb_time.watt_info.all_hall_watt)
     grid_power = pb_field(
         pb_time.watt_info.grid_watt,
-        TransformIfMissing(lambda value: value if value is not None else 0.0),
+        TransformIfMissing(lambda v: v if v is not None else 0.0),
     )
 
     errors = pb_field(pb_push_set.backup_incre_info.errcode, _errors)
@@ -127,9 +127,7 @@ class Device(DeviceBase, ProtobufProps):
                 )
 
                 await self._conn.replyPacket(packet)
-
                 self.update_from_bytes(pd303_pb2.ProtoTime, packet.payload)
-
                 processed = True
             elif packet.cmdId == 0x20:  # backup_incre_info
                 self._logger.debug(

@@ -46,7 +46,7 @@ class Field[T]:
         self.private_name = f"_{name}"
         owner._fields = [*owner._fields, self]
 
-    def __set__(self, instance, value: Any):
+    def __set__(self, instance: UpdatableProps, value: Any):
         self._set_value(instance, value)
 
     def _set_value(self, instance, value):
