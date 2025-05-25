@@ -80,6 +80,27 @@ class Device(DeviceBase):
                 name = "Smart Home Panel 3"
             case "R655":
                 name = "River 3 (245Wh)"
+            case (
+                "DGE"
+                | "DGA"
+                | "DGK"
+                | "DGJ"
+                | "GDU"
+                | "DGT"
+                | "DGS"
+                | "DGG"
+                | "DGC"
+                | "DGF"
+            ):
+                name = "Smart Generator"
+            case "DG21":
+                name = "Smart Generator (Dual Fuel)"
+            case "G371":
+                name = "Smart Generator 3000 (Dual Fuel)"
+            case "G351":
+                name = "Smart Generator 4000 (Dual Fuel)"
+            case "HZ31":
+                name = "Single Axis Solar Tracker"
         return f"[Unsupported] {name}"
 
     async def packet_parse(self, data: bytes) -> Packet:
