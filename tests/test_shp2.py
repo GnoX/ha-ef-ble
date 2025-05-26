@@ -4,6 +4,7 @@ from pytest_mock import MockerFixture
 
 from custom_components.ef_ble.eflib.devices.shp2 import Device, pd303_pb2
 from custom_components.ef_ble.eflib.packet import Packet
+from custom_components.ef_ble.eflib.pb.pd303_pb2 import ProtoTime
 from custom_components.ef_ble.eflib.props import Field
 
 _proto_time_str = """master_info {
@@ -231,27 +232,31 @@ async def test_shp2_updates_from_proto_push_and_set_message(
         assert getattr(device, field.public_name) is not None
 
 
-async def test_shp2_sets_default_for_grid_watt_if_missing(device, shp2_proto_time):
-    to_process = Packet(
+def _proto_time_packet(msg: ProtoTime):
+    return Packet(
         src=0x0B,
         dst=0x00,
         cmd_set=0x0C,
         cmd_id=0x01,
-        payload=shp2_proto_time.SerializeToString(),
+        payload=msg.SerializeToString(),
     )
 
-    await device.data_parse(to_process)
 
+async def test_shp2_sets_default_for_grid_watt_if_missing(device, shp2_proto_time):
+    msg = ProtoTime()
+    msg.CopyFrom(shp2_proto_time)
+
+    await device.data_parse(_proto_time_packet(msg))
     assert getattr(device, Device.grid_power.public_name) == 0.0
 
-    shp2_proto_time.watt_info.grid_watt = 10.5
-    to_process = Packet(
-        src=0x0B,
-        dst=0x00,
-        cmd_set=0x0C,
-        cmd_id=0x01,
-        payload=shp2_proto_time.SerializeToString(),
-    )
-
-    await device.data_parse(to_process)
+    msg.watt_info.grid_watt = 10.5
+    await device.data_parse(_proto_time_packet(msg))
     assert getattr(device, Device.grid_power.public_name) == 10.5
+
+    msg.ClearField("watt_info")
+    await device.data_parse(_proto_time_packet(msg))
+    assert getattr(device, Device.grid_power.public_name) == 10.5
+
+    msg.CopyFrom(shp2_proto_time)
+    await device.data_parse(_proto_time_packet(msg))
+    assert getattr(device, Device.grid_power.public_name) == 0.0
