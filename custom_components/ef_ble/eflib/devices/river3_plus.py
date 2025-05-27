@@ -18,11 +18,6 @@ class Device(river3.Device):
 
     battery_level_main = pb_field(river3.pb.bms_batt_soc)
 
-    def __init__(
-        self, ble_dev: river3.BLEDevice, adv_data: river3.AdvertisementData, sn: str
-    ) -> None:
-        super().__init__(ble_dev, adv_data, sn)
-
     led_mode = pb_field(river3.pb.led_mode, lambda num: LedMode.from_value(num))
 
     async def set_led_mode(self, state: LedMode):
@@ -32,6 +27,8 @@ class Device(river3.Device):
     def device(self):
         model = ""
         match self._sn[:4]:
+            case "R634":
+                model = "(270)"
             case "R635":
                 model = "Wireless"
         return f"River 3 Plus {model}".strip()
