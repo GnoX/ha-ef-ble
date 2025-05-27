@@ -14,7 +14,7 @@ class LedMode(IntFieldValue):
 class Device(river3.Device):
     """River 3 Plus"""
 
-    SN_PREFIX = (b"R631", b"R634")
+    SN_PREFIX = (b"R631", b"R634", b"R635")
 
     battery_level_main = pb_field(river3.pb.bms_batt_soc)
 
@@ -30,4 +30,8 @@ class Device(river3.Device):
 
     @property
     def device(self):
-        return "River 3 Plus"
+        model = ""
+        match self._sn[:4]:
+            case "R635":
+                model = "Wireless"
+        return f"River 3 Plus {model}".strip()
