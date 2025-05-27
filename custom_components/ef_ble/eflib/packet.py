@@ -86,19 +86,20 @@ class Packet:
         return self._product_id
 
     @staticmethod
-    def fromBytes(data, is_xor=False):
+    def fromBytes(data, is_xor=False, return_error: bool = False):
         """Deserializes bytes stream into internal data"""
         if len(data) < 20:
-            _LOGGER.error(
-                "Unable to parse packet - too small: %s", bytearray(data).hex()
-            )
+            error_msg = "Unable to parse packet - too small: %s"
+            _LOGGER.error(error_msg, bytearray(data).hex())
+            if return_error:
+                return error_msg % bytearray(data).hex()
             return None
 
         if not data.startswith(Packet.PREFIX):
-            _LOGGER.error(
-                "Unable to parse packet - prefix is incorrect: %s",
-                bytearray(data).hex(),
-            )
+            error_msg = "Unable to parse packet - prefix is incorrect: %s"
+            _LOGGER.error(error_msg, bytearray(data).hex())
+            if return_error:
+                return error_msg % bytearray(data).hex()
             return None
 
         version = data[1]
@@ -107,18 +108,19 @@ class Packet:
         if version == 3:
             # Check whole packet CRC16
             if crc16(data[:-2]) != struct.unpack("<H", data[-2:])[0]:
-                _LOGGER.error(
-                    "Unable to parse packet - incorrect CRC16: %s",
-                    bytearray(data).hex(),
-                )
+                error_msg = "Unable to parse packet - incorrect CRC16: %s"
+                _LOGGER.error(error_msg, bytearray(data).hex())
+                if return_error:
+                    return error_msg % bytearray(data).hex()
+
                 return None
 
         # Check header CRC8
         if crc8(data[:4]) != data[4]:
-            _LOGGER.error(
-                "Unable to parse packet - incorrect header CRC8: %s",
-                bytearray(data).hex(),
-            )
+            error_msg = "Unable to parse packet - incorrect header CRC8: %s"
+            _LOGGER.error(error_msg, bytearray(data).hex())
+            if return_error:
+                return error_msg % bytearray(data).hex()
             return None
 
         # data[4] # crc8 of header

@@ -8,7 +8,7 @@ from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from bleak_retry_connector import MAX_CONNECT_ATTEMPTS
 
-from .connection import Connection
+from .connection import Connection, ConnectionState
 from .logging_util import DeviceLogger, LogOptions
 from .packet import Packet
 
@@ -27,7 +27,8 @@ class DeviceBase(abc.ABC):
     ) -> None:
         self._sn = sn
         # We can't use advertisement name here - it's prone to change to "Ecoflow-dev"
-        self._name = self.NAME_PREFIX + self._sn[-4:]
+        self._default_name = self.NAME_PREFIX + self._sn[-4:]
+        self._name = self._default_name
         self._name_by_user = None
         self._ble_dev = ble_dev
         self._address = ble_dev.address
@@ -77,7 +78,7 @@ class DeviceBase(abc.ABC):
 
     @property
     def connection_state(self):
-        return None if self._conn is None else self._conn._state
+        return None if self._conn is None else self._conn._connection_state
 
     def with_update_period(self, period: int):
         self._update_period = period
@@ -112,6 +113,8 @@ class DeviceBase(abc.ABC):
                 user_id,
                 self.data_parse,
                 self.packet_parse,
+                on_disconnected=self.on_disconnected,
+                on_state_change=self.on_connection_state_change,
             ).with_logging_options(self._logger.options)
             self._logger.info("Connecting to %s", self.__doc__)
         elif self._conn._user_id != user_id:
@@ -125,6 +128,12 @@ class DeviceBase(abc.ABC):
             return
 
         await self._conn.disconnect()
+
+    def on_connection_state_change(self, state: ConnectionState):
+        pass
+
+    def on_disconnected(self):
+        pass
 
     async def waitConnected(self, timeout: int = 20):
         if self._conn is None:
