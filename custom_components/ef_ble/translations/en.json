@@ -160,6 +160,9 @@
   },
   "entity": {
     "sensor": {
+      "collecting_data": {
+        "name": "Collecting diagnostics data"
+      },
       "battery_level": {
         "name": "Battery Level"
       },
@@ -304,16 +307,7 @@
       "dc_hv_state": {
         "name": "HV DC Input Port State"
       }
-    },
-    "binary_sensor": {
-      "collecting_data": {
-        "name": "Collecting diagnostics data",
-          "state": {
-            "on": "collecting",
-            "off": "done"
-          }
-      }
-
     }
+
   }
 }
