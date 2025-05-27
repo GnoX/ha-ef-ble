@@ -44,7 +44,7 @@ Recognized devices:
 | AC I/O Output Power                  |
 </details>
 <details><summary>
-<b>River 3 (Plus, UPS) (EF-R3####, FW Version: 1.0.0.0)</b>
+<b>River 3 (Plus, UPS, Plus Wireless) (EF-R3####)</b>
 </summary>
 
 | *Sensors*                       | *Switches*     | *Sliders*            | *Selects*            |
@@ -73,7 +73,7 @@ Recognized devices:
 </details>
 
 <details><summary>
-<b>Delta 3 (Plus, 1500) (EF-D3####, FW Version: 6.49.76.57)</b>
+<b>Delta 3 (Plus, 1500) (EF-D3####)</b>
 </summary>
 
 | *Sensors*                           | *Switches*     | *Sliders*                            |
