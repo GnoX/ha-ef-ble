@@ -330,14 +330,12 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
             return user_input
 
         redacted_user_input = user_input.copy()
-        if "user_id" in user_input:
-            redacted_user_input["user_id"] = (
-                f"{user_input['user_id'][:4]}{'*' * len(user_input['user_id'][4:])}"
+        if CONF_USER_ID in user_input:
+            redacted_user_input[CONF_USER_ID] = (
+                f"{user_input[CONF_USER_ID][:4]}"
+                f"{'*' * len(user_input[CONF_USER_ID][4:])}"
             )
-        if "login" in user_input:
-            redacted_user_input = user_input.pop("login")
-        if "address" in user_input:
-            redacted_user_input = f"{user_input['address'][-12:]}:**:**:**:**"
+        redacted_user_input.pop("login", None)
         return redacted_user_input
 
 
