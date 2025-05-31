@@ -90,9 +90,6 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
 
         errors = {}
         title = device.name_by_user or device.name
-        _LOGGER.debug(
-            "Confirm discovery: %s, %s", title, self._redact_user_input(user_input)
-        )
 
         if data := await self._store.async_load():
             self._user_id = data["user_id"]
@@ -324,21 +321,6 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         self._email = ""
         self._collapsed = True
         return {}
-
-    def _redact_user_input(self, user_input: dict[str, Any] | None):
-        if user_input is None:
-            return user_input
-
-        redacted_user_input = user_input.copy()
-        if "user_id" in user_input:
-            redacted_user_input["user_id"] = (
-                f"{user_input['user_id'][:4]}{'*' * len(user_input['user_id'][4:])}"
-            )
-        if "login" in user_input:
-            redacted_user_input = user_input.pop("login")
-        if "address" in user_input:
-            redacted_user_input = f"{user_input['address'][-12:]}:**:**:**:**"
-        return redacted_user_input
 
 
 class OptionsFlowHandler(OptionsFlow):
