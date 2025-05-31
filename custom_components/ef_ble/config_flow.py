@@ -204,7 +204,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             errors |= await self._validate_current_device(user_input)
-            if not errors:
+            if not errors and self._user_id_validated:
                 return self._create_entry(user_input, device)
 
         placeholders = {"name": device.device}
@@ -238,7 +238,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input is not None:
             errors |= await self._validate_current_device(user_input)
-            if not errors:
+            if not errors and self._user_id_validated:
                 return self._create_entry(user_input, device)
 
         placeholders = {"name": device.device}
@@ -438,10 +438,11 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
             redacted_user_input["user_id"] = (
                 f"{user_input['user_id'][:4]}{'*' * len(user_input['user_id'][4:])}"
             )
-        if "login" in user_input:
-            redacted_user_input = user_input.pop("login")
+        redacted_user_input.pop("login", None)
         if "address" in user_input:
-            redacted_user_input = f"{user_input['address'][-12:]}:**:**:**:**"
+            redacted_user_input["address"] = (
+                f"{user_input['address'][-12:]}:**:**:**:**"
+            )
         return redacted_user_input
 
 
