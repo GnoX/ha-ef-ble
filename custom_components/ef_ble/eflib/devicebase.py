@@ -1,7 +1,9 @@
 import abc
+import asyncio
 import time
-from collections import defaultdict, deque
+from collections import defaultdict
 from collections.abc import Callable
+from contextlib import contextmanager
 from typing import Any
 
 from bleak.backends.device import BLEDevice
@@ -9,7 +11,7 @@ from bleak.backends.scanner import AdvertisementData
 from bleak_retry_connector import MAX_CONNECT_ATTEMPTS
 
 from .connection import Connection, ConnectionState
-from .logging_util import DeviceLogger, LogOptions
+from .logging_util import ConnectionLog, DeviceLogger, LogOptions
 from .packet import Packet
 
 
@@ -52,6 +54,20 @@ class DeviceBase(abc.ABC):
         self._last_updated = 0
         self._props_to_update = set()
         self._wait_until_throttle = 0
+
+    @property
+    def connection_log(self):
+        if (connection_log := getattr(self, "_connection_log", None)) is not None:
+            return connection_log
+
+        self._connection_log = ConnectionLog(self.address.replace(":", "_"))
+        return self._connection_log
+
+    @contextmanager
+    def log_connection_to_file(self):
+        self.connection_log.cache_to_file = True
+        yield
+        self.connection_log.cache_to_file = False
 
     @property
     def device(self):
@@ -116,7 +132,7 @@ class DeviceBase(abc.ABC):
                 on_disconnected=self.on_disconnected,
                 on_state_change=self.on_connection_state_change,
             ).with_logging_options(self._logger.options)
-            self._logger.info("Connecting to %s", self.__doc__)
+            self._logger.info("Connecting to %s", self.device)
         elif self._conn._user_id != user_id:
             self._conn._user_id = user_id
 
@@ -129,19 +145,15 @@ class DeviceBase(abc.ABC):
 
         await self._conn.disconnect()
 
-    @property
-    def state_history(self) -> deque[tuple[float, str]]:
-        history_queue = getattr(self, "_state_history", None)
-        if not history_queue:
-            self._history_start = time.time()
-            self._state_history = deque(maxlen=20)
-        return self._state_history
-
     def on_connection_state_change(self, state: ConnectionState):
-        self.state_history.append((time.time() - self._history_start, state.name))
+        loop = asyncio.get_running_loop()
+        loop.run_in_executor(None, self.connection_log.append, state)
 
     def on_disconnected(self):
-        pass
+        loop = asyncio.get_running_loop()
+        loop.run_in_executor(
+            None, self.connection_log.append, ConnectionState.DISCONNECTED
+        )
 
     async def waitConnected(self, timeout: int = 20):
         if self._conn is None:

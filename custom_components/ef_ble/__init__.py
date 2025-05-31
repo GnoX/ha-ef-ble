@@ -14,6 +14,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from . import eflib
 from .config_flow import ConfLogOptions, LogOptions
 from .const import CONF_UPDATE_PERIOD, CONF_USER_ID, DOMAIN, MANUFACTURER
+from .eflib.logging_util import ConnectionLog
 
 PLATFORMS: list[Platform] = [
     Platform.SENSOR,
@@ -73,6 +74,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> b
     await device.disconnect()
     device.with_logging_options(LogOptions(0))
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: DeviceConfigEntry):
+    ConnectionLog.clean_cache_for(entry.data[CONF_ADDRESS])
 
 
 def device_info(entry: ConfigEntry) -> DeviceInfo:

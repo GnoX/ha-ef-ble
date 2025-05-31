@@ -365,11 +365,11 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         self._user_id = user_id
 
         device.with_logging_options(ConfLogOptions.from_config(user_input))
-
-        await device.connect(self._user_id, max_attempts=4)
-        await device.waitConnected(timeout=20)
-        conn_state = device.connection_state
-        await device.disconnect()
+        with device.log_connection_to_file():
+            await device.connect(self._user_id, max_attempts=4)
+            await device.waitConnected(timeout=20)
+            conn_state = device.connection_state
+            await device.disconnect()
 
         error = None
         match conn_state:
