@@ -8,12 +8,12 @@ from collections.abc import Awaitable, Callable, Coroutine
 from enum import StrEnum, auto
 
 import ecdsa
+from bleak import BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
 from bleak.backends.device import BLEDevice
 from bleak.exc import BleakError
 from bleak_retry_connector import (
     MAX_CONNECT_ATTEMPTS,
-    BleakClientWithServiceCache,
     BleakNotFoundError,
     establish_connection,
 )
@@ -64,6 +64,8 @@ class ConnectionState(StrEnum):
     ERROR_UNKNOWN = auto()
     ERROR_AUTH_FAILED = auto()
 
+    DISCONNECTED = auto()
+
     def is_error(self):
         return self in [
             ConnectionState.ERROR_TIMEOUT,
@@ -75,7 +77,10 @@ class ConnectionState(StrEnum):
         ]
 
     def is_terminal(self):
-        return self in [ConnectionState.AUTHENTICATED] or self.is_error()
+        return (
+            self in [ConnectionState.AUTHENTICATED, ConnectionState.DISCONNECTED]
+            or self.is_error()
+        )
 
 
 class Connection:
@@ -161,7 +166,7 @@ class Connection:
                 self._state = ConnectionState.ESTABLISHING_CONNECTION
                 self._logger.info("Connecting to device")
                 self._client = await establish_connection(
-                    BleakClientWithServiceCache,
+                    BleakClient,
                     self.ble_dev(),
                     self._ble_dev.name,
                     disconnected_callback=self.disconnected,
@@ -203,6 +208,8 @@ class Connection:
 
     def disconnected(self, *args, **kwargs) -> None:
         self._logger.warning("Disconnected from device")
+        self._client = None
+
         if self._retry_on_disconnect:
             self._add_task(self.reconnect(), asyncio.get_event_loop())
             return
@@ -231,6 +238,8 @@ class Connection:
             self._cancel_tasks()
             await self._client.disconnect()
             self._on_disconnected()
+
+        self._client = None
 
     async def waitConnected(self, timeout: int = 20):
         """Will release when connection is happened and authenticated"""
@@ -433,13 +442,14 @@ class Connection:
 
     async def _sendRequest(self, send_data: bytes, response_handler=None):
         # Make sure the connection is here, otherwise just skipping
-        if not self._client.is_connected:
+        if self._client is None or not self._client.is_connected:
             self._logger.log_filtered(
                 LogOptions.CONNECTION_DEBUG,
                 "Skip sending: disconnected: %r",
                 bytearray(send_data).hex(),
             )
             return
+
         if response_handler:
             await self._client.start_notify(
                 Connection.NOTIFY_CHARACTERISTIC, response_handler
