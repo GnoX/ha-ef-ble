@@ -74,8 +74,12 @@ class UnsupportedDevice(DeviceBase):
                 name = "Delta 2"
             case "R351" | "R354":
                 name = "Delta 2 Max"
+            case "D3N1":
+                name = "Delta 3 Max"
+            case "D511":
+                name = "Delta 3 Ultra Plus"
             case "H101":
-                name = "Blade"
+                name = "BLADE"
             case "BX11":
                 name = "GLACIER"
             case "RF43":
@@ -106,6 +110,20 @@ class UnsupportedDevice(DeviceBase):
                 name = "PowerOcean (12kW)"
             case "HW51":
                 name = "PowerStream"
+            case "BK11" | "ES11":
+                name = "STREAM Ultra"
+            case "BK02" | "N011":
+                name = "STREAM Microinverter"
+            case "BK12":
+                name = "STREAM Pro"
+            case "BK31":
+                name = "STREAM AC Pro"
+            case "BK41":
+                name = "STREAM Max"
+            case "BK51":
+                name = "STREAM AC"
+            case "BK61":
+                name = "STREAM Ultra+"
             case "R635":
                 name = "River 3 Plus Wireless"
             case "HR62":
