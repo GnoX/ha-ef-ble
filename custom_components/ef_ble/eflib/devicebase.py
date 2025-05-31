@@ -1,15 +1,17 @@
 import abc
+import asyncio
 import time
 from collections import defaultdict
 from collections.abc import Callable
+from contextlib import contextmanager
 from typing import Any
 
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from bleak_retry_connector import MAX_CONNECT_ATTEMPTS
 
-from .connection import Connection
-from .logging_util import DeviceLogger, LogOptions
+from .connection import Connection, ConnectionState
+from .logging_util import ConnectionLog, DeviceLogger, LogOptions
 from .packet import Packet
 
 
@@ -27,8 +29,9 @@ class DeviceBase(abc.ABC):
     ) -> None:
         self._sn = sn
         # We can't use advertisement name here - it's prone to change to "Ecoflow-dev"
-        self._name = self.NAME_PREFIX + self._sn[-4:]
-        self._name_by_user = self._name
+        self._default_name = self.NAME_PREFIX + self._sn[-4:]
+        self._name = self._default_name
+        self._name_by_user = None
         self._ble_dev = ble_dev
         self._address = ble_dev.address
 
@@ -53,6 +56,20 @@ class DeviceBase(abc.ABC):
         self._wait_until_throttle = 0
 
     @property
+    def connection_log(self):
+        if (connection_log := getattr(self, "_connection_log", None)) is not None:
+            return connection_log
+
+        self._connection_log = ConnectionLog(self.address.replace(":", "_"))
+        return self._connection_log
+
+    @contextmanager
+    def log_connection_to_file(self):
+        self.connection_log.cache_to_file = True
+        yield
+        self.connection_log.cache_to_file = False
+
+    @property
     def device(self):
         return self.__doc__ if self.__doc__ else ""
 
@@ -65,8 +82,8 @@ class DeviceBase(abc.ABC):
         return self._name
 
     @property
-    def name_by_user(self):
-        return self._name_by_user
+    def name_by_user(self) -> str:
+        return self._name_by_user if self._name_by_user is not None else self.name
 
     def isValid(self):
         return self._sn is not None
@@ -77,7 +94,7 @@ class DeviceBase(abc.ABC):
 
     @property
     def connection_state(self):
-        return None if self._conn is None else self._conn._state
+        return None if self._conn is None else self._conn._connection_state
 
     def with_update_period(self, period: int):
         self._update_period = period
@@ -87,6 +104,11 @@ class DeviceBase(abc.ABC):
         self._logger.set_options(options)
         if self._conn is not None:
             self._conn.with_logging_options(options)
+        return self
+
+    def with_name(self, name: str | None):
+        if name is not None:
+            self._name = name
         return self
 
     async def data_parse(self, packet: Packet) -> bool:
@@ -107,8 +129,10 @@ class DeviceBase(abc.ABC):
                 user_id,
                 self.data_parse,
                 self.packet_parse,
+                on_disconnected=self.on_disconnected,
+                on_state_change=self.on_connection_state_change,
             ).with_logging_options(self._logger.options)
-            self._logger.info("Connecting to %s", self.__doc__)
+            self._logger.info("Connecting to %s", self.device)
         elif self._conn._user_id != user_id:
             self._conn._user_id = user_id
 
@@ -120,6 +144,16 @@ class DeviceBase(abc.ABC):
             return
 
         await self._conn.disconnect()
+
+    def on_connection_state_change(self, state: ConnectionState):
+        loop = asyncio.get_running_loop()
+        loop.run_in_executor(None, self.connection_log.append, state)
+
+    def on_disconnected(self):
+        loop = asyncio.get_running_loop()
+        loop.run_in_executor(
+            None, self.connection_log.append, ConnectionState.DISCONNECTED
+        )
 
     async def waitConnected(self, timeout: int = 20):
         if self._conn is None:

@@ -383,6 +383,12 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         key="dc_hv_state",
         device_class=SensorDeviceClass.ENUM,
     ),
+    "collecting_data": SensorEntityDescription(
+        key="collecting_data",
+        name="Collecting data",
+        translation_key="collecting_data",
+        device_class=SensorDeviceClass.ENUM,
+    ),
 }
 
 

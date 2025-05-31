@@ -16,7 +16,7 @@
       "bt_timeout": "Could not connect to the device - connection timed out",
       "bt_not_found": "Device was not found - try refreshing the bluetooth integration if this error occurs repeatedly",
       "bt_general_error": "Could not connect to the device - see the logs for more details",
-      "error_try_refresh": "Connection disconnected before it could authenticate - try refreshing before adding the device"
+      "error_try_refresh": "Device disconnected before it could authenticate - try refreshing before adding the device"
     },
     "step": {
       "bluetooth_confirm": {
@@ -55,9 +55,47 @@
       "user": {
         "title": "Add EcoFlow Device",
         "data": {
+          "address": "BLE Device"
+        }
+      },
+      "device_confirm": {
+        "title": "{name} config options",
+        "data": {
           "user_id": "EcoFlow User ID",
-          "address": "BLE Device",
           "update_period": "Update Period"
+        },
+        "data_description": {
+          "update_period": "Number of seconds to wait before processing the next device update. A default value of 0 means all updates are processed immediately (may result in a high number of DB writes)."
+        },
+        "sections": {
+          "login": {
+            "name": "EcoFlow Login (skip if you already know your user ID)",
+            "data": {
+              "email": "Email",
+              "password": "Password"
+            }
+          },
+          "log_options": {
+            "name": "Logging Options",
+            "description": "Detailed logging options. Most of these will flood your logs, so avoid leaving them enabled for long periods.",
+            "data": {
+                "log_masked": "Mask sensitive information (useful when sharing logs publicly)",
+                "log_connection": "Log device connection requests and responses",
+                "log_messages": "Log deserialized device update messages",
+                "log_packets": "Log packet objects",
+                "log_encrypted_payloads": "Log encrypted payloads",
+                "log_payloads": "Log decrypted payloads",
+                "log_bleak": "Enable bleak debug log level (not masked and not filtered to this device)"
+            }
+          }
+        }
+      },
+      "unsupported_device": {
+        "title": "{name} config options",
+        "data": {
+          "user_id": "EcoFlow User ID",
+          "update_period": "Update Period",
+          "is_xor": "Use XOR for packet decoding"
         },
         "data_description": {
           "update_period": "Number of seconds to wait before processing the next device update. A default value of 0 means all updates are processed immediately (may result in a high number of DB writes)."
@@ -122,6 +160,9 @@
   },
   "entity": {
     "sensor": {
+      "collecting_data": {
+        "name": "Collecting diagnostics data"
+      },
       "battery_level": {
         "name": "Battery Level"
       },
@@ -267,5 +308,6 @@
         "name": "HV DC Input Port State"
       }
     }
+
   }
 }
