@@ -209,7 +209,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             errors |= await self._validate_current_device(user_input)
-            if not errors:
+            if not errors and self._user_id_validated:
                 return self._create_entry(user_input, device)
 
         placeholders = {"name": device.device}
@@ -244,7 +244,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input is not None:
             errors |= await self._validate_current_device(user_input)
-            if not errors:
+            if not errors and self._user_id_validated:
                 return self._create_entry(user_input, device)
 
         placeholders = {"name": device.device}
