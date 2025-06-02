@@ -159,7 +159,8 @@ class Packet:
         data += self.productByte() + self._seq
         data += b"\x00\x00"  # Unknown static zeroes, no strings attached right now
         data += struct.pack("<B", self._src) + struct.pack("<B", self._dst)
-        data += struct.pack("<B", self._dsrc) + struct.pack("<B", self._ddst)
+        if self.version > 2:
+            data += struct.pack("<B", self._dsrc) + struct.pack("<B", self._ddst)
         data += struct.pack("<B", self._cmd_set) + struct.pack("<B", self._cmd_id)
         # Payload
         data += self._payload

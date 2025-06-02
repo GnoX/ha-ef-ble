@@ -51,6 +51,8 @@ class DeviceBase(abc.ABC):
         self._last_updated = 0
         self._props_to_update = set()
         self._wait_until_throttle = 0
+        self._use_v3_packets = True
+        self._auth_packet_dst = 0x35
 
     @property
     def device(self):
@@ -108,7 +110,9 @@ class DeviceBase(abc.ABC):
                 self.data_parse,
                 self.packet_parse,
             ).with_logging_options(self._logger.options)
-            self._logger.info("Connecting to %s", self.__doc__)
+            self._conn._is_v3 = self._use_v3_packets
+            self._conn._auth_packet_dst = self._auth_packet_dst
+            self._logger.info("Connecting to %s", self.device)
         elif self._conn._user_id != user_id:
             self._conn._user_id = user_id
 

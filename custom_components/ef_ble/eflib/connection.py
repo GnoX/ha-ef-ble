@@ -96,6 +96,9 @@ class Connection:
 
         self._logger = ConnectionLogger(self)
 
+        self._is_v3 = True
+        self._auth_packet_dst = 0x35
+
     @property
     def is_connected(self) -> bool:
         return self._client is not None and self._client.is_connected
@@ -525,7 +528,11 @@ class Connection:
         )
 
         # Preparing packet with empty payload
-        packet = Packet(0x21, 0x35, 0x35, 0x89, b"", 0x01, 0x01, 0x03)
+        packet = (
+            Packet(0x21, self._auth_packet_dst, 0x35, 0x89, b"", 0x01, 0x01, 0x03)
+            if self._is_v3
+            else Packet(0x21, self._auth_packet_dst, 0x35, 0x89, b"", 0xFF, 0xFF, 0x02)
+        )
 
         await self.sendPacket(packet, self.getAuthStatusHandler)
 
@@ -557,7 +564,13 @@ class Connection:
         payload = ("".join(f"{c:02X}" for c in md5_data)).encode("ASCII")
 
         # Forming packet
-        packet = Packet(0x21, 0x35, 0x35, 0x86, payload, 0x01, 0x01, 0x03)
+        packet = (
+            Packet(0x21, self._auth_packet_dst, 0x35, 0x86, payload, 0x01, 0x01, 0x03)
+            if self._is_v3
+            else Packet(
+                0x21, self._auth_packet_dst, 0x35, 0x86, payload, 0xFF, 0xFF, 0x02
+            )
+        )
 
         # Sending request and starting the common listener
         await self.sendPacket(packet, self.listenForDataHandler)

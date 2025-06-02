@@ -126,6 +126,9 @@ class Device(DeviceBase, ProtobufProps):
         self._time_commands = TimeCommands(self)
         self.max_ac_charging_power = 1500
 
+        if sn[:4] in ("D361",):
+            self._auth_packet_dst = 0x32
+
     @classmethod
     def check(cls, sn):
         return sn[:4] in cls.SN_PREFIX
