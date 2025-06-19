@@ -205,8 +205,9 @@ class Connection:
     async def errorsAdd(self, exception: Exception):
         tb = traceback.format_tb(exception.__traceback__)
         self._logger.error("Captured exception: %s:\n%s", exception, "".join(tb))
+        self._errors += 1
         if self._errors > 5:
-            # Too much errors happened - let's reconnect
+            # Too many errors happened - let's reconnect
             self._errors = 0
             if self._client is not None and self._client.is_connected:
                 self._logger.warning("Client disconnected after encountering 5 errors")
