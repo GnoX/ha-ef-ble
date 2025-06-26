@@ -73,7 +73,7 @@ Recognized devices:
 </details>
 
 <details><summary>
-<b>Delta 3 (Plus, 1500) (EF-D3####)</b>
+<b>Delta 3 (Plus) (EF-D3####)</b>
 </summary>
 
 | *Sensors*                           | *Switches*     | *Sliders*                            |
