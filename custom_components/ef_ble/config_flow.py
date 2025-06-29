@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import logging
 from collections.abc import Mapping
@@ -28,6 +29,7 @@ from homeassistant.helpers.storage import Store
 
 from . import eflib
 from .const import (
+    CONF_CONNECTION_TIMEOUT,
     CONF_LOG_BLEAK,
     CONF_LOG_CONNECTION,
     CONF_LOG_ENCRYPTED_PAYLOADS,
@@ -37,6 +39,8 @@ from .const import (
     CONF_LOG_PAYLOADS,
     CONF_UPDATE_PERIOD,
     CONF_USER_ID,
+    DEFAULT_CONNECTION_TIMEOUT,
+    DEFAULT_UPDATE_PERIOD,
     DOMAIN,
 )
 from .eflib.connection import ConnectionState
@@ -120,6 +124,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                     **self._login_option(),
                     vol.Required(CONF_ADDRESS): vol.In([f"{title} ({device.address})"]),
                     **_update_period_option(),
+                    **_timeout_option(),
                     **ConfLogOptions.schema(
                         ConfLogOptions.to_config(self._log_options)
                     ),
@@ -179,6 +184,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                     **self._login_option(),
                     vol.Required(CONF_ADDRESS): vol.In(self._discovered_devices.keys()),
                     **_update_period_option(),
+                    **_timeout_option(),
                     **ConfLogOptions.schema(
                         ConfLogOptions.to_config(self._log_options)
                     ),
@@ -245,6 +251,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         self._email = user_input.get("login", {}).get(CONF_EMAIL, "")
         password = user_input.get("login", {}).get(CONF_PASSWORD, "")
         user_id = user_input.get(CONF_USER_ID, "")
+        timeout = user_input.get(CONF_CONNECTION_TIMEOUT, 20)
 
         self._collapsed = False
 
@@ -262,8 +269,10 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
 
         device.with_logging_options(ConfLogOptions.from_config(user_input))
 
-        await device.connect(self._user_id, max_attempts=4)
-        conn_state = await device.wait_until_connected_or_error(timeout=20)
+        await device.connect(self._user_id)
+        conn_state = await asyncio.wait_for(
+            device.wait_until_authenticated_or_error(), timeout
+        )
         await device.disconnect()
 
         error = None
@@ -354,7 +363,9 @@ class OptionsFlowHandler(OptionsFlow):
 
         merged_entry = self.config_entry.data | self.config_entry.options
         options = {
-            CONF_UPDATE_PERIOD: merged_entry.get(CONF_UPDATE_PERIOD, 0),
+            CONF_UPDATE_PERIOD: merged_entry.get(
+                CONF_UPDATE_PERIOD, DEFAULT_UPDATE_PERIOD
+            ),
         }
 
         device: eflib.DeviceBase | None = getattr(
@@ -431,9 +442,17 @@ class ConfLogOptions:
         }
 
 
-def _update_period_option(default: int = 0):
+def _update_period_option(default: int = DEFAULT_UPDATE_PERIOD):
     return {
         vol.Optional(CONF_UPDATE_PERIOD, default=default): vol.All(
+            int, vol.Range(min=0)
+        )
+    }
+
+
+def _timeout_option(default: int = DEFAULT_CONNECTION_TIMEOUT):
+    return {
+        vol.Optional(CONF_CONNECTION_TIMEOUT, default=default): vol.All(
             int, vol.Range(min=0)
         )
     }
