@@ -8,7 +8,7 @@ from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from bleak_retry_connector import MAX_CONNECT_ATTEMPTS
 
-from .connection import Connection
+from .connection import Connection, ConnectionState
 from .logging_util import DeviceLogger, LogOptions
 from .packet import Packet
 
@@ -33,7 +33,7 @@ class DeviceBase(abc.ABC):
         self._address = ble_dev.address
 
         self._logger = DeviceLogger(self)
-        self._logging_options = LogOptions(0)
+        self._logging_options = LogOptions.no_options()
 
         self._logger.debug(
             "Creating new device: %s (%s)",
@@ -108,7 +108,7 @@ class DeviceBase(abc.ABC):
                 self.data_parse,
                 self.packet_parse,
             ).with_logging_options(self._logger.options)
-            self._logger.info("Connecting to %s", self.__doc__)
+            self._logger.info("Connecting to %s", self.device)
         elif self._conn._user_id != user_id:
             self._conn._user_id = user_id
 
@@ -121,19 +121,24 @@ class DeviceBase(abc.ABC):
 
         await self._conn.disconnect()
 
-    async def waitConnected(self, timeout: int = 20):
+    async def wait_connected(self, timeout: int = 20):
         if self._conn is None:
             self._logger.error("Device has no connection")
             return
-        await self._conn.waitConnected(timeout=timeout)
+        await self._conn.wait_connected(timeout=timeout)
 
-    async def waitDisconnected(self):
+    async def wait_disconnected(self):
         if self._conn is None:
             self._logger.error("Device has no connection")
             return
 
         if self.is_connected:
-            await self._conn.waitDisconnected()
+            await self._conn.wait_disconnected()
+
+    async def wait_until_connected_or_error(self, timeout: int = 20):
+        if self._conn is None:
+            return ConnectionState.NOT_CONNECTED
+        return await self._conn.wait_until_connected_or_error(timeout)
 
     def register_callback(
         self, callback: Callable[[], None], propname: str | None = None

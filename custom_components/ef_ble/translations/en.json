@@ -1,4 +1,21 @@
 {
+  "exceptions": {
+    "unable_to_create_device": {
+      "message": "EcoFlow BLE Device unable to create"
+    },
+    "device_not_present": {
+      "message": "EcoFlow BLE device not present"
+    },
+    "could_not_connect": {
+      "message": "Could not connect to the device after {time} seconds, check the logs"
+    },
+    "error_after_connected": {
+      "message": "Error occured before device could authenticate"
+    },
+    "could_not_authenticate": {
+      "message": "Could not authenticate, check the logs"
+    }
+  },
   "config": {
     "abort": {
       "already_configured": "Device is already configured",

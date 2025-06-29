@@ -62,7 +62,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         self._user_id: str = ""
         self._email: str = ""
         self._user_id_validated: bool = False
-        self._log_options = LogOptions(0)
+        self._log_options = LogOptions.no_options()
         self._collapsed = True
 
     async def async_step_bluetooth(
@@ -263,8 +263,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         device.with_logging_options(ConfLogOptions.from_config(user_input))
 
         await device.connect(self._user_id, max_attempts=4)
-        await device.waitConnected(timeout=20)
-        conn_state = device.connection_state
+        conn_state = await device.wait_until_connected_or_error(timeout=20)
         await device.disconnect()
 
         error = None
@@ -285,7 +284,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
             case _:
                 error = "error_try_refresh"
 
-        await device.waitDisconnected()
+        await device.wait_disconnected()
 
         if error is not None:
             return {"base": error}
@@ -314,7 +313,13 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                 "Content-Type": "application/json",
             },
         ) as response:
-            response.raise_for_status()
+            if not response.ok:
+                return {
+                    "login": (
+                        f"Login failed with status code {response.status}: "
+                        f"{response.reason}"
+                    )
+                }
 
             result_json = await response.json()
             if result_json["code"] != "0":
@@ -389,7 +394,7 @@ class ConfLogOptions:
     @classmethod
     def from_config(cls, config_entry: Mapping[str, Any]):
         config_entry = config_entry.get(cls.CONF_KEY, config_entry)
-        log_options = LogOptions(0)
+        log_options = LogOptions.no_options()
         for conf_option, log_option in cls._CONF_OPTION_TO_LOG_OPTION.items():
             if config_entry.get(conf_option, False):
                 log_options |= log_option
