@@ -1,21 +1,4 @@
 {
-  "exceptions": {
-    "unable_to_create_device": {
-      "message": "EcoFlow BLE Device unable to create"
-    },
-    "device_not_present": {
-      "message": "EcoFlow BLE device not present"
-    },
-    "could_not_connect": {
-      "message": "Could not connect to the device after {time} seconds, check the logs"
-    },
-    "error_after_connected": {
-      "message": "Error occured before device could authenticate"
-    },
-    "could_not_authenticate": {
-      "message": "Could not authenticate, check the logs"
-    }
-  },
   "config": {
     "abort": {
       "already_configured": "Device is already configured",
@@ -41,10 +24,12 @@
         "data": {
           "user_id": "EcoFlow User ID",
           "address": "BLE Device",
-          "update_period": "Update Period"
+          "update_period": "Update Period",
+          "connection_timeout": "Connection Timeout"
         },
         "data_description": {
-          "update_period": "Number of seconds to wait before processing the next device update. A default value of 0 means all updates are processed immediately (this may result in a high number of database writes)."
+          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of database writes).",
+          "connection_timeout": "Number of seconds to wait for the device to connect and authenticate."
         },
         "sections": {
           "login": {
@@ -74,10 +59,12 @@
         "data": {
           "user_id": "EcoFlow User ID",
           "address": "BLE Device",
-          "update_period": "Update Period"
+          "update_period": "Update Period",
+          "connection_timeout": "Connection Timeout"
         },
         "data_description": {
-          "update_period": "Number of seconds to wait before processing the next device update. A default value of 0 means all updates are processed immediately (may result in a high number of DB writes)."
+          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of DB writes).",
+          "connection_timeout": "Number of seconds to wait for the device to connect and authenticate."
         },
         "sections": {
           "login": {
@@ -117,7 +104,7 @@
           "update_period": "Update Period"
         },
         "data_description": {
-          "update_period": "Number of seconds to wait before processing the next device update. A default value of 0 means all updates are processed immediately (may result in a high number of DB writes)."
+          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of DB writes)."
         },
         "sections": {
           "log_options": {
@@ -135,6 +122,41 @@
           }
         }
       }
+    }
+  },
+  "exceptions": {
+    "unknown_error": {
+      "message": "Unknown error: {error}"
+    },
+    "unable_to_create_device": {
+      "message": "EcoFlow BLE Device unable to create"
+    },
+    "device_not_present": {
+      "message": "EcoFlow BLE device not present"
+    },
+    "could_not_connect": {
+      "message": "Could not connect to the device after {time} seconds, check the logs"
+    },
+    "error_after_connected": {
+      "message": "Error occured before device could authenticate"
+    },
+    "authentication_failed": {
+      "message": "Authentication failed"
+    },
+    "could_not_reconnect_after_max_attempts": {
+      "message": "Could not reconnect after losing connection {attempts} times."
+    },
+    "could_not_connect_no_retry": {
+      "message": "Could not connect to device after {attempts} unsuccessful attempts"
+    },
+    "failed_after_successful_connection": {
+      "message": "Device connected but did not get to auth procedure, last state: {last_state}"
+    }
+  },
+  "issues": {
+    "max_connection_attempts_reached": {
+      "title": "Could not connect to {device_name} after {attempts} unsuccessful attempts",
+      "description": "Failed to connect to {device_name} after {attempts} unsuccessful attempts. Check the logs for more info.\n\nAutomatic retry was disabled to not spam logs, integration has to be reloaded manually. This error clears after successful connection."
     }
   },
   "entity": {
