@@ -69,6 +69,10 @@ class LogOptions(Flag):
             | LogOptions.CONNECTION_DEBUG
         )
 
+    @staticmethod
+    def no_options():
+        return LogOptions(0)
+
 
 _BLEAK_LOGGER = logging.getLogger(bleak.__name__)
 _ORIGINAL_BLEAK_LOG_LEVEL = _BLEAK_LOGGER.level
@@ -80,7 +84,7 @@ class MaskingLogger(logging.Logger):
     ) -> None:
         self._logger = logger
         self._mask_funcs = mask_funcs
-        self._options = LogOptions(0)
+        self._options = LogOptions.no_options()
 
     @cached_property
     def _mask_filter(self):

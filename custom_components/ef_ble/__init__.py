@@ -28,6 +28,19 @@ type DeviceConfigEntry = ConfigEntry[eflib.DeviceBase]
 _LOGGER = logging.getLogger(__name__)
 
 
+class _ConfigNotReady(ConfigEntryNotReady):
+    def __init__(
+        self,
+        translation_key: str | None = None,
+        translation_placeholders: dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(
+            translation_domain=DOMAIN,
+            translation_key=translation_key,
+            translation_placeholders=translation_placeholders,
+        )
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bool:
     """Set up EF BLE device from a config entry."""
 
@@ -42,13 +55,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
         return False
 
     if not bluetooth.async_address_present(hass, address):
-        raise ConfigEntryNotReady("EcoFlow BLE device not present")
+        raise _ConfigNotReady("device_not_present")
 
     _LOGGER.debug("Connecting Device")
     discovery_info = bluetooth.async_last_service_info(hass, address, connectable=True)
     device = eflib.NewDevice(discovery_info.device, discovery_info.advertisement)
     if device is None:
-        raise ConfigEntryNotReady("EcoFlow BLE Device unable to create")
+        raise _ConfigNotReady("unable_to_create_device")
 
     await (
         device.with_update_period(update_period)
@@ -57,11 +70,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
     )
     entry.runtime_data = device
 
+    timeout = 30
+    state = await device.wait_until_connected_or_error(timeout=timeout)
+
+    if state.connection_error():
+        raise _ConfigNotReady(
+            "could_not_connect", translation_placeholders={"time": str(timeout)}
+        )
+    if state.is_error():
+        raise _ConfigNotReady("error_after_connected")
+    if not state.authenticated():
+        raise _ConfigNotReady("could_not_authenticate")
+
     _LOGGER.debug("Creating entities")
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     _LOGGER.debug("Setup done")
-    entry.async_on_unload(entry.add_update_listener(update_listener))
+    entry.async_on_unload(entry.add_update_listener(_update_listener))
 
     return True
 
@@ -70,10 +95,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> b
     """Unload a config entry."""
     device = entry.runtime_data
     await device.disconnect()
-    device.with_logging_options(LogOptions(0))
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-
-    return unload_ok
+    device.with_logging_options(LogOptions.no_options())
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
 def device_info(entry: ConfigEntry) -> DeviceInfo:
@@ -86,7 +109,7 @@ def device_info(entry: ConfigEntry) -> DeviceInfo:
     )
 
 
-async def update_listener(hass: HomeAssistant, entry: DeviceConfigEntry):
+async def _update_listener(hass: HomeAssistant, entry: DeviceConfigEntry):
     device = entry.runtime_data
     merged_options = entry.data | entry.options
     update_period = merged_options.get(CONF_UPDATE_PERIOD, 0)
