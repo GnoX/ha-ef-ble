@@ -8,7 +8,7 @@ from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from bleak_retry_connector import MAX_CONNECT_ATTEMPTS
 
-from .connection import Connection, ConnectionState
+from .connection import Connection, ConnectionState, DisconnectListener
 from .logging_util import DeviceLogger, LogOptions
 from .packet import Packet
 
@@ -52,6 +52,9 @@ class DeviceBase(abc.ABC):
         self._props_to_update = set()
         self._wait_until_throttle = 0
 
+        self._reconnect_disabled = False
+        self._disconnect_listeners: list[DisconnectListener] = []
+
     @property
     def device(self):
         return self.__doc__ if self.__doc__ else ""
@@ -89,6 +92,12 @@ class DeviceBase(abc.ABC):
             self._conn.with_logging_options(options)
         return self
 
+    def with_disabled_reconnect(self, is_disabled: bool = True):
+        self._reconnect_disabled = is_disabled
+        if self._conn is not None:
+            self._conn.with_disabled_reconnect(is_disabled)
+        return self
+
     async def data_parse(self, packet: Packet) -> bool:
         """Function to parse incoming data and trigger sensors update"""
         return False
@@ -98,21 +107,34 @@ class DeviceBase(abc.ABC):
         return Packet.fromBytes(data)
 
     async def connect(
-        self, user_id: str | None = None, max_attempts: int = MAX_CONNECT_ATTEMPTS
+        self,
+        user_id: str | None = None,
+        max_attempts: int = MAX_CONNECT_ATTEMPTS,
+        timeout: int = 20,
     ):
         if self._conn is None:
-            self._conn = Connection(
-                self._ble_dev,
-                self._sn,
-                user_id,
-                self.data_parse,
-                self.packet_parse,
-            ).with_logging_options(self._logger.options)
+            self._conn = (
+                Connection(
+                    self._ble_dev,
+                    self._sn,
+                    user_id,
+                    self.data_parse,
+                    self.packet_parse,
+                )
+                .with_logging_options(self._logger.options)
+                .with_disabled_reconnect(self._reconnect_disabled)
+            )
             self._logger.info("Connecting to %s", self.device)
+
+            def _disconnect_callback(exc):
+                for callback in self._disconnect_listeners:
+                    callback(exc)
+
+            self._conn.on_disconnect(_disconnect_callback)
         elif self._conn._user_id != user_id:
             self._conn._user_id = user_id
 
-        await self._conn.connect(max_attempts=max_attempts)
+        await self._conn.connect(max_attempts=max_attempts, timeout=timeout)
 
     async def disconnect(self):
         if self._conn is None:
@@ -135,10 +157,34 @@ class DeviceBase(abc.ABC):
         if self.is_connected:
             await self._conn.wait_disconnected()
 
-    async def wait_until_connected_or_error(self, timeout: int = 20):
+    async def wait_until_authenticated_or_error(self, raise_on_error: bool = False):
         if self._conn is None:
             return ConnectionState.NOT_CONNECTED
-        return await self._conn.wait_until_connected_or_error(timeout)
+
+        return await self._conn.wait_until_authenticated_or_error(
+            raise_on_error=raise_on_error
+        )
+
+    def on_disconnect(self, listener: DisconnectListener):
+        """
+        Add disconnect listener
+
+        Parameters
+        ----------
+        listener
+            Listener that will be called on disconnect that receives exception as a
+            param if one occured before device disconnected
+
+        Return
+        -------
+        Function to remove this listener
+        """
+        self._disconnect_listeners.append(listener)
+
+        def _unlisten():
+            self._disconnect_listeners.remove(listener)
+
+        return _unlisten
 
     def register_callback(
         self, callback: Callable[[], None], propname: str | None = None
