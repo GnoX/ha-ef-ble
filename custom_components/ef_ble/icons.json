@@ -102,6 +102,15 @@
             },
             "hv_solar_power": {
                 "default": "mdi:solar-panel-large"
+            },
+            "generator_abnormal_state": {
+                "default": "mdi:alert-circle"
+            },
+            "fuel_type": {
+                "default": "mdi:barrel"
+            },
+            "liquefied_gas_type": {
+                "default": "mdi:gas-cylinder"
             }
         },
         "switch": {

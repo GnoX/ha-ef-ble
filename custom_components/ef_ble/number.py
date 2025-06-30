@@ -7,9 +7,16 @@ from homeassistant.components.number import (
     NumberEntity,
     NumberEntityDescription,
 )
-from homeassistant.const import PERCENTAGE, UnitOfElectricCurrent, UnitOfPower
+from homeassistant.const import (
+    PERCENTAGE,
+    UnitOfElectricCurrent,
+    UnitOfElectricPotential,
+    UnitOfPower,
+)
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+from custom_components.ef_ble.eflib.devices import alternator_charger
 
 from . import DeviceConfigEntry
 from .eflib import DeviceBase
@@ -101,6 +108,30 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
         max_value_prop="dc_charging_current_max_2",
         async_set_native_value=(
             lambda device, value: device.set_dc_charging_amps_max_2(int(value))
+        ),
+    ),
+    EcoflowNumberEntityDescription[alternator_charger.Device](
+        key="power_limit",
+        name="Power Limit",
+        device_class=NumberDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        native_step=1,
+        native_min_value=0,
+        max_value_prop="power_max",
+        async_set_native_value=(
+            lambda device, value: device.set_power_limit(int(value))
+        ),
+    ),
+    EcoflowNumberEntityDescription[alternator_charger.Device](
+        key="start_voltage",
+        name="Start Voltage",
+        device_class=NumberDeviceClass.VOLTAGE,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        native_step=1,
+        min_value_prop="car_battery_voltage_min",
+        max_value_prop="car_battery_voltage_max",
+        async_set_native_value=(
+            lambda device, value: device.set_battery_voltage(int(value))
         ),
     ),
 ]

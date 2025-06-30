@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from custom_components.ef_ble.eflib import DeviceBase
+from custom_components.ef_ble.eflib.devices import alternator_charger, smart_generator
 
 from . import DeviceConfigEntry
 from .eflib.devices import river3, river3_plus
@@ -25,7 +26,6 @@ SELECT_TYPES: list[EcoflowSelectEntityDescription] = [
     # River 3 Plus
     EcoflowSelectEntityDescription[river3_plus.Device](
         key="led_mode",
-        name="LED",
         options=[opt.name.lower() for opt in river3_plus.LedMode],
         set_state=(
             lambda device, value: device.set_led_mode(
@@ -35,15 +35,28 @@ SELECT_TYPES: list[EcoflowSelectEntityDescription] = [
     ),
     EcoflowSelectEntityDescription[river3.Device](
         key="dc_charging_type",
-        name="DC Charging Type",
-        options=[
-            opt.name.lower()
-            for opt in river3.DcChargingType
-            if opt is not river3.DcChargingType.UNKNOWN
-        ],
+        options=river3.DcChargingType.options(include_unknown=False),
         set_state=(
             lambda device, value: device.set_dc_charging_type(
                 river3.DcChargingType[value.upper()]
+            )
+        ),
+    ),
+    EcoflowSelectEntityDescription[smart_generator.Device](
+        key="performance_mode",
+        options=smart_generator.PerformanceMode.options(include_unknown=False),
+        set_state=(
+            lambda device, value: device.set_performance_mode(
+                smart_generator.PerformanceMode[value.upper()]
+            )
+        ),
+    ),
+    EcoflowSelectEntityDescription[alternator_charger.Device](
+        key="charger_mode",
+        options=alternator_charger.ChargerMode.options(include_unknown=False),
+        set_state=(
+            lambda device, value: device.set_charger_mode(
+                alternator_charger.ChargerMode[value.upper()]
             )
         ),
     ),
@@ -81,6 +94,9 @@ class EcoflowSelect(EcoflowEntity, SelectEntity):
         self._prop_name = self.entity_description.key
         self._set_state = description.set_state
         self._attr_current_option = None
+
+        if self.entity_description.translation_key is None:
+            self._attr_translation_key = self.entity_description.key
 
     async def async_added_to_hass(self):
         """Run when this Entity has been added to HA."""
