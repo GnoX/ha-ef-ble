@@ -16,3 +16,11 @@ class IntFieldValue(IntEnum):
     @property
     def state_name(self):
         return self.name.lower()
+
+    @classmethod
+    def options(cls, include_unknown: bool = True):
+        return [
+            opt.name.lower()
+            for opt in cls
+            if opt is not getattr(cls, "UNKNOWN", None) or include_unknown
+        ]
