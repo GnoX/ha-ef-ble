@@ -24,6 +24,15 @@ SWITCH_TYPES = [
         device_class=SwitchDeviceClass.OUTLET,
     ),
     SwitchEntityDescription(
+        key="ac_port",
+        name="AC Port",
+        device_class=SwitchDeviceClass.OUTLET,
+    ),
+    SwitchEntityDescription(
+        key="self_start",
+        name="Self Start",
+    ),
+    SwitchEntityDescription(
         key="ac_lv_port",
         name="LV AC",
         device_class=SwitchDeviceClass.OUTLET,
@@ -43,6 +52,14 @@ SWITCH_TYPES = [
         key="usb_ports",
         name="USB Ports",
         icon="mdi:usb",
+    ),
+    SwitchEntityDescription(
+        key="engine_on",
+        name="Engine",
+    ),
+    SwitchEntityDescription(
+        key="charger_open",
+        name="Charger",
     ),
 ]
 

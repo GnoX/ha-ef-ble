@@ -1,6 +1,3 @@
-import logging
-from enum import IntEnum
-
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from google.protobuf.message import Message
@@ -15,6 +12,7 @@ from ..props import (
     pb_field,
     proto_attr_mapper,
 )
+from ..props.enums import IntFieldValue
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,24 +30,13 @@ def _flow_is_on(x):
 pb = proto_attr_mapper(mr521_pb2.DisplayPropertyUpload)
 
 
-class DCPortState(IntEnum):
+class DCPortState(IntFieldValue):
     UNKNOWN = -1
+
     OFF = 0
     CAR = 1
     SOLAR = 2
     DC_CHARGING = 3
-
-    @classmethod
-    def from_value(cls, value: int):
-        try:
-            return cls(value)
-        except ValueError:
-            _LOGGER.debug("Encountered invalid value %s for DCPortState", value)
-            return cls.UNKNOWN
-
-    @property
-    def state_name(self):
-        return self.name.lower()
 
 
 class Device(DeviceBase, ProtobufProps):

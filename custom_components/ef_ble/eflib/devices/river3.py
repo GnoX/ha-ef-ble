@@ -19,6 +19,7 @@ pb = proto_attr_mapper(pr705_pb2.DisplayPropertyUpload)
 
 class DcChargingType(IntFieldValue):
     UNKNOWN = -1
+
     AUTO = 0
     CAR = 1
     SOLAR = 2

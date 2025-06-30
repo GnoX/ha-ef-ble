@@ -64,6 +64,7 @@ class _DcAmpSettingField(
 
 class DCPortState(IntFieldValue):
     UNKNOWN = -1
+
     OFF = 0
     CAR = 1
     SOLAR = 2
