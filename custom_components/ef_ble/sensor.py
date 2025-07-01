@@ -1,6 +1,7 @@
 """EcoFlow BLE sensor"""
 
 import itertools
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -13,16 +14,20 @@ from homeassistant.components.sensor import (
 from homeassistant.const import (
     PERCENTAGE,
     UnitOfElectricCurrent,
+    UnitOfElectricPotential,
     UnitOfEnergy,
+    UnitOfMass,
     UnitOfPower,
     UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from custom_components.ef_ble.eflib.devices import delta3
+
 from . import DeviceConfigEntry
 from .eflib import DeviceBase
-from .eflib.devices import shp2
+from .eflib.devices import delta_pro_3, shp2, smart_generator
 from .entity import EcoflowEntity
 
 _UPPER_WORDS = ["ac", "dc", "lv", "hv", "tt", "5p8"]
@@ -38,8 +43,10 @@ def _auto_name_from_key(key: str):
 
 
 @dataclass(frozen=True, kw_only=True)
-class EcoflowSensorEntityDescription(SensorEntityDescription):
+class EcoflowSensorEntityDescription[Device: DeviceBase](SensorEntityDescription):
     state_attribute_fields: list[str] = field(default_factory=list)
+
+    custom_unit_of_measurement: Callable[[Device], str] | None = None
 
 
 SENSOR_TYPES: dict[str, SensorEntityDescription] = {
@@ -220,6 +227,13 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         suggested_display_precision=3,
         suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
     ),
+    "dc_output_power": SensorEntityDescription(
+        key="dc_output_power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+    ),
     "dc12v_output_power": SensorEntityDescription(
         key="dc12v_output_power",
         native_unit_of_measurement=UnitOfPower.WATT,
@@ -313,10 +327,12 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
     "dc_port_state": SensorEntityDescription(
         key="dc_port_state",
         device_class=SensorDeviceClass.ENUM,
+        options=delta3.DCPortState.options(),
     ),
     "dc_port_2_state": SensorEntityDescription(
         key="dc_port_2_state",
         device_class=SensorDeviceClass.ENUM,
+        options=delta3.DCPortState.options(),
     ),
     "solar_input_power": SensorEntityDescription(
         key="input_power_solar",
@@ -378,10 +394,106 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
     "dc_lv_state": SensorEntityDescription(
         key="dc_lv_state",
         device_class=SensorDeviceClass.ENUM,
+        options=delta_pro_3.DCPortState.options(),
     ),
     "dc_hv_state": SensorEntityDescription(
         key="dc_hv_state",
         device_class=SensorDeviceClass.ENUM,
+        options=delta_pro_3.DCPortState.options(),
+    ),
+    # Smart Generator
+    "xt150_battery_level": SensorEntityDescription(
+        key="xt150_battery_level",
+        native_unit_of_measurement=PERCENTAGE,
+        device_class=SensorDeviceClass.BATTERY,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    "xt150_charge_type": SensorEntityDescription(
+        key="xt150_charge_type",
+        device_class=SensorDeviceClass.ENUM,
+        options=smart_generator.XT150ChargeType.options(),
+    ),
+    "engine_state": SensorEntityDescription(
+        key="engine_state",
+        device_class=SensorDeviceClass.ENUM,
+        options=smart_generator.EngineOpen.options(),
+    ),
+    "liquefied_gas_type": SensorEntityDescription(
+        key="liquefied_gas_type",
+        device_class=SensorDeviceClass.ENUM,
+        options=smart_generator.LiquefiedGasType.options(),
+    ),
+    "liquefied_gas": EcoflowSensorEntityDescription[smart_generator.Device](
+        key="liquefied_gas_value",
+        device_class=SensorDeviceClass.WEIGHT,
+        state_class=SensorStateClass.MEASUREMENT,
+        custom_unit_of_measurement=lambda device: {
+            smart_generator.LiquefiedGasUnit.KG: UnitOfMass.KILOGRAMS,
+            smart_generator.LiquefiedGasUnit.LB: UnitOfMass.POUNDS,
+        }.get(
+            device.liquefied_gas_unit or smart_generator.LiquefiedGasUnit.KG,
+            UnitOfMass.KILOGRAMS,
+        ),
+        suggested_display_precision=2,
+    ),
+    "liquefied_gas_consumption": EcoflowSensorEntityDescription[smart_generator.Device](
+        key="liquefied_gas_consumption",
+        device_class=SensorDeviceClass.WEIGHT,
+        state_class=SensorStateClass.MEASUREMENT,
+        custom_unit_of_measurement=lambda device: {
+            smart_generator.LiquefiedGasUnit.KG: UnitOfMass.KILOGRAMS,
+            smart_generator.LiquefiedGasUnit.LB: UnitOfMass.POUNDS,
+        }.get(
+            device.liquefied_gas_unit or smart_generator.LiquefiedGasUnit.KG,
+            UnitOfMass.KILOGRAMS,
+        ),
+        suggested_display_precision=2,
+    ),
+    "generator_total_output": SensorEntityDescription(
+        key="generator_total_output",
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        suggested_display_precision=2,
+    ),
+    "generator_abnormal_state": SensorEntityDescription(
+        key="generator_abnormal_state",
+        device_class=SensorDeviceClass.ENUM,
+        options=smart_generator.AbnormalState.options(),
+    ),
+    "sub_battery_soc": SensorEntityDescription(
+        key="sub_battery_soc",
+        native_unit_of_measurement=PERCENTAGE,
+        device_class=SensorDeviceClass.BATTERY,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    "sub_battery_state": SensorEntityDescription(
+        key="sub_battery_state",
+        device_class=SensorDeviceClass.ENUM,
+        options=smart_generator.SubBatteryState.options(),
+    ),
+    "fuel_type": SensorEntityDescription(
+        key="fuel_type",
+        device_class=SensorDeviceClass.ENUM,
+    ),
+    # Alternator Charger
+    "battery_temperature": SensorEntityDescription(
+        key="battery_temperature",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    "car_battery_voltage": SensorEntityDescription(
+        key="car_battery_voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    "dc_power": SensorEntityDescription(
+        key="dc_power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
     ),
 }
 

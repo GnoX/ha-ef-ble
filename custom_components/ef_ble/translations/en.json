@@ -304,6 +304,85 @@
       },
       "dc_hv_state": {
         "name": "HV DC Input Port State"
+      },
+      "engine_state": {
+        "name": "Engine State",
+        "state": {
+          "closed": "Off",
+          "opened": "Running",
+          "closing": "Stopping"
+        }
+      },
+      "xt150_battery_level": {
+        "name": "XT150 Battery Level"
+      },
+      "xt150_charge_type": {
+        "name": "XT150 Charge Type"
+      },
+      "liquefied_gas_type": {
+        "name": "Liquefied Gas Type"
+      },
+      "liquefied_gas": {
+        "name": "Liquefied Gas"
+      },
+      "liquefied_gas_consumption": {
+        "name": "Liquefied Gas Consumption per Hour"
+      },
+      "generator_total_output": {
+        "name": "Generator Total Output"
+      },
+      "generator_abnormal_state": {
+        "name": "Abnormal State",
+        "state": {
+          "no": "No",
+          "oil_low": "Low Oil"
+        }
+      },
+      "sub_battery_soc": {
+        "name": "Internal Battery Level"
+      },
+      "sub_battery_state": {
+        "name": "Internal Battery State",
+        "state": {
+          "idle": "Idle",
+          "no_input": "No Input",
+          "discharging": "Discharging",
+          "charging": "Charging",
+          "normal_full": "Normal Full",
+          "normal_low_pressure": "Normal Full Pressure"
+        }
+      },
+      "fuel_type": {
+        "name": "Fuel Type"
+      },
+      "battery_temperature": {
+        "name": "Battery Temperature"
+      },
+      "car_battery_voltage": {
+        "name": "Battery Voltage"
+      },
+      "dc_power": {
+        "name": "DC Power"
+      }
+    },
+    "select": {
+      "led_mode": {
+        "name": "LED"
+      },
+      "dc_charging_type": {
+        "name": "DC Charging Type"
+      },
+      "performance_mode": {
+        "name": "Performance Mode"
+      },
+      "charger_mode": {
+        "name": "Charger Mode",
+        "state": {
+          "idle": "Idle",
+          "driving_charge": "Charge",
+          "parking_charge": "Reverse Charge",
+          "battery_maintenance": "Battery Maintenance"
+        }
       }
     }
   }
