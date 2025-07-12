@@ -16,7 +16,7 @@ class FuelType(IntFieldValue):
 
     LNG = 1
     LPG = 2
-    OIL = 3
+    PETROL = 3  # original name: OIL
 
 
 class EngineOpen(IntFieldValue):
@@ -59,11 +59,11 @@ class LiquefiedGasUnit(IntFieldValue):
     LB = 0
     KG = 1
 
-    G = 2
-    LPH = 3
-    LPM = 4
-    GALH = 5
-    GALM = 6
+    # G = 2
+    # LPH = 3
+    # LPM = 4
+    # GALH = 5
+    # GALM = 6
 
 
 class XT150ChargeType(IntFieldValue):
@@ -79,7 +79,7 @@ class AbnormalState(IntFieldValue):
     UNKNOWN = -1
 
     NO = 0
-    OIL_LOW = 1
+    PETROL_LOW = 1  # original name: OIL_LOW
 
 
 class Device(DeviceBase, ProtobufProps):
@@ -90,10 +90,6 @@ class Device(DeviceBase, ProtobufProps):
 
     output_power = pb_field(pb.pow_out_sum_w)
     ac_output_power = pb_field(pb.pow_get_ac)
-    dc_output_power = pb_field(pb.pow_get_dc)
-
-    # xt150_battery_level = pb_field(pb.cms_batt_soc)
-    # xt150_charge_type = pb_field(pb.plug_in_info_dcp_dsg_chg_type)
 
     engine_on = pb_field(
         pb.generator_engine_open,
@@ -112,13 +108,14 @@ class Device(DeviceBase, ProtobufProps):
     )
     liquefied_gas_value = pb_field(pb.fuels_liquefied_gas_val)
     liquefied_gas_consumption = pb_field(pb.fuels_liquefied_gas_consume_per_hour)
+    lpg_level_monitoring = pb_field(pb.generator_lpg_monitor_en)
 
-    generator_total_output = pb_field(pb.generator_total_output)
     generator_abnormal_state = pb_field(
         pb.generator_abnormal_state,
         lambda x: AbnormalState.from_value(x & 1),
     )
 
+    sub_battery_power = pb_field(pb.pow_get_dc)
     sub_battery_soc = pb_field(pb.generator_sub_battery_soc)
     sub_battery_state = pb_field(
         pb.generator_sub_battery_state, SubBatteryState.from_value
@@ -126,7 +123,11 @@ class Device(DeviceBase, ProtobufProps):
 
     ac_ports = pb_field(pb.ac_out_open)
 
-    fuel_type = pb_field(pb.generator_fuels_type, FuelType.from_value)
+    # xt150_battery_level = pb_field(pb.cms_batt_soc)  # TODO(gnox): support SG4k
+    # xt150_charge_type = pb_field(pb.plug_in_info_dcp_dsg_chg_type) # TODO(gnox): SG4k
+
+    # TODO(GNOX): SG4k
+    # fuel_type = pb_field(pb.generator_fuels_type, FuelType.from_value)
 
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
@@ -187,6 +188,21 @@ class Device(DeviceBase, ProtobufProps):
             ge305_sys_pb2.ConfigWrite(cfg_generator_engine_open=value.value)
         )
 
+    async def enable_lpg_level_monitoring(self, enabled: bool):
+        await self._send_config_packet(
+            ge305_sys_pb2.ConfigWrite(cfg_generator_lpg_monitor_en=enabled)
+        )
+
+    async def set_liquefied_gas_unit(self, value: LiquefiedGasUnit):
+        await self._send_config_packet(
+            ge305_sys_pb2.ConfigWrite(cfg_fuels_liquefied_gas_uint=value.value)
+        )
+
+    async def set_liquefied_gas_value(self, value: int):
+        await self._send_config_packet(
+            ge305_sys_pb2.ConfigWrite(cfg_fuels_liquefied_gas_val=value)
+        )
+
     async def set_engine_open(self, engine_open: EngineOpen):
         if engine_open is EngineOpen.CLOSING:
             return
@@ -200,7 +216,8 @@ class Device(DeviceBase, ProtobufProps):
             ge305_sys_pb2.ConfigWrite(cfg_generator_perf_mode=performance_mode.value)
         )
 
-    async def set_dc_output_power_max(self, dc_out_max: int):
-        await self._send_config_packet(
-            ge305_sys_pb2.ConfigWrite(cfg_generator_dc_out_pow_max=dc_out_max)
-        )
+    # TODO(gnox): SG4k
+    # async def set_dc_output_power_max(self, dc_out_max: int):
+    #     await self._send_config_packet(
+    #         ge305_sys_pb2.ConfigWrite(cfg_generator_dc_out_pow_max=dc_out_max)
+    #     )
