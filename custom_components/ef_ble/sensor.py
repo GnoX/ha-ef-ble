@@ -450,13 +450,6 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         ),
         suggested_display_precision=2,
     ),
-    "generator_total_output": SensorEntityDescription(
-        key="generator_total_output",
-        device_class=SensorDeviceClass.POWER,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfPower.WATT,
-        suggested_display_precision=2,
-    ),
     "generator_abnormal_state": SensorEntityDescription(
         key="generator_abnormal_state",
         device_class=SensorDeviceClass.ENUM,

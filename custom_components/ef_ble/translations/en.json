@@ -335,11 +335,14 @@
         "name": "Abnormal State",
         "state": {
           "no": "No",
-          "oil_low": "Low Oil"
+          "petrol_low": "Petrol Low"
         }
       },
       "sub_battery_soc": {
         "name": "Internal Battery Level"
+      },
+      "sub_battery_power": {
+        "name": "Internal Battery Power"
       },
       "sub_battery_state": {
         "name": "Internal Battery State",
@@ -348,8 +351,8 @@
           "no_input": "No Input",
           "discharging": "Discharging",
           "charging": "Charging",
-          "normal_full": "Normal Full",
-          "normal_low_pressure": "Normal Full Pressure"
+          "normal_full": "Full",
+          "normal_low_pressure": "Normal Low Pressure"
         }
       },
       "fuel_type": {
@@ -379,8 +382,8 @@
         "name": "Charger Mode",
         "state": {
           "idle": "Idle",
-          "driving_charge": "Charge",
-          "parking_charge": "Reverse Charge",
+          "charge": "Charge",
+          "reverse_charge": "Reverse Charge",
           "battery_maintenance": "Battery Maintenance"
         }
       }
