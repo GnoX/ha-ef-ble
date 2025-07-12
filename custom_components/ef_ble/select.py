@@ -26,7 +26,7 @@ SELECT_TYPES: list[EcoflowSelectEntityDescription] = [
     # River 3 Plus
     EcoflowSelectEntityDescription[river3_plus.Device](
         key="led_mode",
-        options=[opt.name.lower() for opt in river3_plus.LedMode],
+        options=river3_plus.LedMode.options(include_unknown=False),
         set_state=(
             lambda device, value: device.set_led_mode(
                 river3_plus.LedMode[value.upper()]
