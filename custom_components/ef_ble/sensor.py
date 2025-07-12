@@ -1,7 +1,6 @@
 """EcoFlow BLE sensor"""
 
 import itertools
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -17,7 +16,6 @@ from homeassistant.const import (
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
     UnitOfEnergy,
-    UnitOfMass,
     UnitOfPower,
     UnitOfTemperature,
 )
@@ -46,8 +44,6 @@ def _auto_name_from_key(key: str):
 @dataclass(frozen=True, kw_only=True)
 class EcoflowSensorEntityDescription[Device: DeviceBase](SensorEntityDescription):
     state_attribute_fields: list[str] = field(default_factory=list)
-
-    custom_unit_of_measurement: Callable[[Device], str] | None = None
 
 
 SENSOR_TYPES: dict[str, SensorEntityDescription] = {
@@ -424,30 +420,10 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.ENUM,
         options=smart_generator.LiquefiedGasType.options(),
     ),
-    "liquefied_gas": EcoflowSensorEntityDescription[smart_generator.Device](
-        key="liquefied_gas_value",
-        device_class=SensorDeviceClass.WEIGHT,
-        state_class=SensorStateClass.MEASUREMENT,
-        custom_unit_of_measurement=lambda device: {
-            smart_generator.LiquefiedGasUnit.KG: UnitOfMass.KILOGRAMS,
-            smart_generator.LiquefiedGasUnit.LB: UnitOfMass.POUNDS,
-        }.get(
-            device.liquefied_gas_unit or smart_generator.LiquefiedGasUnit.KG,
-            UnitOfMass.KILOGRAMS,
-        ),
-        suggested_display_precision=2,
-    ),
     "liquefied_gas_consumption": EcoflowSensorEntityDescription[smart_generator.Device](
         key="liquefied_gas_consumption",
         device_class=SensorDeviceClass.WEIGHT,
         state_class=SensorStateClass.MEASUREMENT,
-        custom_unit_of_measurement=lambda device: {
-            smart_generator.LiquefiedGasUnit.KG: UnitOfMass.KILOGRAMS,
-            smart_generator.LiquefiedGasUnit.LB: UnitOfMass.POUNDS,
-        }.get(
-            device.liquefied_gas_unit or smart_generator.LiquefiedGasUnit.KG,
-            UnitOfMass.KILOGRAMS,
-        ),
         suggested_display_precision=2,
     ),
     "generator_abnormal_state": SensorEntityDescription(
@@ -552,8 +528,10 @@ class EcoflowSensor(EcoflowEntity, SensorEntity):
 
     async def async_added_to_hass(self):
         """Run when this Entity has been added to HA."""
+        await super().async_added_to_hass()
         self._device.register_callback(self.async_write_ha_state, self._sensor)
 
     async def async_will_remove_from_hass(self):
         """Entity being removed from hass."""
+        await super().async_will_remove_from_hass()
         self._device.remove_callback(self.async_write_ha_state, self._sensor)

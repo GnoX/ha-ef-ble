@@ -1,11 +1,11 @@
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any
 
 from homeassistant.components.number import (
     NumberDeviceClass,
     NumberEntity,
     NumberEntityDescription,
+    NumberMode,
 )
 from homeassistant.const import (
     PERCENTAGE,
@@ -13,20 +13,20 @@ from homeassistant.const import (
     UnitOfElectricPotential,
     UnitOfPower,
 )
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from custom_components.ef_ble.eflib.devices import alternator_charger
 
 from . import DeviceConfigEntry
 from .eflib import DeviceBase
-from .eflib.devices import delta3, delta3_plus, delta_pro_3, river3
+from .eflib.devices import delta3, delta3_plus, delta_pro_3, river3, smart_generator
 from .entity import EcoflowEntity
 
 
 @dataclass(frozen=True, kw_only=True)
-class EcoflowNumberEntityDescription[T: DeviceBase](NumberEntityDescription):
-    async_set_native_value: Callable[[T, float], Awaitable[bool]] | None = None
+class EcoflowNumberEntityDescription[Device: DeviceBase](NumberEntityDescription):
+    async_set_native_value: Callable[[Device, float], Awaitable[bool]] | None = None
 
     min_value_prop: str | None = None
     max_value_prop: str | None = None
@@ -108,6 +108,17 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
         max_value_prop="dc_charging_current_max_2",
         async_set_native_value=(
             lambda device, value: device.set_dc_charging_amps_max_2(int(value))
+        ),
+    ),
+    EcoflowNumberEntityDescription[smart_generator.Device](
+        key="liquefied_gas_value",
+        name="Gas Weight",
+        native_min_value=0,
+        native_step=0.1,
+        availability_prop="lpg_level_monitoring",
+        mode=NumberMode.BOX,
+        async_set_native_value=(
+            lambda device, value: device.set_liquefied_gas_value(value)
         ),
     ),
     EcoflowNumberEntityDescription[alternator_charger.Device](
@@ -192,7 +203,9 @@ class EcoflowNumber(EcoflowEntity, NumberEntity):
         self._set_native_value = entity_description.async_set_native_value
         self._prop_name = entity_description.key
         self._attr_native_value = getattr(device, self._prop_name)
-        self._update_callbacks: list[tuple[str, Callable[[Any], None]]] = []
+
+        if entity_description.translation_key is None:
+            self._attr_translation_key = self.entity_description.key
 
         self._register_update_callback("_attr_native_value", self._prop_name)
         self._register_update_callback(
@@ -203,16 +216,13 @@ class EcoflowNumber(EcoflowEntity, NumberEntity):
         self._register_update_callback(
             "_attr_native_min_value",
             self._min_value_prop,
-            lambda state: state if state is not None else EcoflowNumber._SkipWrite,
+            lambda state: state if state is not None else self.SkipWrite,
         )
         self._register_update_callback(
             "_attr_native_max_value",
             self._max_value_prop,
-            lambda state: state if state is not None else EcoflowNumber._SkipWrite,
+            lambda state: state if state is not None else self.SkipWrite,
         )
-
-    class _SkipWrite:
-        """Sentinel value for skipping write in update callback"""
 
     @property
     def available(self):
@@ -228,35 +238,3 @@ class EcoflowNumber(EcoflowEntity, NumberEntity):
             return
 
         await super().async_set_native_value(value)
-
-    def _register_update_callback(
-        self,
-        entity_attr: str,
-        prop_name: str | None,
-        get_state: Callable[[Any], _SkipWrite | Any] = lambda x: x,
-    ):
-        if prop_name is None:
-            return
-
-        @callback
-        def state_updated(state: Any):
-            if (state := get_state(state)) is EcoflowNumber._SkipWrite:
-                return
-
-            setattr(self, entity_attr, state)
-            self.async_write_ha_state()
-
-        if state := getattr(self._device, prop_name, None):
-            setattr(self, entity_attr, state)
-
-        self._update_callbacks.append((prop_name, state_updated))
-
-    async def async_added_to_hass(self) -> None:
-        for prop, state_callback in self._update_callbacks:
-            self._device.register_state_update_callback(state_callback, prop)
-        await super().async_added_to_hass()
-
-    async def async_will_remove_from_hass(self) -> None:
-        for prop, state_callback in self._update_callbacks:
-            self._device.remove_state_update_calback(state_callback, prop)
-        await super().async_will_remove_from_hass()
