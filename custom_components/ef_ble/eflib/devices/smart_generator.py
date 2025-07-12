@@ -100,9 +100,7 @@ class Device(DeviceBase, ProtobufProps):
 
     self_start = pb_field(pb.cms_oil_self_start)
 
-    liquefied_gas_type = pb_field(
-        pb.fuels_liquefied_gas_type, LiquefiedGasType.from_value
-    )
+    fuel_type = pb_field(pb.generator_fuels_type, FuelType.from_value)
     liquefied_gas_unit = pb_field(
         pb.fuels_liquefied_gas_uint, LiquefiedGasUnit.from_value
     )
@@ -127,7 +125,9 @@ class Device(DeviceBase, ProtobufProps):
     # xt150_charge_type = pb_field(pb.plug_in_info_dcp_dsg_chg_type) # TODO(gnox): SG4k
 
     # TODO(GNOX): SG4k
-    # fuel_type = pb_field(pb.generator_fuels_type, FuelType.from_value)
+    # liquefied_gas_type = pb_field(
+    #     pb.fuels_liquefied_gas_type, LiquefiedGasType.from_value
+    # )
 
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
@@ -190,18 +190,42 @@ class Device(DeviceBase, ProtobufProps):
 
     async def enable_lpg_level_monitoring(self, enabled: bool):
         await self._send_config_packet(
-            ge305_sys_pb2.ConfigWrite(cfg_generator_lpg_monitor_en=enabled)
+            ge305_sys_pb2.ConfigWrite(
+                cfg_generator_lpg_monitor_en=enabled,
+                cfg_fuels_liquefied_gas_uint=self.liquefied_gas_unit,
+                cfg_fuels_liquefied_gas_val=self.liquefied_gas_value,
+            )
         )
 
     async def set_liquefied_gas_unit(self, value: LiquefiedGasUnit):
+        gas_value = None
+        if self.liquefied_gas_value is not None:
+            if (
+                self.liquefied_gas_unit is LiquefiedGasUnit.KG
+                and value is LiquefiedGasUnit.LB
+            ):
+                gas_value = round(self.liquefied_gas_value * 2.2, 1)
+            elif (
+                self.liquefied_gas_unit is LiquefiedGasUnit.LB
+                and value is LiquefiedGasUnit.KG
+            ):
+                gas_value = round(self.liquefied_gas_value / 2.2, 1)
+
         await self._send_config_packet(
-            ge305_sys_pb2.ConfigWrite(cfg_fuels_liquefied_gas_uint=value.value)
+            ge305_sys_pb2.ConfigWrite(
+                cfg_fuels_liquefied_gas_uint=value.value,
+                cfg_fuels_liquefied_gas_val=gas_value,
+            )
         )
 
-    async def set_liquefied_gas_value(self, value: int):
+    async def set_liquefied_gas_value(self, value: float):
         await self._send_config_packet(
-            ge305_sys_pb2.ConfigWrite(cfg_fuels_liquefied_gas_val=value)
+            ge305_sys_pb2.ConfigWrite(
+                cfg_fuels_liquefied_gas_val=value,
+                cfg_fuels_liquefied_gas_uint=self.liquefied_gas_unit,
+            )
         )
+        return True
 
     async def set_engine_open(self, engine_open: EngineOpen):
         if engine_open is EngineOpen.CLOSING:

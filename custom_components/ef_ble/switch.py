@@ -61,6 +61,10 @@ SWITCH_TYPES = [
         key="charger_open",
         name="Charger",
     ),
+    SwitchEntityDescription(
+        key="lpg_level_monitoring",
+        name="LPG Level Monitoring",
+    ),
 ]
 
 
@@ -93,6 +97,9 @@ class EcoflowSwitchEntity(EcoflowEntity, SwitchEntity):
         self._method_name = f"enable_{self._prop_name}"
         self.entity_description = entity_description
         self._on_off_state = False
+
+        if entity_description.translation_key is None:
+            self._attr_translation_key = self.entity_description.key
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await getattr(self._device, self._method_name)(True)
