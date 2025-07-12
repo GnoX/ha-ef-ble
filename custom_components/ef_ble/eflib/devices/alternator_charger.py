@@ -18,9 +18,9 @@ class ChargerMode(IntFieldValue):
     UNKNOWN = -1
 
     IDLE = 0
-    DRIVING_CHARGE = 1
+    CHARGE = 1  # original name: DRIVING_CHARGE
     BATTERY_MAINTENANCE = 2
-    PARKING_CHARGE = 3
+    REVERSE_CHARGE = 3  # original name: PARKING_CHARGE
 
     @classmethod
     def from_mode(cls, mode: dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE):
@@ -33,11 +33,11 @@ class ChargerMode(IntFieldValue):
     def as_pb_enum(self):
         return {
             ChargerMode.IDLE: dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_IDLE,
-            ChargerMode.DRIVING_CHARGE: dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_DRIVING_CHG,
+            ChargerMode.CHARGE: dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_DRIVING_CHG,
             ChargerMode.BATTERY_MAINTENANCE: (
                 dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_BAT_MAINTENANCE,
             ),
-            ChargerMode.PARKING_CHARGE: dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_PARKING_CHG,
+            ChargerMode.REVERSE_CHARGE: dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_PARKING_CHG,
         }[self]
 
 
@@ -55,8 +55,8 @@ class Device(DeviceBase, ProtobufProps):
     start_voltage = pb_field(
         pb.sp_charger_car_batt_vol_setting, lambda x: round(x / 10, 1)
     )
-    car_battery_voltage_min = Field[int]()
-    car_battery_voltage_max = Field[int]()
+    start_voltage_min = Field[int]()
+    start_voltage_max = Field[int]()
 
     charger_mode = pb_field(pb.sp_charger_chg_mode, ChargerMode.from_mode)
 
@@ -64,19 +64,19 @@ class Device(DeviceBase, ProtobufProps):
     power_limit = pb_field(pb.sp_charger_chg_pow_limit)
     power_max = pb_field(pb.sp_charger_chg_pow_max)
 
-    car_battery_charging_amp_limit = pb_field(pb.sp_charger_car_batt_chg_amp_limit)
-    dev_battery_charging_amp_limit = pb_field(pb.sp_charger_dev_batt_chg_amp_limit)
+    reverse_charging_current_limit = pb_field(pb.sp_charger_car_batt_chg_amp_limit)
+    charging_current_limit = pb_field(pb.sp_charger_dev_batt_chg_amp_limit)
 
-    car_battery_charging_amp_max = pb_field(pb.sp_charger_car_batt_chg_amp_max)
-    dev_battery_charging_amp_max = pb_field(pb.sp_charger_dev_batt_chg_amp_max)
+    reverse_charging_current_max = pb_field(pb.sp_charger_car_batt_chg_amp_max)
+    charging_current_max = pb_field(pb.sp_charger_dev_batt_chg_amp_max)
 
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
     ) -> None:
         super().__init__(ble_dev, adv_data, sn)
         self._time_commands = TimeCommands(device=self)
-        self.car_battery_voltage_min = 11
-        self.car_battery_voltage_max = 31
+        self.start_voltage_min = 11
+        self.start_voltage_max = 31
 
     @classmethod
     def check(cls, sn):
@@ -138,11 +138,9 @@ class Device(DeviceBase, ProtobufProps):
 
     async def set_battery_voltage(self, value: float):
         if (
-            self.car_battery_voltage_min is None
-            or self.car_battery_voltage_max is None
-            or not (
-                self.car_battery_voltage_min <= value <= self.car_battery_voltage_max
-            )
+            self.start_voltage_min is None
+            or self.start_voltage_max is None
+            or not (self.start_voltage_min <= value <= self.start_voltage_max)
         ):
             return False
 
@@ -155,8 +153,8 @@ class Device(DeviceBase, ProtobufProps):
 
     async def set_car_battery_curent_charge_limit(self, value: float):
         if (
-            self.car_battery_charging_amp_max is None
-            or 0 > value > self.car_battery_charging_amp_max
+            self.reverse_charging_current_max is None
+            or 0 > value > self.reverse_charging_current_max
         ):
             return False
         await self._send_config_packet(
@@ -165,10 +163,7 @@ class Device(DeviceBase, ProtobufProps):
         return True
 
     async def set_device_battery_current_charge_limit(self, value: float):
-        if (
-            self.dev_battery_charging_amp_max is None
-            or 0 > value > self.dev_battery_charging_amp_max
-        ):
+        if self.charging_current_max is None or 0 > value > self.charging_current_max:
             return False
 
         await self._send_config_packet(
