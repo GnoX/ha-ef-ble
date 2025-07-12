@@ -3,6 +3,7 @@
 import itertools
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -540,7 +541,10 @@ class EcoflowSensor(EcoflowEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the value of the sensor."""
-        return getattr(self._device, self._sensor, None)
+        value = getattr(self._device, self._sensor, None)
+        if isinstance(value, Enum):
+            return value.name.lower()
+        return value
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

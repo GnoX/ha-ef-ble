@@ -115,7 +115,8 @@ class Device(DeviceBase, ProtobufProps):
 
     generator_total_output = pb_field(pb.generator_total_output)
     generator_abnormal_state = pb_field(
-        pb.generator_abnormal_state, lambda x: AbnormalState.from_value(x & 1)
+        pb.generator_abnormal_state,
+        lambda x: AbnormalState.from_value(x & 1),
     )
 
     sub_battery_soc = pb_field(pb.generator_sub_battery_soc)

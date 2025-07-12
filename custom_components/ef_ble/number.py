@@ -134,6 +134,30 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
             lambda device, value: device.set_battery_voltage(int(value))
         ),
     ),
+    EcoflowNumberEntityDescription[alternator_charger.Device](
+        key="car_battery_charging_amp_limit",
+        name="Reverse Charging Current",
+        device_class=NumberDeviceClass.CURRENT,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        native_step=1,
+        native_min_value=0,
+        max_value_prop="car_battery_amp_max",
+        async_set_native_value=(
+            lambda device, value: device.set_car_battery_curent_charge_limit(value)
+        ),
+    ),
+    EcoflowNumberEntityDescription[alternator_charger.Device](
+        key="dev_battery_charging_amp_limit",
+        name="Charging Current",
+        device_class=NumberDeviceClass.CURRENT,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        native_step=1,
+        native_min_value=0,
+        max_value_prop="dev_battery_charging_amp_max",
+        async_set_native_value=(
+            lambda device, value: device.set_device_battery_current_charge_limit(value)
+        ),
+    ),
 ]
 
 
