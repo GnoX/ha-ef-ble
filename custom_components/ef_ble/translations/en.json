@@ -378,6 +378,9 @@
       "performance_mode": {
         "name": "Performance Mode"
       },
+      "liquefied_gas_unit": {
+        "name": "Gas Unit"
+      },
       "charger_mode": {
         "name": "Charger Mode",
         "state": {

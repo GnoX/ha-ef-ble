@@ -119,6 +119,22 @@
                 "state": {
                     "off": "mdi:battery-sync-outline"
                 }
+            },
+            "lpg_level_monitoring": {
+                "default": "mdi:meter-gas",
+                "state": {
+                    "off": "mdi:meter-gas-outline"
+                }
+            }
+        },
+        "select": {
+            "liquefied_gas_unit": {
+                "default": "mdi:storage-tank-outline"
+            }
+        },
+        "number": {
+            "liquefied_gas_value": {
+                "default": "mdi:storage-tank"
             }
         }
     }
