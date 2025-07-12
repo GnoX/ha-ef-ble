@@ -7,11 +7,11 @@ from bleak.backends.scanner import AdvertisementData
 from ..commands import TimeCommands
 from ..devicebase import DeviceBase
 from ..packet import Packet
-from ..pb import mr521_pb2
+from ..pb import dc009_apl_comm_pb2
 from ..props import Field, ProtobufProps, pb_field, proto_attr_mapper
 from ..props.enums import IntFieldValue
 
-pb = proto_attr_mapper(mr521_pb2.DisplayPropertyUpload)
+pb = proto_attr_mapper(dc009_apl_comm_pb2.DisplayPropertyUpload)
 
 
 class ChargerMode(IntFieldValue):
@@ -23,7 +23,7 @@ class ChargerMode(IntFieldValue):
     PARKING_CHARGE = 3
 
     @classmethod
-    def from_mode(cls, mode: mr521_pb2.SP_CHARGER_CHG_MODE):
+    def from_mode(cls, mode: dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE):
         try:
             return cls(mode)
         except ValueError:
@@ -32,12 +32,12 @@ class ChargerMode(IntFieldValue):
 
     def as_pb_enum(self):
         return {
-            ChargerMode.IDLE: mr521_pb2.SP_CHARGER_CHG_MODE_IDLE,
-            ChargerMode.DRIVING_CHARGE: mr521_pb2.SP_CHARGER_CHG_MODE_DRIVING_CHG,
+            ChargerMode.IDLE: dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_IDLE,
+            ChargerMode.DRIVING_CHARGE: dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_DRIVING_CHG,
             ChargerMode.BATTERY_MAINTENANCE: (
-                mr521_pb2.SP_CHARGER_CHG_MODE_BAT_MAINTENANCE,
+                dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_BAT_MAINTENANCE,
             ),
-            ChargerMode.PARKING_CHARGE: mr521_pb2.SP_CHARGER_CHG_MODE_PARKING_CHG,
+            ChargerMode.PARKING_CHARGE: dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_PARKING_CHG,
         }[self]
 
 
@@ -64,6 +64,12 @@ class Device(DeviceBase, ProtobufProps):
     power_limit = pb_field(pb.sp_charger_chg_pow_limit)
     power_max = pb_field(pb.sp_charger_chg_pow_max)
 
+    car_battery_charging_amp_limit = pb_field(pb.sp_charger_car_batt_chg_amp_limit)
+    dev_battery_charging_amp_limit = pb_field(pb.sp_charger_dev_batt_chg_amp_limit)
+
+    car_battery_charging_amp_max = pb_field(pb.sp_charger_car_batt_chg_amp_max)
+    dev_battery_charging_amp_max = pb_field(pb.sp_charger_dev_batt_chg_amp_max)
+
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
     ) -> None:
@@ -87,7 +93,9 @@ class Device(DeviceBase, ProtobufProps):
         processed = False
 
         if packet.src == 0x14 and packet.cmdSet == 0xFE and packet.cmdId == 0x15:
-            self.update_from_bytes(mr521_pb2.DisplayPropertyUpload, packet.payload)
+            self.update_from_bytes(
+                dc009_apl_comm_pb2.DisplayPropertyUpload, packet.payload
+            )
             processed = True
         elif (
             packet.src == 0x35
@@ -104,19 +112,19 @@ class Device(DeviceBase, ProtobufProps):
 
         return processed
 
-    async def _send_config_packet(self, message: mr521_pb2.ConfigWrite):
+    async def _send_config_packet(self, message: dc009_apl_comm_pb2.ConfigWrite):
         payload = message.SerializeToString()
         packet = Packet(0x20, 0x14, 0xFE, 0x11, payload, 0x01, 0x01, 0x13)
         await self._conn.sendPacket(packet)
 
     async def enable_charger_open(self, enable: bool):
         await self._send_config_packet(
-            mr521_pb2.ConfigWrite(cfg_sp_charger_chg_open=enable)
+            dc009_apl_comm_pb2.ConfigWrite(cfg_sp_charger_chg_open=enable)
         )
 
     async def set_charger_mode(self, mode: ChargerMode):
         await self._send_config_packet(
-            mr521_pb2.ConfigWrite(cfg_sp_charger_chg_mode=mode.as_pb_enum())
+            dc009_apl_comm_pb2.ConfigWrite(cfg_sp_charger_chg_mode=mode.as_pb_enum())
         )
 
     async def set_power_limit(self, limit: int):
@@ -124,7 +132,7 @@ class Device(DeviceBase, ProtobufProps):
             return False
 
         await self._send_config_packet(
-            mr521_pb2.ConfigWrite(cfg_sp_charger_chg_pow_limit=limit)
+            dc009_apl_comm_pb2.ConfigWrite(cfg_sp_charger_chg_pow_limit=limit)
         )
         return True
 
@@ -139,6 +147,31 @@ class Device(DeviceBase, ProtobufProps):
             return False
 
         await self._send_config_packet(
-            mr521_pb2.ConfigWrite(cfg_sp_charger_car_batt_vol_setting=floor(value * 10))
+            dc009_apl_comm_pb2.ConfigWrite(
+                cfg_sp_charger_car_batt_vol_setting=floor(value * 10)
+            )
+        )
+        return True
+
+    async def set_car_battery_curent_charge_limit(self, value: float):
+        if (
+            self.car_battery_charging_amp_max is None
+            or 0 > value > self.car_battery_charging_amp_max
+        ):
+            return False
+        await self._send_config_packet(
+            dc009_apl_comm_pb2.ConfigWrite(cfg_sp_charger_car_batt_chg_amp_limit=value)
+        )
+        return True
+
+    async def set_device_battery_current_charge_limit(self, value: float):
+        if (
+            self.dev_battery_charging_amp_max is None
+            or 0 > value > self.dev_battery_charging_amp_max
+        ):
+            return False
+
+        await self._send_config_packet(
+            dc009_apl_comm_pb2.ConfigWrite(cfg_sp_charger_dev_batt_chg_amp_limit=value)
         )
         return True

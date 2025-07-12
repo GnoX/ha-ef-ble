@@ -11,6 +11,10 @@ class IntFieldValue(IntEnum):
             logging.debug("Encountered invalid value %s for %s", value, cls.__name__)
             return getattr(cls, "UNKNOWN")
 
+    @classmethod
+    def str_from_value(cls, value: int):
+        return cls.from_value(value).state_name
+
     @property
     def state_name(self):
         return self.name.lower()

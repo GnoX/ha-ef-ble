@@ -1,4 +1,4 @@
-syntax = "proto2";
+syntax = "proto3";
 
 package ge305;
 
@@ -68,6 +68,13 @@ enum TIME_TASK_TYPE {
   TIME_TASK_TYPE_USB_DSG = 9;
 }
 
+enum TIME_TASK_DETAIL_TYPE {
+  TIME_TASK_DETAIL_IDLE = 0;
+  TIME_TASK_DETAIL_POW = 1;
+  TIME_TASK_DETAIL_TEMP = 2;
+  TIME_TASK_DETAIL_LEVEL = 3;
+}
+
 message EventPush {
   message LogItem {
     optional uint32 unix_time = 1;
@@ -112,16 +119,22 @@ message TimeTaskItemV2 {
   optional uint32 time_table = 7;
   optional TIME_TASK_TYPE task_type = 8;
   optional uint32 task_param = 9;
+  repeated TimeTaskParamDetail task_param_detail = 10;
 }
 
 message TimeTaskItemV2List {
   repeated TimeTaskItemV2 time_task = 1;
 }
 
+message TimeTaskParamDetail {
+  optional TIME_TASK_DETAIL_TYPE type = 1;
+  optional float val = 2;
+}
+
 message ConfigWrite {
   optional bool cfg_power_off = 3;
   optional bool cfg_power_on = 4;
-  optional bool reset_factory_setting = 5;
+  optional uint32 reset_factory_setting = 5;
   optional uint32 cfg_utc_time = 6;
   optional int32 cfg_utc_timezone = 7;
   optional bool cfg_beep_en = 9;
@@ -158,7 +171,40 @@ message ConfigWrite {
 message ConfigWriteAck {
   optional uint32 action_id = 1;
   optional bool config_ok = 2;
-  optional bytes wrtie_info = 199;
+  optional bool cfg_power_off = 3;
+  optional bool cfg_power_on = 4;
+  optional uint32 reset_factory_setting = 5;
+  optional uint32 cfg_utc_time = 6;
+  optional int32 cfg_utc_timezone = 7;
+  optional bool cfg_beep_en = 9;
+  optional uint32 cfg_screen_off_time = 12;
+  optional uint32 cfg_dev_standby_time = 13;
+  optional uint32 cfg_ac_out_freq = 17;
+  optional bool cfg_xboost_en = 25;
+  optional int32 cfg_display_property_full_upload_period = 67;
+  optional int32 cfg_display_property_incremental_upload_period = 68;
+  optional int32 cfg_runtime_property_full_upload_period = 69;
+  optional int32 cfg_runtime_property_incremental_upload_period = 70;
+  optional bool active_display_property_full_upload = 71;
+  optional bool active_runtime_property_full_upload = 72;
+  optional bool cfg_ac_out_open = 76;
+  optional uint32 cfg_generator_perf_mode = 77;
+  optional uint32 cfg_generator_engine_open = 78;
+  optional uint32 cfg_generator_out_pow_max = 79;
+  optional uint32 cfg_generator_ac_out_pow_max = 80;
+  optional uint32 cfg_generator_dc_out_pow_max = 81;
+  optional bool cfg_generator_self_on = 82;
+  optional bool reset_generator_maintence_state = 83;
+  optional uint32 cfg_fuels_liquefied_gas_type = 84;
+  optional uint32 cfg_fuels_liquefied_gas_uint = 85;
+  optional float cfg_fuels_liquefied_gas_val = 86;
+  optional TimeTaskItemV2 cfg_time_task_v2_item = 127;
+  optional uint32 active_selected_time_task_v2 = 128;
+  optional bool cfg_generator_low_power_en = 130;
+  optional uint32 cfg_generator_low_power_threshold = 131;
+  optional bool cfg_generator_lpg_monitor_en = 132;
+  optional uint32 cfg_fuels_liquefied_gas_lpg_uint = 133;
+  optional uint32 cfg_fuels_liquefied_gas_lng_uint = 134;
 }
 
 message ConfigRead {
@@ -266,6 +312,7 @@ message DevRequest {
   optional float dev_utc_timezone = 2;
   optional bool require_property_upload_period = 3;
   optional ReqTouStrategy require_tou_strategy = 4;
+  optional bool require_time_service = 5;
 }
 
 message DevRequestAck {
