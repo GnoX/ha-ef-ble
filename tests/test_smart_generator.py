@@ -91,7 +91,7 @@ async def test_smart_generator_updates_from_message(device, ge305_msg):
         smart_generator.Device.self_start,
         smart_generator.Device.engine_state,
         smart_generator.Device.performance_mode,
-        smart_generator.Device.liquefied_gas_type,
+        smart_generator.Device.fuel_type,
         smart_generator.Device.liquefied_gas_value,
         smart_generator.Device.liquefied_gas_consumption,
         smart_generator.Device.liquefied_gas_unit,
