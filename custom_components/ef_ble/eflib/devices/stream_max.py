@@ -1,0 +1,18 @@
+from ..props import ProtobufProps, pb_field
+from . import stream_ac
+
+pb = stream_ac.pb
+
+
+class Device(stream_ac.Device, ProtobufProps):
+    """STREAM AC PRO"""
+
+    SN_PREFIX = (b"BK41",)
+
+    ac_power_1 = pb_field(pb.pow_get_schuko1)
+
+    pv_sum = pb_field(pb.pow_get_pv_sum)
+    pv_power_1 = pb_field(pb.pow_get_pv)
+    pv_power_2 = pb_field(pb.pow_get_pv2)
+
+    load_from_pv = pb_field(pb.pow_get_sys_load_from_pv)

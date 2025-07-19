@@ -111,6 +111,18 @@
             },
             "liquefied_gas_type": {
                 "default": "mdi:gas-cylinder"
+            },
+            "load_from_battery": {
+                "default": "mdi:battery-arrow-up"
+            },
+            "load_from_grid": {
+                "default": "mdi:transmission-tower"
+            },
+            "load_from_pv": {
+                "default": "mdi:solar-power-variant"
+            },
+            "grid_frequency": {
+                "default": "mdi:cosine-wave"
             }
         },
         "switch": {
