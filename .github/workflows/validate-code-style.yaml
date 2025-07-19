@@ -2,6 +2,7 @@ name: Validate Code Style
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:
@@ -9,12 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-
-      - run: python3 -m pip install black
-
-      - name: Black style validation
-        run: black --check .
+      - uses: pre-commit/action@v3.0.1

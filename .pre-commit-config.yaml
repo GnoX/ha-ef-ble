@@ -1,0 +1,33 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: mixed-line-ending
+        name: line-endings formatting
+      - id: trailing-whitespace
+        name: trailing whitespaces formatting
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+        name: end-of-files formatting
+      - id: check-yaml
+        name: yaml coding style check (check-yaml)
+      - id: check-toml
+        name: toml coding style check (check-toml)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.2
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
+        name: ruff format
+  - repo: https://github.com/jumanjihouse/pre-commit-hook-yamlfmt
+    rev: 0.2.3
+    hooks:
+      - id: yamlfmt
+        args: [--mapping, "2", --sequence, "4", --offset, "2", --preserve-quotes, "--implicit_start"]
+        name: yaml formatting (yamlfmt)
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.38.0
+    hooks:
+      - id: markdownlint
+      - id: markdownlint-fix
