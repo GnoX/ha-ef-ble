@@ -66,15 +66,6 @@ class LiquefiedGasUnit(IntFieldValue):
     # GALM = 6
 
 
-class XT150ChargeType(IntFieldValue):
-    UNKNOWN = -1
-
-    NONE = 0
-    CHARGE_OUT = 1
-    CHARGE = 2
-    OUT = 3
-
-
 class AbnormalState(IntFieldValue):
     UNKNOWN = -1
 
@@ -83,10 +74,10 @@ class AbnormalState(IntFieldValue):
 
 
 class Device(DeviceBase, ProtobufProps):
-    """Smart Generator"""
+    """Smart Generator 3000 (Dual Fuel)"""
 
     SN_PREFIX = (b"G371",)
-    NAME_PREFIX = "EF-GE4"
+    NAME_PREFIX = "EF-GE"
 
     output_power = pb_field(pb.pow_out_sum_w)
     ac_output_power = pb_field(pb.pow_get_ac)
@@ -121,27 +112,15 @@ class Device(DeviceBase, ProtobufProps):
 
     ac_ports = pb_field(pb.ac_out_open)
 
-    # xt150_battery_level = pb_field(pb.cms_batt_soc)  # TODO(gnox): support SG4k
-    # xt150_charge_type = pb_field(pb.plug_in_info_dcp_dsg_chg_type) # TODO(gnox): SG4k
-
-    # TODO(GNOX): SG4k
-    # liquefied_gas_type = pb_field(
-    #     pb.fuels_liquefied_gas_type, LiquefiedGasType.from_value
-    # )
-
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
     ) -> None:
         super().__init__(ble_dev, adv_data, sn)
         self._time_commands = TimeCommands(self)
 
-    @staticmethod
-    def check(sn):
-        return sn.startswith(Device.SN_PREFIX)
-
-    @property
-    def device(self):
-        return "Smart Generator 3000 (Dual Fuel)"
+    @classmethod
+    def check(cls, sn):
+        return sn.startswith(cls.SN_PREFIX)
 
     async def packet_parse(self, data: bytes) -> Packet:
         return Packet.fromBytes(data, is_xor=True)
@@ -239,9 +218,3 @@ class Device(DeviceBase, ProtobufProps):
         await self._send_config_packet(
             ge305_sys_pb2.ConfigWrite(cfg_generator_perf_mode=performance_mode.value)
         )
-
-    # TODO(gnox): SG4k
-    # async def set_dc_output_power_max(self, dc_out_max: int):
-    #     await self._send_config_packet(
-    #         ge305_sys_pb2.ConfigWrite(cfg_generator_dc_out_pow_max=dc_out_max)
-    #     )
