@@ -405,11 +405,6 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.BATTERY,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-    "xt150_charge_type": SensorEntityDescription(
-        key="xt150_charge_type",
-        device_class=SensorDeviceClass.ENUM,
-        options=smart_generator.XT150ChargeType.options(),
-    ),
     "engine_state": SensorEntityDescription(
         key="engine_state",
         device_class=SensorDeviceClass.ENUM,

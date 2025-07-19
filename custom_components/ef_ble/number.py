@@ -16,11 +16,16 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from custom_components.ef_ble.eflib.devices import alternator_charger
-
 from . import DeviceConfigEntry
 from .eflib import DeviceBase
-from .eflib.devices import delta3, delta3_plus, delta_pro_3, river3, smart_generator
+from .eflib.devices import (
+    alternator_charger,
+    delta3,
+    delta3_plus,
+    delta_pro_3,
+    river3,
+    smart_generator,
+)
 from .entity import EcoflowEntity
 
 

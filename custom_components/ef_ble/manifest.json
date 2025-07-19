@@ -46,9 +46,9 @@
             "connectable": true
         },
         {
-            "local_name": "EF-GE4*",
+            "local_name": "EF-GE*",
             "manufacturer_id": 46517,
-            "manufacturer_data_start": [19, 71, 51, 55, 49],
+            "manufacturer_data_start": [19, 71, 51],
             "connectable": true
         },
         {
