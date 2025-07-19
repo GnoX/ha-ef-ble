@@ -13,6 +13,7 @@ from homeassistant.const import (
     UnitOfElectricPotential,
     UnitOfPower,
 )
+from homeassistant.const import PERCENTAGE, UnitOfElectricCurrent, UnitOfPower
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -25,6 +26,7 @@ from .eflib.devices import (
     delta_pro_3,
     river3,
     smart_generator,
+    stream_ac,
 )
 from .entity import EcoflowEntity
 
@@ -129,13 +131,25 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
     EcoflowNumberEntityDescription[alternator_charger.Device](
         key="power_limit",
         name="Power Limit",
+        max_value_prop="power_max",
         device_class=NumberDeviceClass.POWER,
         native_unit_of_measurement=UnitOfPower.WATT,
         native_step=1,
         native_min_value=0,
-        max_value_prop="power_max",
         async_set_native_value=(
             lambda device, value: device.set_power_limit(int(value))
+        ),
+    ),
+    EcoflowNumberEntityDescription[stream_ac.Device](
+        key="feed_grid_pow_limit",
+        name="Feed Grid Power Limit",
+        device_class=NumberDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        native_step=1,
+        native_min_value=0,
+        max_value_prop="feed_grid_pow_max",
+        async_set_native_value=(
+            lambda device, value: device.set_feed_grid_pow_limit(int(value))
         ),
     ),
     EcoflowNumberEntityDescription[alternator_charger.Device](
@@ -208,6 +222,9 @@ class EcoflowNumber(EcoflowEntity, NumberEntity):
         self._set_native_value = entity_description.async_set_native_value
         self._prop_name = entity_description.key
         self._attr_native_value = getattr(device, self._prop_name)
+
+        if entity_description.translation_key is None:
+            self._attr_translation_key = self.entity_description.key
 
         if entity_description.translation_key is None:
             self._attr_translation_key = self.entity_description.key
