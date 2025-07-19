@@ -1,10 +1,26 @@
-import glob
-from os.path import basename, dirname, isfile, join
+import importlib
+from pathlib import Path
+from types import ModuleType
+from typing import TYPE_CHECKING, Protocol
 
-modules = glob.glob(join(dirname(__file__), "*.py"))
+if TYPE_CHECKING:
+    from ..devicebase import DeviceBase
+
+    class ModuleWithDevice(Protocol):
+        Device: type[DeviceBase]
+
 
 __all__ = [
-    basename(f)[:-3] for f in modules if isfile(f) and not f.endswith("__init__.py")
+    f.stem
+    for f in Path(__file__).parent.glob("*.py")
+    if f.is_file() and f.stem != "__init__"
 ]
 
-from . import *
+devices: list["ModuleWithDevice | ModuleType"]
+
+
+def __getattr__(name: str):
+    if name == "devices":
+        return [importlib.import_module(f".{device}", __name__) for device in __all__]
+
+    return None

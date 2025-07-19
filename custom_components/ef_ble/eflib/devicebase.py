@@ -13,10 +13,14 @@ from .logging_util import DeviceLogger, LogOptions
 from .packet import Packet
 
 
-class DeviceBase:
+class DeviceBase(abc.ABC):
     """Device Base"""
 
     MANUFACTURER_KEY = 0xB5B5
+
+    @classmethod
+    @abc.abstractmethod
+    def check(cls, sn: bytes) -> bool: ...
 
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
@@ -68,11 +72,11 @@ class DeviceBase:
         return self._name_by_user
 
     def isValid(self):
-        return self._sn != None
+        return self._sn is not None
 
     @property
     def is_connected(self) -> bool:
-        return self._conn != None and self._conn.is_connected
+        return self._conn is not None and self._conn.is_connected
 
     @property
     def connection_state(self):

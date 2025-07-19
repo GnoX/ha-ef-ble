@@ -50,7 +50,6 @@ ConfigEntryError = partial(ConfigEntryError, translation_domain=DOMAIN)
 
 async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bool:
     """Set up EF BLE device from a config entry."""
-
     _LOGGER.debug("Init EcoFlow BLE Integration")
 
     address = entry.data.get(CONF_ADDRESS)
