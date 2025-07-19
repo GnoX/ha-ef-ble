@@ -16,11 +16,6 @@ __all__ = [
     if f.is_file() and f.stem != "__init__"
 ]
 
-devices: list["ModuleWithDevice | ModuleType"]
-
-
-def __getattr__(name: str):
-    if name == "devices":
-        return [importlib.import_module(f".{device}", __name__) for device in __all__]
-
-    return None
+devices: list["ModuleWithDevice | ModuleType"] = [
+    importlib.import_module(f".{device}", __name__) for device in __all__
+]

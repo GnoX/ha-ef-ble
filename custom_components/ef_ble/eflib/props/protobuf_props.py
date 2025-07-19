@@ -1,6 +1,6 @@
 from collections import defaultdict
+from collections.abc import Callable
 from functools import cached_property
-from typing import Callable
 
 from google.protobuf.message import Message
 

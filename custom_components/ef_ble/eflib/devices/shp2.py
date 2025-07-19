@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from ..commands import TimeCommands
 from ..devicebase import AdvertisementData, BLEDevice, DeviceBase
 from ..packet import Packet
-from ..pb import pd303_pb2_v5 as pd303_pb2
+from ..pb import pd303_pb2
 from ..props import (
     Field,
     ProtobufProps,
