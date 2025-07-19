@@ -159,6 +159,28 @@ Recognized devices:
 | Battery Voltage     |            | Power Limit              |              |
 </details>
 
+<details><summary>
+<b>STREAM (AC, AC Pro, Max, Pro, Ultra)</b>
+</summary>
+
+| *Sensors*                              | *Switches*                       | *Sliders*             |
+|----------------------------------------|----------------------------------|-----------------------|
+| Battery Level                          | Feed Grid                        | Feed Grid Power Limit |
+| Grid Power                             | AC (1) (AC Pro, Max, Pro, Ultra) | Backup Reserve Level  |
+| Grid Voltage                           | AC (2) (AC Pro, Pro, Ultra)      | Charge Limit          |
+| Grid Frequency                         |                                  | Discharge Limit       |
+| Load from Battery                      |                                  |                       |
+| Load from Grid                         |                                  |                       |
+| Load from PV (Max, Pro, Ultra)         |                                  |                       |
+| AC (1) Power (AC Pro, Max, Pro, Ultra) |                                  |                       |
+| AC (2) Power (AC Pro, Pro, Ultra)      |                                  |                       |
+| PV (1) Power (Max, Pro, Ultra)         |                                  |                       |
+| PV (2) Power (Max, Pro, Ultra)         |                                  |                       |
+| PV (3) Power (Pro, Ultra)              |                                  |                       |
+| PV (4) Power (Ultra)                   |                                  |                       |
+| Cell Temperature (disabled)            |                                  |                       |
+</details>
+
 </p>
 
 **NOTICE**: this integration utilizes Bluetooth LE of the EF device, which is supporting just one

@@ -65,6 +65,20 @@ SWITCH_TYPES = [
         key="lpg_level_monitoring",
         name="LPG Level Monitoring",
     ),
+    SwitchEntityDescription(
+        key="ac_1",
+        name="AC Port (1)",
+        device_class=SwitchDeviceClass.OUTLET,
+    ),
+    SwitchEntityDescription(
+        key="ac_2",
+        name="AC Port (2)",
+        device_class=SwitchDeviceClass.OUTLET,
+    ),
+    SwitchEntityDescription(
+        key="feed_grid",
+        name="Feed Grid",
+    ),
 ]
 
 
