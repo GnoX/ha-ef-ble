@@ -102,6 +102,18 @@
             },
             "hv_solar_power": {
                 "default": "mdi:solar-panel-large"
+            },
+            "load_from_battery": {
+                "default": "mdi:battery-arrow-up"
+            },
+            "load_from_grid": {
+                "default": "mdi:transmission-tower"
+            },
+            "load_from_pv": {
+                "default": "mdi:solar-power-variant"
+            },
+            "grid_frequency": {
+                "default": "mdi:cosine-wave"
             }
         },
         "switch": {

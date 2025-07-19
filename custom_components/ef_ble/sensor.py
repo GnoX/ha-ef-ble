@@ -2,6 +2,7 @@
 
 import itertools
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -13,7 +14,9 @@ from homeassistant.components.sensor import (
 from homeassistant.const import (
     PERCENTAGE,
     UnitOfElectricCurrent,
+    UnitOfElectricPotential,
     UnitOfEnergy,
+    UnitOfFrequency,
     UnitOfPower,
     UnitOfTemperature,
 )
@@ -22,7 +25,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import DeviceConfigEntry
 from .eflib import DeviceBase
-from .eflib.devices import shp2
+from .eflib.devices import delta_pro_3, shp2
 from .entity import EcoflowEntity
 
 _UPPER_WORDS = ["ac", "dc", "lv", "hv", "tt", "5p8"]
@@ -378,11 +381,62 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
     "dc_lv_state": SensorEntityDescription(
         key="dc_lv_state",
         device_class=SensorDeviceClass.ENUM,
+        options=delta_pro_3.DCPortState.options(),
     ),
     "dc_hv_state": SensorEntityDescription(
         key="dc_hv_state",
         device_class=SensorDeviceClass.ENUM,
+        options=delta_pro_3.DCPortState.options(),
     ),
+    # STREAM
+    "grid_voltage": SensorEntityDescription(
+        key="grid_voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+    ),
+    "grid_frequency": SensorEntityDescription(
+        key="grid_frequency",
+        native_unit_of_measurement=UnitOfFrequency.HERTZ,
+        device_class=SensorDeviceClass.FREQUENCY,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+    ),
+    "load_from_battery": SensorEntityDescription(
+        key="load_from_battery",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    "load_from_grid": SensorEntityDescription(
+        key="load_from_grid",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    **{
+        f"ac_power_{i}": SensorEntityDescription(
+            key=f"ac_power_{i}",
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            translation_key="port_power",
+            translation_placeholders={"name": f"AC ({i})"},
+        )
+        for i in range(3)
+    },
+    **{
+        f"pv_power_{i}": SensorEntityDescription(
+            key=f"ac_power_{i}",
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            translation_key="port_power_pv",
+            translation_placeholders={"index": f"{i}"},
+        )
+        for i in range(5)
+    },
 }
 
 
@@ -428,7 +482,10 @@ class EcoflowSensor(EcoflowEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the value of the sensor."""
-        return getattr(self._device, self._sensor, None)
+        value = getattr(self._device, self._sensor, None)
+        if isinstance(value, Enum):
+            return value.name.lower()
+        return value
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

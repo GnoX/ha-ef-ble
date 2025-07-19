@@ -1,0 +1,790 @@
+syntax = "proto3";
+
+package bk_series;
+
+enum PANEL_GRID_STA {
+  PANEL_GRID_STA_NO_VAILD = 0;
+  PANEL_GRID_IN = 1;
+  PANEL_GRID_NOT_ONLINE = 2;
+  PANEL_FEED_GRID = 3;
+}
+
+enum GRID_STD_CODE {
+  GRID_STD_CODE_NULL = 0;
+  GRID_STD_CODE_AUSTRIA = 1;
+  GRID_STD_CODE_SWITZER = 2;
+  GRID_STD_CODE_POLAND = 3;
+  GRID_STD_CODE_NETHERLANDS = 4;
+  GRID_STD_CODE_VDE_4105 = 5;
+  GRID_STD_CODE_IEEE_1547 = 6;
+  GRID_STD_CODE_USER_DEFINED = 7;
+  GRID_STD_CODE_NORWAY = 8;
+  GRID_STD_CODE_CZECH_REPUBLIC = 9;
+  GRID_STD_CODE_DENMARK = 10;
+  GRID_STD_CODE_IRELAND = 11;
+  GRID_STD_CODE_SWEDEN = 12;
+  GRID_STD_CODE_LATVIA = 13;
+  GRID_STD_CODE_GREECE_A = 14;
+  GRID_STD_CODE_GREECE_B = 15;
+  GRID_STD_CODE_PORTUGAL = 16;
+  GRID_STD_CODE_ROMANIA = 17;
+  GRID_STD_CODE_LITHUANIA = 18;
+  GRID_STD_CODE_HUNGARY = 19;
+  GRID_STD_CODE_ITALY = 20;
+  GRID_STD_CODE_G98 = 21;
+  GRID_STD_CODE_G99 = 22;
+  GRID_STD_CODE_NTS_631 = 23;
+  GRID_STD_CODE_UNE_217001 = 24;
+  GRID_STD_CODE_UNE_217002 = 25;
+  GRID_STD_CODE_UTE_MAINLAND = 26;
+  GRID_STD_CODE_UTE_50HZ_ISLAND = 27;
+  GRID_STD_CODE_UTE_60HZ_ISLAND = 28;
+  GRID_STD_CODE_BELGIUM = 29;
+  GRID_STD_CODE_UKRAINE = 30;
+  GRID_STD_CODE_SLOVENIA = 31;
+  GRID_STD_CODE_BULGARIA = 32;
+  GRID_STD_CODE_EU_GENERAL = 33;
+  GRID_STD_CODE_NORTH_AMERICA = 1001;
+}
+
+enum METER_MODEL {
+  NONE = 0;
+  CT_EF_01 = 1;
+  CT_SHELLY_3EM = 2;
+  CT_SHELLY_PRO_3EM = 3;
+  IR_TIBBER_PULSE = 4;
+  IR_POWERFOX_PA201902 = 5;
+  CT_EF_PRO_3EM = 6;
+}
+
+enum MASTER_AND_SLAVE {
+  ELECTION = 0;
+  MASTER = 1;
+  SLAVE = 2;
+}
+
+enum STD_LIGHT_LANGUAGE {
+  STD_LIGHT_NULL = 0;
+  STD_LIGHT_ERROR = 1;
+  STD_LIGHT_POWER_OFF = 2;
+  STD_LIGHT_POWER_ON = 3;
+  STD_LIGHT_SELFCHECKING = 4;
+  STD_LIGHT_SLEEP = 5;
+  STD_LIGHT_RUNNING = 6;
+  STD_LIGHT_CHARGING = 7;
+  STD_LIGHT_DSCHARGING = 8;
+  STD_LIGHT_UPDATING = 9;
+  STD_LIGHT_PAIRING = 10;
+  STD_LIGHT_WIFI_CONNECTING = 11;
+  STD_LIGHT_BINDING = 12;
+  STD_LIGHT_BINDING_DONE = 13;
+  STD_LIGHT_SERVER_CONNECTING = 14;
+  STD_LIGHT_SERVER_CONNECTING_DONE = 15;
+  STD_LIGHT_SYS_RESET = 16;
+  STD_LIGHT_CMD_ACTIVE = 17;
+}
+
+enum POWER_SOCKET_MODEL {
+  POWER_SOCKET_NONE = 0;
+  POWER_SOCKET_EF_PLUG_S_MTR_GEN_3 = 1;
+}
+
+message EventPush {
+  message LogItem {
+    optional uint32 unix_time = 1;
+    optional uint32 ms = 2;
+    optional uint32 event_no = 3;
+    repeated float event_detail = 4;
+  }
+
+  optional uint32 event_ver = 1;
+  optional uint32 event_seq = 2;
+  repeated EventPush.LogItem event_item = 3;
+}
+
+message EventAck {
+  optional uint32 result = 1;
+  optional uint32 event_seq = 2;
+  optional uint32 event_item_num = 3;
+}
+
+message DevErrcodeList {
+  repeated uint32 dev_errcode = 1;
+}
+
+message ReqTouStrategy {
+  optional uint32 req_state = 1;
+}
+
+message CfgBmsPushWrite {
+  optional bool bms_heartbeap_open = 1;
+  optional bool bms_health_open = 2;
+  optional uint32 bms_heartbeap_freq = 3;
+  optional uint32 bms_health_freq = 4;
+}
+
+message CfgStormPattern {
+  optional bool storm_pattern_enable = 1;
+  optional bool storm_pattern_open_flag = 2;
+  optional uint32 storm_pattern_end_time = 3;
+}
+
+message CfgEnergyStrategyOperateMode {
+  optional bool operate_self_powered_open = 1;
+  optional bool operate_scheduled_open = 2;
+  optional bool operate_tou_mode_open = 3;
+  optional bool operate_intelligent_schedule_mode_open = 4;
+}
+
+message PropertyUploadPeriod {
+  optional int32 display_property_full_upload_period = 1;
+  optional int32 display_property_incremental_upload_period = 2;
+  optional int32 runtime_property_full_upload_period = 3;
+  optional int32 runtime_property_incremental_upload_period = 4;
+}
+
+message ReqSmartCharge {
+  optional uint32 target_external_chg_wh = 1;
+  optional uint32 curr_storage_wh = 2;
+  optional uint32 accumulated_external_chg_wh = 3;
+  optional uint32 target_external_chg_finsh_timestamp = 4;
+  optional uint32 grid_chg_pow_max = 5;
+  optional uint32 external_chg_pow_max = 6;
+  optional string sn = 7;
+  optional uint32 device_min_charge_rate = 8;
+}
+
+message GridCurtailmentSignalList {
+  optional bool is_temp = 1;
+  optional bool is_grid_freq = 2;
+  optional bool is_grid_vol = 3;
+  optional bool is_pv1_oc = 4;
+  optional bool is_pv1_cl = 5;
+  optional bool is_pv2_oc = 6;
+  optional bool is_pv2_cl = 7;
+  optional bool is_pv3_oc = 8;
+  optional bool is_pv3_cl = 9;
+  optional bool is_pv4_oc = 10;
+  optional bool is_pv4_cl = 11;
+}
+
+message TimezoneChangeItem {
+  optional uint32 utc_time = 1;
+  optional int32 utc_timezone = 2;
+}
+
+message TimezoneChangeList {
+  repeated TimezoneChangeItem time_zone_change_item = 1;
+}
+
+message DayResidentLoadList {
+  repeated ResidentLoad load = 1;
+}
+
+message ResidentLoad {
+  optional uint32 start_min = 1;
+  optional uint32 end_min = 2;
+  optional uint32 load_power = 3;
+}
+
+message CloudMeter {
+  optional bool has_meter = 1;
+  optional METER_MODEL model = 2;
+  optional string sn = 3;
+  optional int32 phase_a_power = 4;
+  optional int32 phase_b_power = 5;
+  optional int32 phase_c_power = 6;
+}
+
+message WifiApMeshIdInfo {
+  repeated uint32 id_list = 1;
+}
+
+message ReqIntelligentSchedule {
+  optional uint32 req_intelligent_schedule_state = 1;
+  repeated ReqSmartCharge smart_charge_info_list = 2;
+}
+
+message GetIntelligentSchedule {
+  optional uint32 intelligent_schedule_mode = 1;
+  optional uint32 join_intelligent_schedule = 2;
+  repeated ReqSmartCharge smart_charge_info_list = 3;
+}
+
+message CfgIntelligentScheduleMode {
+  optional uint32 intelligent_schedule_mode = 1;
+  optional uint32 join_intelligent_schedule = 2;
+}
+
+message CfgTimeScheduleTask {
+  repeated TimeScheduleTaskItem time_schedule_task_item_list = 1;
+  repeated CfgIntelligentScheduleChannelItem intelligent_schedule_channel_item_list = 2;
+}
+
+message TimeScheduleTaskItem {
+  optional uint32 start_timestamp = 1;
+  optional uint32 end_timestamp = 2;
+  optional uint32 grid_chg_wh = 3;
+  optional uint32 grid_dischg_wh = 4;
+  optional uint32 chg_wh = 5;
+  optional uint32 dischg_wh = 6;
+  optional uint32 v2h_output_wh = 7;
+}
+
+message CfgIntelligentScheduleChannelItem {
+  optional string sn = 1;
+  repeated uint32 channel_num = 2;
+  repeated uint32 cfg_turn_off = 3;
+}
+
+message PowerSocket {
+  optional bool has_selected = 1;
+  optional POWER_SOCKET_MODEL model = 2;
+  optional string sn = 3;
+}
+
+message PowerSocketList {
+  repeated PowerSocket power_socket_cfg = 1;
+}
+
+message gridConnectionPortBind {
+  optional string sn = 1;
+  optional uint32 port_num = 2;
+  optional uint32 err = 3;
+}
+
+message ConfigWrite {
+  optional bool cfg_power_off = 3;
+  optional bool cfg_power_on = 4;
+  optional uint32 reset_factory_setting = 5;
+  optional uint32 cfg_utc_time = 6;
+  optional int32 cfg_utc_timezone = 7;
+  optional PowerSocketList cfg_power_socket = 27;
+  optional bool cfg_bms_power_off = 30;
+  optional uint32 cfg_soc_cali = 31;
+  optional CfgBmsPushWrite cfg_bms_push = 32;
+  optional uint32 cfg_max_chg_soc = 33;
+  optional uint32 cfg_min_dsg_soc = 34;
+  optional int32 cfg_display_property_full_upload_period = 67;
+  optional int32 cfg_display_property_incremental_upload_period = 68;
+  optional int32 cfg_runtime_property_full_upload_period = 69;
+  optional int32 cfg_runtime_property_incremental_upload_period = 70;
+  optional bool active_display_property_full_upload = 71;
+  optional bool active_runtime_property_full_upload = 72;
+  optional uint32 cfg_backup_reverse_soc = 102;
+  optional CfgEnergyStrategyOperateMode cfg_energy_strategy_operate_mode = 106;
+  optional string cfg_utc_timezone_id = 135;
+  optional bool cfg_utc_set_mode = 136;
+  optional uint32 cfg_feed_grid_mode = 168;
+  optional uint32 cfg_feed_grid_mode_pow_limit = 169;
+  optional string cfg_country_code = 211;
+  optional uint32 cfg_town_code = 212;
+  optional bool active_sys_reboot = 213;
+  optional float cfg_inv_target_pwr = 220;
+  optional bool cfg_factory_mode_enable = 222;
+  optional bool cfg_debug_mode_enable = 223;
+  optional float cfg_grid_connection_power_factor_setting = 224;
+  optional float cfg_grid_connection_power_setting = 225;
+  optional uint32 cfg_grid_sys_device_cnt = 237;
+  optional WifiApMeshIdInfo cfg_wifi_ap_mesh_id = 238;
+  optional uint32 cfg_pow_consumption_measurement = 239;
+  optional TimezoneChangeList cfg_timezone_change_list = 378;
+  optional DayResidentLoadList cfg_day_resident_load_list = 379;
+  optional bool cfg_relay2_onoff = 380;
+  optional bool cfg_relay3_onoff = 381;
+  optional uint32 cfg_system_group_id = 382;
+  optional CloudMeter cfg_cloud_metter = 383;
+  optional uint32 cfg_brightness = 384;
+  optional uint32 cfg_system_mesh_id = 385;
+  optional CfgIntelligentScheduleMode cfg_cfg_intelligent_schedule_mode = 546;
+  optional CfgTimeScheduleTask cfg_cfg_time_schedule_task = 547;
+  optional gridConnectionPortBind grid_connection_port_bind = 564;
+  optional string scoket1_bind_device_sn = 565;
+  optional string scoket2_bind_device_sn = 566;
+}
+
+message ConfigWriteAck {
+  optional uint32 action_id = 1;
+  optional bool config_ok = 2;
+  optional bool cfg_power_off = 3;
+  optional bool cfg_power_on = 4;
+  optional uint32 reset_factory_setting = 5;
+  optional uint32 cfg_utc_time = 6;
+  optional int32 cfg_utc_timezone = 7;
+  optional PowerSocketList cfg_power_socket = 27;
+  optional uint32 cfg_max_chg_soc = 33;
+  optional uint32 cfg_min_dsg_soc = 34;
+  optional int32 cfg_display_property_full_upload_period = 67;
+  optional int32 cfg_display_property_incremental_upload_period = 68;
+  optional int32 cfg_runtime_property_full_upload_period = 69;
+  optional int32 cfg_runtime_property_incremental_upload_period = 70;
+  optional bool active_display_property_full_upload = 71;
+  optional bool active_runtime_property_full_upload = 72;
+  optional uint32 cfg_backup_reverse_soc = 102;
+  optional CfgEnergyStrategyOperateMode cfg_energy_strategy_operate_mode = 106;
+  optional string cfg_utc_timezone_id = 135;
+  optional bool cfg_utc_set_mode = 136;
+  optional uint32 cfg_feed_grid_mode = 168;
+  optional uint32 cfg_feed_grid_mode_pow_limit = 169;
+  optional string cfg_country_code = 211;
+  optional uint32 cfg_town_code = 212;
+  optional bool active_sys_reboot = 213;
+  optional float cfg_inv_target_pwr = 220;
+  optional bool cfg_factory_mode_enable = 222;
+  optional bool cfg_debug_mode_enable = 223;
+  optional float cfg_grid_connection_power_factor_setting = 224;
+  optional float cfg_grid_connection_power_setting = 225;
+  optional uint32 cfg_grid_sys_device_cnt = 237;
+  optional WifiApMeshIdInfo cfg_wifi_ap_mesh_id = 238;
+  optional uint32 cfg_pow_consumption_measurement = 239;
+  optional TimezoneChangeList cfg_timezone_change_list = 378;
+  optional DayResidentLoadList cfg_day_resident_load_list = 379;
+  optional bool cfg_relay2_onoff = 380;
+  optional bool cfg_relay3_onoff = 381;
+  optional uint32 cfg_system_group_id = 382;
+  optional CloudMeter cfg_cloud_metter = 383;
+  optional uint32 cfg_brightness = 384;
+  optional uint32 cfg_system_mesh_id = 385;
+  optional CfgIntelligentScheduleMode cfg_cfg_intelligent_schedule_mode = 546;
+  optional CfgTimeScheduleTask cfg_cfg_time_schedule_task = 547;
+  optional gridConnectionPortBind grid_connection_port_bind = 564;
+  optional string scoket1_bind_device_sn = 565;
+  optional string scoket2_bind_device_sn = 566;
+}
+
+message ConfigRead {
+  repeated uint32 action_id = 1;
+}
+
+message ConfigReadAck {
+  optional uint32 cfg_utc_time = 6;
+  optional int32 cfg_utc_timezone = 7;
+  optional string cfg_utc_timezone_id = 135;
+  optional TimezoneChangeList cfg_timezone_change_list = 378;
+  optional GetIntelligentSchedule cfg_read_intelligent_schedule = 545;
+}
+
+message DisplayPropertyUpload {
+  optional uint32 max_inv_input = 1281;
+  optional uint32 max_inv_output = 1282;
+  optional uint32 max_bp_input = 1283;
+  optional uint32 max_bp_output = 1284;
+  optional uint32 series_connect_device_id = 1285;
+  optional uint32 busbar_pow_limit = 1280;
+  optional string country_code = 728;
+  optional uint32 town_code = 729;
+  optional uint32 update_ban_flag = 977;
+  optional bool factory_mode_enable = 732;
+  optional bool debug_mode_enable = 733;
+  optional uint32 dev_ctrl_status = 1278;
+  optional int32 utc_timezone = 133;
+  optional string utc_timezone_id = 134;
+  optional bool utc_set_mode = 135;
+  optional TimezoneChangeList timezone_change_list = 976;
+  optional DevErrcodeList dev_errcode_list = 627;
+  optional uint32 system_group_id = 984;
+  optional uint32 system_mesh_id = 995;
+  optional uint32 cms_bms_run_state = 275;
+  optional float cms_batt_soc = 262;
+  optional float cms_batt_soh = 263;
+  optional uint32 cms_chg_dsg_state = 282;
+  optional uint32 cms_batt_full_energy = 462;
+  optional uint32 cms_dsg_rem_time = 268;
+  optional uint32 cms_chg_rem_time = 269;
+  optional uint32 cms_batt_pow_out_max = 459;
+  optional uint32 cms_batt_pow_in_max = 460;
+  optional uint32 cms_max_chg_soc = 270;
+  optional uint32 cms_min_dsg_soc = 271;
+  optional float bms_batt_soc = 242;
+  optional float bms_batt_soh = 243;
+  optional uint32 bms_chg_dsg_state = 281;
+  optional uint32 bms_design_cap = 248;
+  optional uint32 bms_dsg_rem_time = 254;
+  optional uint32 bms_chg_rem_time = 255;
+  optional int32 bms_min_cell_temp = 258;
+  optional int32 bms_max_cell_temp = 259;
+  optional int32 bms_min_mos_temp = 260;
+  optional int32 bms_max_mos_temp = 261;
+  optional bool bms_batt_heating = 1212;
+  optional STD_LIGHT_LANGUAGE light_language = 761;
+  optional float inv_target_pwr = 638;
+  optional uint32 energy_backup_state = 6;
+  optional CfgEnergyStrategyOperateMode energy_strategy_operate_mode = 393;
+  optional uint32 backup_reverse_soc = 461;
+  optional uint32 feed_grid_mode = 520;
+  optional uint32 feed_grid_mode_pow_limit = 521;
+  optional uint32 feed_grid_mode_pow_max = 727;
+  optional MASTER_AND_SLAVE distributed_device_status = 990;
+  optional MASTER_AND_SLAVE series_connect_device_status = 991;
+  optional float pow_get_sys_load = 516;
+  optional float pow_get_sys_grid = 515;
+  optional float pow_get_pv_sum = 517;
+  optional float pow_get_bp_cms = 518;
+  optional float pow_get_pv = 361;
+  optional float pow_get_pv2 = 70;
+  optional float pow_get_pv3 = 996;
+  optional float pow_get_pv4 = 997;
+  optional float pow_get_sys_load_from_pv = 1002;
+  optional float pow_get_sys_load_from_bp = 1003;
+  optional float pow_get_sys_load_from_grid = 1004;
+  optional float pow_get_schuko1 = 1210;
+  optional float pow_get_schuko2 = 1211;
+  optional float sys_grid_connection_power = 992;
+  optional float socket_measure_power = 993;
+  optional bool plug_in_info_pv_flag = 362;
+  optional float plug_in_info_pv_vol = 380;
+  optional float plug_in_info_pv_amp = 381;
+  optional bool plug_in_info_pv2_flag = 421;
+  optional float plug_in_info_pv2_vol = 442;
+  optional float plug_in_info_pv2_amp = 71;
+  optional bool plug_in_info_pv3_flag = 987;
+  optional float plug_in_info_pv3_vol = 998;
+  optional float plug_in_info_pv3_amp = 999;
+  optional bool plug_in_info_pv4_flag = 988;
+  optional float plug_in_info_pv4_vol = 1000;
+  optional float plug_in_info_pv4_amp = 1001;
+  optional PowerSocketList power_socket = 75;
+  optional CloudMeter cloud_metter = 785;
+  optional bool use_lan_meter = 1292;
+  optional bool relay1_onoff = 983;
+  optional bool relay2_onoff = 980;
+  optional bool relay3_onoff = 982;
+  optional bool relay4_onoff = 981;
+  optional uint32 brightness = 994;
+  optional float grid_connection_vol = 613;
+  optional float grid_connection_amp = 614;
+  optional float grid_connection_freq = 615;
+  optional float grid_connection_power = 616;
+  optional float grid_connection_power_setting = 735;
+  optional float grid_connection_power_factor = 618;
+  optional float grid_connection_power_factor_setting = 734;
+  optional PANEL_GRID_STA grid_connection_sta = 619;
+  optional uint32 grid_sys_device_cnt = 758;
+  optional bool sys_offgrid = 1296;
+  optional GRID_STD_CODE grid_code_selection = 730;
+  optional uint32 grid_code_version = 731;
+  optional uint32 pow_consumption_measurement = 760;
+  optional DayResidentLoadList day_resident_load_list = 978;
+  optional float module_wifi_rssi = 602;
+  optional string module_wifi_ssid = 986;
+  optional WifiApMeshIdInfo wifi_ap_mesh_id = 759;
+  optional uint32 pow_sys_ac_out_max = 985;
+  optional uint32 pow_sys_ac_in_max = 989;
+  optional gridConnectionPortBind grid_connection_port_bind = 1293;
+  optional string scoket1_bind_device_sn = 1294;
+  optional string scoket2_bind_device_sn = 1295;
+}
+
+message ScheduleOutput {
+  optional string sn_suffix = 1;
+  optional uint32 workmode = 2;
+  optional uint32 pwr = 3;
+}
+
+message lanSysScheduleOutput {
+  repeated ScheduleOutput output = 1;
+}
+
+message RuntimePropertyUpload {
+  optional int32 display_property_full_upload_period = 293;
+  optional int32 display_property_incremental_upload_period = 294;
+  optional int32 runtime_property_full_upload_period = 295;
+  optional int32 runtime_property_incremental_upload_period = 296;
+  optional uint32 lan_sys_device_cnt = 1297;
+  optional uint32 lan_sys_work_mode = 1298;
+  optional int32 lan_sys_meter_value = 1067;
+  optional int32 lan_sys_home_need_pwr = 1066;
+  optional int32 lan_sys_target_pwr = 1299;
+  optional lanSysScheduleOutput lan_sys_schedule_output = 1300;
+  optional bool ai_tou_valid = 1068;
+  optional uint32 ai_tou_target_soc = 1069;
+  optional uint32 cascade_sys_work_mode = 1301;
+  optional int32 cascade_sys_target_pwr = 1302;
+  optional uint32 cascade_sys_soc = 1303;
+  optional uint32 cascade_sys_device_cnt = 1304;
+  optional uint32 cascade_sys_can_id = 1305;
+  optional int32 cascade_sys_distributed_pwr_sum = 1306;
+  optional int32 cascade_sys_output_pwr_diff = 1307;
+  optional int32 dev1_distribute_target = 1308;
+  optional int32 dev2_distribute_target = 1309;
+  optional int32 dev3_distribute_target = 1310;
+  optional int32 dev4_distribute_target = 1311;
+  optional int32 dev5_distribute_target = 1312;
+  optional int32 dev6_distribute_target = 1313;
+  optional uint32 dev1_to_pcs_work_mode = 1314;
+  optional uint32 dev2_to_pcs_work_mode = 1315;
+  optional uint32 dev3_to_pcs_work_mode = 1316;
+  optional uint32 dev4_to_pcs_work_mode = 1317;
+  optional uint32 dev5_to_pcs_work_mode = 1318;
+  optional uint32 dev6_to_pcs_work_mode = 1319;
+  optional int32 dev1_to_pcs_pwr = 1320;
+  optional int32 dev2_to_pcs_pwr = 1321;
+  optional int32 dev3_to_pcs_pwr = 1322;
+  optional int32 dev4_to_pcs_pwr = 1323;
+  optional int32 dev5_to_pcs_pwr = 1324;
+  optional int32 dev6_to_pcs_pwr = 1325;
+  optional int32 dev1_pv_remain = 1326;
+  optional int32 dev2_pv_remain = 1327;
+  optional int32 dev3_pv_remain = 1328;
+  optional int32 dev4_pv_remain = 1329;
+  optional int32 dev5_pv_remain = 1330;
+  optional int32 dev6_pv_remain = 1331;
+  optional int32 dev1_power_ability = 1332;
+  optional int32 dev2_power_ability = 1333;
+  optional int32 dev3_power_ability = 1334;
+  optional int32 dev4_power_ability = 1335;
+  optional int32 dev5_power_ability = 1336;
+  optional int32 dev6_power_ability = 1337;
+  optional int32 dev1_power_in_ability = 1338;
+  optional int32 dev2_power_in_ability = 1339;
+  optional int32 dev3_power_in_ability = 1340;
+  optional int32 dev4_power_in_ability = 1341;
+  optional int32 dev5_power_in_ability = 1342;
+  optional int32 dev6_power_in_ability = 1343;
+  optional uint32 pv_state_monitor1 = 1344;
+  optional uint32 pv_state_monitor2 = 1345;
+  optional uint32 dab_state_monitor1 = 1346;
+  optional uint32 dab_state_monitor2 = 1347;
+  optional uint32 dab_state_monitor3 = 1348;
+  optional uint32 mppt_fault_comm = 1349;
+  optional uint32 mppt_pv1_fault = 1350;
+  optional uint32 mppt_pv2_fault = 1351;
+  optional uint32 mppt_pv3_fault = 1352;
+  optional uint32 mppt_pv4_fault = 1353;
+  optional uint32 chg_over_cur_off_cnt = 1354;
+  optional uint32 pv1_ins_rx = 1355;
+  optional uint32 pv2_ins_rx = 1356;
+  optional uint32 pv3_ins_rx = 1357;
+  optional uint32 pv4_ins_rx = 1358;
+  optional uint32 pv1_gnd_ins_ry = 1359;
+  optional uint32 pv2_gnd_ins_ry = 1360;
+  optional uint32 pv3_gnd_ins_ry = 1361;
+  optional uint32 pv4_gnd_ins_ry = 1362;
+  optional uint32 vin_pv1 = 1363;
+  optional uint32 vin_pv2 = 1364;
+  optional uint32 vin_pv3 = 1365;
+  optional uint32 vin_pv4 = 1366;
+  optional int32 iin_pv1 = 1367;
+  optional int32 iin_pv2 = 1368;
+  optional int32 iin_pv3 = 1369;
+  optional int32 iin_pv4 = 1370;
+  optional int32 pin_pv1 = 1371;
+  optional int32 pin_pv2 = 1372;
+  optional int32 pin_pv3 = 1373;
+  optional int32 pin_pv4 = 1374;
+  optional uint32 inv_todc_data = 1375;
+  optional uint32 dc_to_inv_data = 1376;
+  optional uint32 dab_fault = 1377;
+  optional uint32 dab_fault_lock = 1378;
+  optional int32 ems_pfc_chg_pwr_tag = 1379;
+  optional int32 chg_power_loop_ref = 1380;
+  optional int32 bms_chg_req_volt = 1381;
+  optional int32 bms_chg_req_curr = 1382;
+  optional int32 cur_avai_to_bms_power = 1383;
+  optional int32 inv_in_power_ability_max = 1384;
+  optional int32 inv_out_power_ability_max = 1385;
+  optional int32 ongrid_out_power_ability_max = 1386;
+  optional int32 bypass_out_power_ability_max = 1387;
+  optional uint32 v_bus_hv = 1388;
+  optional uint32 v_bat = 1389;
+  optional int32 iout_bat = 1390;
+  optional int32 i_dab_lv = 1391;
+  optional uint32 v_bus_pid_ref = 1392;
+  optional int32 ex_ps_d1 = 1393;
+  optional int32 pv_iout_filt = 1394;
+  optional int32 dc_temp1_ntc = 1395;
+  optional int32 dc_temp2_ntc = 1396;
+  optional int32 dc_temp3_ntc = 1397;
+  optional int32 dab_lv_temp_ntc = 1398;
+  optional uint32 ref1_p65 = 1399;
+  optional uint32 ref2_p5 = 1400;
+  optional uint32 inv_state_monitor1 = 1401;
+  optional uint32 inv_state_monitor2 = 1402;
+  optional uint32 inv_state_monitor3 = 1403;
+  optional uint32 inv_fault = 1404;
+  optional uint32 inv_fault_lock = 1405;
+  optional uint32 pfc_fault = 1406;
+  optional uint32 inv_comm_fault = 1407;
+  optional uint32 grid_fault = 1408;
+  optional uint32 inv_il1_rms = 1409;
+  optional uint32 ongrid_iin_rms = 1410;
+  optional int32 dcv_filt = 1411;
+  optional int32 dci_filt = 1412;
+  optional uint32 v_bus = 1413;
+  optional uint32 ongrid_vin_rms = 1414;
+  optional uint32 ongrid_vout_rms = 1415;
+  optional uint32 offgrid_vout1_rms = 1416;
+  optional uint32 offgrid_vout2_rms = 1417;
+  optional uint32 inv_vcap_rms = 1418;
+  optional int32 ac_total_active_power = 1419;
+  optional int32 ongrid_in_active_power = 1420;
+  optional int32 ongrid_in_reactive_power = 1421;
+  optional int32 offgrid1_active_power = 1422;
+  optional int32 offgrid2_active_power = 1423;
+  optional int32 series_power = 1424;
+  optional int32 offgrid1_apperent_power = 1425;
+  optional int32 offgrid2_apperent_power = 1426;
+  optional int32 offgrid_inv_derate_power = 1427;
+  optional int32 ongrid_inv_derate_power = 1428;
+  optional int32 ac_total_inv_derate_power = 1429;
+  optional uint32 mos_volt = 1430;
+  optional int32 react_pwr_ref_delta = 1431;
+  optional int32 add_pwr_act_limit = 1432;
+  optional uint32 volt_freqfilter = 1433;
+  optional int32 inv_temp_ntc = 1434;
+  optional int32 dab_high_temp_ntc = 1435;
+  optional int32 ems_set_rated_power = 1436;
+  optional int32 act_pwr_rated = 1437;
+  optional int32 active_power_need = 1438;
+  optional uint32 act_pwr_by_perc = 1439;
+  optional int32 act_pwr_by_ramp_up = 1440;
+  optional int32 act_pwr_by_ofdp = 1441;
+  optional int32 act_pwr_by_ufip = 1442;
+  optional int32 act_pwr_by_freq_droop = 1443;
+  optional int32 act_pwr_by_ovdp = 1444;
+  optional int32 ongrid_active_power_ref = 1445;
+  optional uint32 pfc_vbus_tag = 1446;
+}
+
+message DevRequest {
+  optional uint32 dev_utc_time = 1;
+  optional float dev_utc_timezone = 2;
+  optional bool require_property_upload_period = 3;
+  optional ReqTouStrategy require_tou_strategy = 4;
+  optional bool require_time_service = 5;
+  optional string cfg_utc_timezone_id = 8;
+  optional bool subscribe_cloud_meter = 9;
+  optional bool unsubscribe_cloud_meter = 10;
+  optional ReqIntelligentSchedule require_intelligent_schedule = 11;
+}
+
+message DevRequestAck {
+  optional uint32 request_id = 1;
+  optional uint32 require_ok = 2;
+  optional PropertyUploadPeriod property_upload_period = 3;
+}
+
+message SafetyParamSet {
+  optional float active_power_rating = 1;
+  optional float overexcitation_pf_active_power_rating = 2;
+  optional float overexcitation_pf = 3;
+  optional float underexcitation_pf_active_power_rating = 4;
+  optional float underexcitation_pf = 5;
+  optional float apparent_power_max_rating = 6;
+  optional uint32 normal_operating_performance_category = 7;
+  optional uint32 abnormal_operating_performance_category = 8;
+  optional float reactive_max_injection_rating = 9;
+  optional float reactive_max_absorb_rating = 10;
+  optional float max_active_charging_rating = 11;
+  optional float max_apparent_charging_rating = 12;
+  optional float grid_vol_rating = 13;
+  optional float grid_vol_max = 14;
+  optional float grid_vol_min = 15;
+  optional uint32 supported_control_mode_functions = 16;
+  optional float off_grid_reactive_power = 17;
+  optional uint32 pcs_model = 18;
+  optional uint32 pcs_serial_number = 19;
+  optional uint32 pcs_version = 20;
+  optional float active_power = 21;
+  optional float reactive_power = 22;
+  optional float grid_voltage = 23;
+  optional float grid_frequency = 24;
+  optional uint32 pcs_run_status = 25;
+  optional uint32 pcs_connection_status = 26;
+  optional uint32 pcs_alarm_status = 27;
+  optional float pcs_bp_soc = 28;
+  optional bool const_pf_switch = 29;
+  optional float const_pf = 30;
+  optional uint32 const_pf_excitation = 31;
+  optional bool qu_switch = 32;
+  optional float qu_vol1 = 33;
+  optional float qu_vol2 = 34;
+  optional float qu_vol3 = 35;
+  optional float qu_Vol4 = 36;
+  optional float qu_q1 = 37;
+  optional float qu_q2 = 38;
+  optional float qu_q3 = 39;
+  optional float qu_q4 = 40;
+  optional float qu_time_const = 41;
+  optional bool qp_switch = 42;
+  optional float qp_charge_q1 = 43;
+  optional float qp_charge_p1 = 44;
+  optional float qp_charge_q2 = 45;
+  optional float qp_charge_p2 = 46;
+  optional float qp_charge_q3 = 47;
+  optional float qp_charge_p3 = 48;
+  optional float qp_discharge_q1 = 49;
+  optional float qp_discharge_p1 = 50;
+  optional float qp_discharge_q2 = 51;
+  optional float qp_discharge_p2 = 52;
+  optional float qp_discharge_q3 = 53;
+  optional float qp_discharge_p3 = 54;
+  optional bool const_reactive_power_switch = 55;
+  optional float const_reactive_power = 56;
+  optional bool over_vol_derating_switch = 57;
+  optional float over_vol_derating_start_vol = 58;
+  optional float over_vol_derating_start_power = 59;
+  optional float over_vol_derating_end_vol = 60;
+  optional float over_vol_derating_end_power = 61;
+  optional float over_vol_derating_time_const = 62;
+  optional float over_vol1 = 63;
+  optional float over_vol2 = 64;
+  optional uint32 over_vol_time1 = 65;
+  optional uint32 over_vol_time2 = 66;
+  optional float under_vol1 = 67;
+  optional float under_vol2 = 68;
+  optional uint32 under_vol_time1 = 69;
+  optional uint32 under_vol_time2 = 70;
+  optional float over_vol_recover = 71;
+  optional float under_vol_recover = 72;
+  optional bool vol_ride_through_switch = 73;
+  optional float high_vol_ride_through_start1 = 74;
+  optional float high_vol_ride_through_start2 = 75;
+  optional uint32 high_vol_ride_through_protect_time1 = 76;
+  optional uint32 high_vol_ride_through_protect_time2 = 77;
+  optional float low_vol_ride_through_start1 = 78;
+  optional float low_vol_ride_through_start2 = 79;
+  optional float low_vol_ride_through_start3 = 80;
+  optional uint32 low_vol_ride_through_protect_time1 = 81;
+  optional uint32 low_vol_ride_through_protect_time2 = 82;
+  optional uint32 low_vol_ride_through_protect_time3 = 83;
+  optional float high_vol_ride_through_recover = 84;
+  optional float low_vol_ride_through_recover = 85;
+  optional float over_freq1 = 86;
+  optional float over_freq2 = 87;
+  optional uint32 over_freq_time1 = 88;
+  optional uint32 over_freq_time2 = 89;
+  optional float under_freq1 = 90;
+  optional float under_freq2 = 91;
+  optional uint32 under_freq_time1 = 92;
+  optional uint32 under_freq_time2 = 93;
+  optional float over_freq_recover = 94;
+  optional float under_freq_recover = 95;
+  optional bool freq_droop_switch = 96;
+  optional float over_freq_dead_zone = 97;
+  optional float under_freq_dead_zone = 98;
+  optional float over_freq_droop_coefficient = 99;
+  optional float under_freq_droop_coefficient = 100;
+  optional uint32 freq_droop_response_time = 101;
+  optional bool grid_permit_service_switch = 102;
+  optional float high_vol_on_grid = 103;
+  optional float low_vol_on_grid = 104;
+  optional float high_freq_on_grid = 105;
+  optional float low_freq_on_grid = 106;
+  optional uint32 on_grid_delay_time = 107;
+  optional uint32 on_grid_randomized_delay_time = 108;
+  optional uint32 active_power_soft_start_time = 109;
+  optional bool limit_active_power_switch = 110;
+  optional float limit_active_power_percent = 111;
+  optional GRID_STD_CODE grid_code_selection = 112;
+  optional uint32 grid_code_version = 115;
+  optional float grid_vol = 113;
+  optional float grid_freq = 114;
+  optional bool qu_auto_vref_switch = 116;
+  optional float qu_vref_value = 117;
+  optional uint32 page_send_end = 118;
+  optional float over_vol_10_min_protect = 119;
+  optional uint32 over_vol_10_min_protect_time = 120;
+  optional bool repower_time = 121;
+  optional uint32 reconnect_time = 122;
+}

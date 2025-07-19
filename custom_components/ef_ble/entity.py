@@ -1,3 +1,7 @@
+from collections.abc import Callable
+from typing import Any
+
+from homeassistant.core import callback
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, DeviceInfo
 from homeassistant.helpers.entity import Entity
 
@@ -10,6 +14,7 @@ class EcoflowEntity(Entity):
 
     def __init__(self, device: DeviceBase):
         self._device = device
+        self._update_callbacks: list[tuple[str, Callable[[Any], None]]] = []
 
     @property
     def device_info(self):
@@ -31,3 +36,38 @@ class EcoflowEntity(Entity):
     def available(self) -> bool:
         """Return True if device is connected."""
         return self._device.is_connected
+
+    class SkipWrite:
+        """Sentinel value for skipping write in update callback"""
+
+    def _register_update_callback(
+        self,
+        entity_attr: str,
+        prop_name: str | None,
+        get_state: Callable[[Any], SkipWrite | Any] = lambda x: x,
+    ):
+        if prop_name is None:
+            return
+
+        @callback
+        def state_updated(state: Any):
+            if (state := get_state(state)) is EcoflowEntity.SkipWrite:
+                return
+
+            setattr(self, entity_attr, state)
+            self.async_write_ha_state()
+
+        if (state := getattr(self._device, prop_name, None)) is not None:
+            setattr(self, entity_attr, get_state(state))
+
+        self._update_callbacks.append((prop_name, state_updated))
+
+    async def async_added_to_hass(self) -> None:
+        for prop, state_callback in self._update_callbacks:
+            self._device.register_state_update_callback(state_callback, prop)
+        await super().async_added_to_hass()
+
+    async def async_will_remove_from_hass(self) -> None:
+        for prop, state_callback in self._update_callbacks:
+            self._device.remove_state_update_calback(state_callback, prop)
+        await super().async_will_remove_from_hass()

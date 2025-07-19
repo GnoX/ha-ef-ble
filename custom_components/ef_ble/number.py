@@ -8,18 +8,24 @@ from homeassistant.components.number import (
     NumberEntityDescription,
 )
 from homeassistant.const import PERCENTAGE, UnitOfElectricCurrent, UnitOfPower
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import DeviceConfigEntry
 from .eflib import DeviceBase
-from .eflib.devices import delta3, delta3_plus, delta_pro_3, river3
+from .eflib.devices import (
+    delta3,
+    delta3_plus,
+    delta_pro_3,
+    river3,
+    stream_ac,
+)
 from .entity import EcoflowEntity
 
 
 @dataclass(frozen=True, kw_only=True)
-class EcoflowNumberEntityDescription[T: DeviceBase](NumberEntityDescription):
-    async_set_native_value: Callable[[T, float], Awaitable[bool]] | None = None
+class EcoflowNumberEntityDescription[Device: DeviceBase](NumberEntityDescription):
+    async_set_native_value: Callable[[Device, float], Awaitable[bool]] | None = None
 
     min_value_prop: str | None = None
     max_value_prop: str | None = None
@@ -103,6 +109,18 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
             lambda device, value: device.set_dc_charging_amps_max_2(int(value))
         ),
     ),
+    EcoflowNumberEntityDescription[stream_ac.Device](
+        key="feed_grid_pow_limit",
+        name="Feed Grid Power Limit",
+        device_class=NumberDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        native_step=1,
+        native_min_value=0,
+        max_value_prop="feed_grid_pow_max",
+        async_set_native_value=(
+            lambda device, value: device.set_feed_grid_pow_limit(int(value))
+        ),
+    ),
 ]
 
 
@@ -139,6 +157,9 @@ class EcoflowNumber(EcoflowEntity, NumberEntity):
         self._attr_native_value = getattr(device, self._prop_name)
         self._update_callbacks: list[tuple[str, Callable[[Any], None]]] = []
 
+        if entity_description.translation_key is None:
+            self._attr_translation_key = self.entity_description.key
+
         self._register_update_callback("_attr_native_value", self._prop_name)
         self._register_update_callback(
             "_attr_available",
@@ -148,12 +169,12 @@ class EcoflowNumber(EcoflowEntity, NumberEntity):
         self._register_update_callback(
             "_attr_native_min_value",
             self._min_value_prop,
-            lambda state: state if state is not None else EcoflowNumber._SkipWrite,
+            lambda state: state if state is not None else self.SkipWrite,
         )
         self._register_update_callback(
             "_attr_native_max_value",
             self._max_value_prop,
-            lambda state: state if state is not None else EcoflowNumber._SkipWrite,
+            lambda state: state if state is not None else self.SkipWrite,
         )
 
     class _SkipWrite:
@@ -173,35 +194,3 @@ class EcoflowNumber(EcoflowEntity, NumberEntity):
             return
 
         await super().async_set_native_value(value)
-
-    def _register_update_callback(
-        self,
-        entity_attr: str,
-        prop_name: str | None,
-        get_state: Callable[[Any], _SkipWrite | Any] = lambda x: x,
-    ):
-        if prop_name is None:
-            return
-
-        @callback
-        def state_updated(state: Any):
-            if (state := get_state(state)) is EcoflowNumber._SkipWrite:
-                return
-
-            setattr(self, entity_attr, state)
-            self.async_write_ha_state()
-
-        if state := getattr(self._device, prop_name, None):
-            setattr(self, entity_attr, state)
-
-        self._update_callbacks.append((prop_name, state_updated))
-
-    async def async_added_to_hass(self) -> None:
-        for prop, state_callback in self._update_callbacks:
-            self._device.register_state_update_callback(state_callback, prop)
-        await super().async_added_to_hass()
-
-    async def async_will_remove_from_hass(self) -> None:
-        for prop, state_callback in self._update_callbacks:
-            self._device.remove_state_update_calback(state_callback, prop)
-        await super().async_will_remove_from_hass()

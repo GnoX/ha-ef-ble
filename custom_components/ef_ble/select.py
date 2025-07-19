@@ -1,12 +1,11 @@
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from enum import Enum
 
 from homeassistant.components.select import (
     SelectEntity,
     SelectEntityDescription,
 )
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from custom_components.ef_ble.eflib import DeviceBase
@@ -36,11 +35,7 @@ SELECT_TYPES: list[EcoflowSelectEntityDescription] = [
     EcoflowSelectEntityDescription[river3.Device](
         key="dc_charging_type",
         name="DC Charging Type",
-        options=[
-            opt.name.lower()
-            for opt in river3.DcChargingType
-            if opt is not river3.DcChargingType.UNKNOWN
-        ],
+        options=river3.DcChargingType.options(include_unknown=False),
         set_state=(
             lambda device, value: device.set_dc_charging_type(
                 river3.DcChargingType[value.upper()]
@@ -82,18 +77,15 @@ class EcoflowSelect(EcoflowEntity, SelectEntity):
         self._set_state = description.set_state
         self._attr_current_option = None
 
-    async def async_added_to_hass(self):
-        """Run when this Entity has been added to HA."""
-        self._device.register_state_update_callback(self.state_updated, self._prop_name)
-
-    async def async_will_remove_from_hass(self) -> None:
-        """Entity being removed from hass."""
-        self._device.remove_state_update_calback(self.state_updated, self._prop_name)
-
-    @callback
-    def state_updated(self, state: Enum):
-        self._attr_current_option = state.name.lower()
-        self.async_write_ha_state()
+        self._register_update_callback(
+            entity_attr="_attr_current_option",
+            prop_name=self._prop_name,
+            get_state=(
+                lambda value: value.name.lower()
+                if value is not None
+                else self.SkipWrite
+            ),
+        )
 
     async def async_select_option(self, option: str) -> None:
         if self._set_state is not None:

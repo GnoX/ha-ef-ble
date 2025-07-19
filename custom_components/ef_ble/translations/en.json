@@ -304,6 +304,29 @@
       },
       "dc_hv_state": {
         "name": "HV DC Input Port State"
+      },
+      "load_from_battery": {
+        "name": "Load From Battery"
+      },
+      "load_from_grid": {
+        "name": "Load From Grid"
+      },
+      "load_from_pv": {
+        "name": "Load From PV"
+      },
+      "grid_voltage": {
+        "name": "Grid Voltage"
+      },
+      "grid_frequency": {
+        "name": "Grid Frequency"
+      },
+      "port_power_pv": {
+        "name": "PV ({index}) Power"
+      }
+    },
+    "select": {
+      "led_mode": {
+        "name": "LED"
       }
     }
   }
