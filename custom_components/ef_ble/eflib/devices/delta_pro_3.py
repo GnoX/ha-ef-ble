@@ -1,5 +1,4 @@
 import logging
-from enum import IntEnum
 
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
@@ -15,6 +14,7 @@ from ..props import (
     pb_field,
     proto_attr_mapper,
 )
+from ..props.enums import IntFieldValue
 
 
 def _out_power(x) -> float:
@@ -30,7 +30,7 @@ def _flow_is_on(x):
 pb = proto_attr_mapper(mr521_pb2.DisplayPropertyUpload)
 
 
-class DCPortState(IntEnum):
+class DCPortState(IntFieldValue):
     UNKNOWN = -1
     OFF = 0
     CAR = 1
@@ -70,12 +70,8 @@ class Device(DeviceBase, ProtobufProps):
 
     dc_lv_input_power = pb_field(pb.pow_get_pv_l)
     dc_hv_input_power = pb_field(pb.pow_get_pv_h)
-    dc_lv_input_state = pb_field(
-        pb.plug_in_info_pv_l_type, lambda v: DCPortState.from_value(v).state_name
-    )
-    dc_hv_input_state = pb_field(
-        pb.plug_in_info_pv_h_type, lambda v: DCPortState.from_value(v).state_name
-    )
+    dc_lv_state = pb_field(pb.plug_in_info_pv_l_type, DCPortState.from_value)
+    dc_hv_state = pb_field(pb.plug_in_info_pv_h_type, DCPortState.from_value)
 
     usbc_output_power = pb_field(pb.pow_get_typec1, _out_power)
     usbc2_output_power = pb_field(pb.pow_get_typec2, _out_power)
