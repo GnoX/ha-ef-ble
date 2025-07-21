@@ -95,7 +95,10 @@ class Device(DeviceBase, ProtobufProps):
     circuit_current_12 = CircuitCurrentField(11)
 
     # Circuit state properties (on/off control)
-    circuit_1 = pb_field(pb_push_set.load_incre_info.hall1_incre_info.ch1_sta.load_sta, CircuitState)
+    circuit_1 = pb_field(
+        pb_push_set.load_incre_info.hall1_incre_info.ch1_sta.load_sta, 
+        lambda v: CircuitState.from_value(v) is CircuitState.ON
+    )
     circuit_2 = pb_field(pb_push_set.load_incre_info.hall1_incre_info.ch2_sta.load_sta, CircuitState)
     circuit_3 = pb_field(pb_push_set.load_incre_info.hall1_incre_info.ch3_sta.load_sta, CircuitState)
     circuit_4 = pb_field(pb_push_set.load_incre_info.hall1_incre_info.ch4_sta.load_sta, CircuitState)
