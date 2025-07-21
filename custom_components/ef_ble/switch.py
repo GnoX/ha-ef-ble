@@ -45,78 +45,15 @@ SWITCH_TYPES = [
         icon="mdi:usb",
     ),
     # SHP2 Circuit switches
-    SwitchEntityDescription(
-        key="circuit_1",
-        name="Circuit 1",
-        device_class=SwitchDeviceClass.OUTLET,
-        icon="mdi:power-socket-us",
-    ),
-    SwitchEntityDescription(
-        key="circuit_2",
-        name="Circuit 2",
-        device_class=SwitchDeviceClass.OUTLET,
-        icon="mdi:power-socket-us",
-    ),
-    SwitchEntityDescription(
-        key="circuit_3",
-        name="Circuit 3",
-        device_class=SwitchDeviceClass.OUTLET,
-        icon="mdi:power-socket-us",
-    ),
-    SwitchEntityDescription(
-        key="circuit_4",
-        name="Circuit 4",
-        device_class=SwitchDeviceClass.OUTLET,
-        icon="mdi:power-socket-us",
-    ),
-    SwitchEntityDescription(
-        key="circuit_5",
-        name="Circuit 5",
-        device_class=SwitchDeviceClass.OUTLET,
-        icon="mdi:power-socket-us",
-    ),
-    SwitchEntityDescription(
-        key="circuit_6",
-        name="Circuit 6",
-        device_class=SwitchDeviceClass.OUTLET,
-        icon="mdi:power-socket-us",
-    ),
-    SwitchEntityDescription(
-        key="circuit_7",
-        name="Circuit 7",
-        device_class=SwitchDeviceClass.OUTLET,
-        icon="mdi:power-socket-us",
-    ),
-    SwitchEntityDescription(
-        key="circuit_8",
-        name="Circuit 8",
-        device_class=SwitchDeviceClass.OUTLET,
-        icon="mdi:power-socket-us",
-    ),
-    SwitchEntityDescription(
-        key="circuit_9",
-        name="Circuit 9",
-        device_class=SwitchDeviceClass.OUTLET,
-        icon="mdi:power-socket-us",
-    ),
-    SwitchEntityDescription(
-        key="circuit_10",
-        name="Circuit 10",
-        device_class=SwitchDeviceClass.OUTLET,
-        icon="mdi:power-socket-us",
-    ),
-    SwitchEntityDescription(
-        key="circuit_11",
-        name="Circuit 11",
-        device_class=SwitchDeviceClass.OUTLET,
-        icon="mdi:power-socket-us",
-    ),
-    SwitchEntityDescription(
-        key="circuit_12",
-        name="Circuit 12",
-        device_class=SwitchDeviceClass.OUTLET,
-        icon="mdi:power-socket-us",
-    ),
+    *[
+        EcoflowSwitchEntityDescription[shp2.Device](
+           key="circuit_{i}",
+            name=f"Circuit {i:02}",
+            device_class=SwitchDeviceClass.OUTLET,
+            icon="mdi:power-socket-us",
+            enable=lambda device, enabled: device.set_circuit_power(i, enabled),
+        ) for i in range(1, shp2.Device.NUM_OF_CIRCUITS + 1)
+    ],
 ]
 
 
