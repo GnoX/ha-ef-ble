@@ -14,6 +14,7 @@ from ..props import (
 )
 from ..props.enums import IntFieldValue
 from ..props.protobuf_field import TransformIfMissing
+from ..props.enums import IntFieldValue
 
 pb_time = proto_attr_mapper(pd303_pb2.ProtoTime)
 pb_push_set = proto_attr_mapper(pd303_pb2.ProtoPushAndSet)
@@ -113,6 +114,20 @@ class Device(DeviceBase, ProtobufProps):
     circuit_current_10 = CircuitCurrentField(9)
     circuit_current_11 = CircuitCurrentField(10)
     circuit_current_12 = CircuitCurrentField(11)
+
+    # Circuit state properties (on/off control)
+    circuit_1 = pb_field(pb_push_set.load_incre_info.hall1_incre_info.ch1_sta.load_sta, CircuitState)
+    circuit_2 = pb_field(pb_push_set.load_incre_info.hall1_incre_info.ch2_sta.load_sta, CircuitState)
+    circuit_3 = pb_field(pb_push_set.load_incre_info.hall1_incre_info.ch3_sta.load_sta, CircuitState)
+    circuit_4 = pb_field(pb_push_set.load_incre_info.hall1_incre_info.ch4_sta.load_sta, CircuitState)
+    circuit_5 = pb_field(pb_push_set.load_incre_info.hall1_incre_info.ch5_sta.load_sta, CircuitState)
+    circuit_6 = pb_field(pb_push_set.load_incre_info.hall1_incre_info.ch6_sta.load_sta, CircuitState)
+    circuit_7 = pb_field(pb_push_set.load_incre_info.hall1_incre_info.ch7_sta.load_sta, CircuitState)
+    circuit_8 = pb_field(pb_push_set.load_incre_info.hall1_incre_info.ch8_sta.load_sta, CircuitState)
+    circuit_9 = pb_field(pb_push_set.load_incre_info.hall1_incre_info.ch9_sta.load_sta, CircuitState)
+    circuit_10 = pb_field(pb_push_set.load_incre_info.hall1_incre_info.ch10_sta.load_sta, CircuitState)
+    circuit_11 = pb_field(pb_push_set.load_incre_info.hall1_incre_info.ch11_sta.load_sta, CircuitState)
+    circuit_12 = pb_field(pb_push_set.load_incre_info.hall1_incre_info.ch12_sta.load_sta, CircuitState)
 
     channel_power_1 = ChannelPowerField(0)
     channel_power_2 = ChannelPowerField(1)
@@ -466,6 +481,55 @@ class Device(DeviceBase, ProtobufProps):
                 )
 
         return processed
+
+    # Circuit enable methods for Home Assistant switches
+    async def enable_circuit_1(self, enable: bool):
+        """Enable/disable circuit 1"""
+        await self.set_circuit_power(0, enable)
+
+    async def enable_circuit_2(self, enable: bool):
+        """Enable/disable circuit 2"""
+        await self.set_circuit_power(1, enable)
+
+    async def enable_circuit_3(self, enable: bool):
+        """Enable/disable circuit 3"""
+        await self.set_circuit_power(2, enable)
+
+    async def enable_circuit_4(self, enable: bool):
+        """Enable/disable circuit 4"""
+        await self.set_circuit_power(3, enable)
+
+    async def enable_circuit_5(self, enable: bool):
+        """Enable/disable circuit 5"""
+        await self.set_circuit_power(4, enable)
+
+    async def enable_circuit_6(self, enable: bool):
+        """Enable/disable circuit 6"""
+        await self.set_circuit_power(5, enable)
+
+    async def enable_circuit_7(self, enable: bool):
+        """Enable/disable circuit 7"""
+        await self.set_circuit_power(6, enable)
+
+    async def enable_circuit_8(self, enable: bool):
+        """Enable/disable circuit 8"""
+        await self.set_circuit_power(7, enable)
+
+    async def enable_circuit_9(self, enable: bool):
+        """Enable/disable circuit 9"""
+        await self.set_circuit_power(8, enable)
+
+    async def enable_circuit_10(self, enable: bool):
+        """Enable/disable circuit 10"""
+        await self.set_circuit_power(9, enable)
+
+    async def enable_circuit_11(self, enable: bool):
+        """Enable/disable circuit 11"""
+        await self.set_circuit_power(10, enable)
+
+    async def enable_circuit_12(self, enable: bool):
+        """Enable/disable circuit 12"""
+        await self.set_circuit_power(11, enable)
 
     async def set_config_flag(self, enable):
         """Send command to enable/disable sending config data from device to the host"""
