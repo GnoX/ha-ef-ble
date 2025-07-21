@@ -21,6 +21,8 @@ pb_push_set = proto_attr_mapper(pd303_pb2.ProtoPushAndSet)
 
 class CircuitState(IntFieldValue):
     """Circuit state enum (0=OFF, 1=ON)"""
+    UNKNOWN = -1
+    
     OFF = 0
     ON = 1
 
