@@ -106,6 +106,79 @@ SWITCH_TYPES = [
         key="emergency_reverse_charging",
         name="Emergency Reverse Charging",
     ),
+    # SHP2 Circuit switches
+    SwitchEntityDescription(
+        key="circuit_1",
+        name="Circuit 1",
+        device_class=SwitchDeviceClass.OUTLET,
+        icon="mdi:power-socket-us",
+    ),
+    SwitchEntityDescription(
+        key="circuit_2",
+        name="Circuit 2",
+        device_class=SwitchDeviceClass.OUTLET,
+        icon="mdi:power-socket-us",
+    ),
+    SwitchEntityDescription(
+        key="circuit_3",
+        name="Circuit 3",
+        device_class=SwitchDeviceClass.OUTLET,
+        icon="mdi:power-socket-us",
+    ),
+    SwitchEntityDescription(
+        key="circuit_4",
+        name="Circuit 4",
+        device_class=SwitchDeviceClass.OUTLET,
+        icon="mdi:power-socket-us",
+    ),
+    SwitchEntityDescription(
+        key="circuit_5",
+        name="Circuit 5",
+        device_class=SwitchDeviceClass.OUTLET,
+        icon="mdi:power-socket-us",
+    ),
+    SwitchEntityDescription(
+        key="circuit_6",
+        name="Circuit 6",
+        device_class=SwitchDeviceClass.OUTLET,
+        icon="mdi:power-socket-us",
+    ),
+    SwitchEntityDescription(
+        key="circuit_7",
+        name="Circuit 7",
+        device_class=SwitchDeviceClass.OUTLET,
+        icon="mdi:power-socket-us",
+    ),
+    SwitchEntityDescription(
+        key="circuit_8",
+        name="Circuit 8",
+        device_class=SwitchDeviceClass.OUTLET,
+        icon="mdi:power-socket-us",
+    ),
+    SwitchEntityDescription(
+        key="circuit_9",
+        name="Circuit 9",
+        device_class=SwitchDeviceClass.OUTLET,
+        icon="mdi:power-socket-us",
+    ),
+    SwitchEntityDescription(
+        key="circuit_10",
+        name="Circuit 10",
+        device_class=SwitchDeviceClass.OUTLET,
+        icon="mdi:power-socket-us",
+    ),
+    SwitchEntityDescription(
+        key="circuit_11",
+        name="Circuit 11",
+        device_class=SwitchDeviceClass.OUTLET,
+        icon="mdi:power-socket-us",
+    ),
+    SwitchEntityDescription(
+        key="circuit_12",
+        name="Circuit 12",
+        device_class=SwitchDeviceClass.OUTLET,
+        icon="mdi:power-socket-us",
+    ),
 ]
 
 
@@ -154,7 +227,11 @@ class EcoflowSwitchEntity(EcoflowEntity, SwitchEntity):
 
     @callback
     def state_updated(self, state: bool | None):
-        self._on_off_state = state
+        # Handle protobuf enum values (0=OFF, 1=ON) for circuit switches
+        if isinstance(state, int):
+            self._on_off_state = state == 1
+        else:
+            self._on_off_state = state
         self.async_write_ha_state()
 
     @property
