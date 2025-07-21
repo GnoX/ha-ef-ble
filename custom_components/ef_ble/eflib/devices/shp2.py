@@ -33,6 +33,10 @@ class ControlStatus(IntFieldValue):
 class ForceChargeStatus(IntFieldValue):
     UNKNOWN = -1
 
+class CircuitState(IntFieldValue):
+    """Circuit state enum (0=OFF, 1=ON)"""
+    UNKNOWN = -1
+    
     OFF = 0
     ON = 1
 
