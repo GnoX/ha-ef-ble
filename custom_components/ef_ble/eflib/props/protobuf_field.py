@@ -101,7 +101,21 @@ class ProtobufField[T](Field[T]):
 
         n_attrs = len(self.pb_field.attrs)
         for i, attr in enumerate(self.pb_field.attrs):
-            if not value.HasField(attr):
+            # Try to check if field has presence (for optional fields and messages)
+            # For non-optional primitive fields in proto3, HasField will raise ValueError
+            try:
+                has_field = value.HasField(attr)
+            except ValueError:
+                # This is a non-optional primitive field in proto3
+                # These fields always have a value (default if not set)
+                # We'll check if it has been explicitly set by getting the value
+                field_value = getattr(value, attr)
+                # For primitive types, we can't distinguish between default and unset
+                # So we proceed with the value (could be default)
+                value = field_value
+                continue
+
+            if not has_field:
                 if i == n_attrs - 1 and self.process_if_missing:
                     return None
                 return Skip
