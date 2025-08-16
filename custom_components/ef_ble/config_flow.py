@@ -131,9 +131,11 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                 {
                     vol.Optional(CONF_USER_ID, default=self._user_id): str,
                     **self._login_option(),
-                    vol.Required(CONF_ADDRESS): vol.In([
-                        f"{title} ({device.address}) [SN: {placeholders['serial']}] – {placeholders['type']}"
-                    ]),
+                    vol.Required(CONF_ADDRESS): vol.In(
+                        [
+                            f"{title} ({device.address}) [SN: {placeholders['serial']}] – {placeholders['type']}"
+                        ]
+                    ),
                     **_update_period_option(),
                     **_timeout_option(),
                     **ConfLogOptions.schema(

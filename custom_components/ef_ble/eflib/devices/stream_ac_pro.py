@@ -68,7 +68,9 @@ class Device(stream_ac.Device, ProtobufProps):
     series_connect_device_id = pb_field(pb.series_connect_device_id)
     series_connect_device_status = pb_field(pb.series_connect_device_status)
     socket_measure_power = pb_field(pb.socket_measure_power, lambda v: round(v, 2))
-    sys_grid_connection_power = pb_field(pb.sys_grid_connection_power, lambda v: round(v, 2))
+    sys_grid_connection_power = pb_field(
+        pb.sys_grid_connection_power, lambda v: round(v, 2)
+    )
     system_group_id = pb_field(pb.system_group_id)
     system_mesh_id = pb_field(pb.system_mesh_id)
     town_code = pb_field(pb.town_code)

@@ -75,9 +75,15 @@ class Device(stream_pro.Device, ProtobufProps):
     pow_get_schuko2 = pb_field(pb.pow_get_schuko2, lambda v: round(v, 2))
     pow_get_sys_grid = pb_field(pb.pow_get_sys_grid, lambda v: round(v, 2))
     pow_get_sys_load = pb_field(pb.pow_get_sys_load, lambda v: round(v, 2))
-    pow_get_sys_load_from_bp = pb_field(pb.pow_get_sys_load_from_bp, lambda v: round(v, 2))
-    pow_get_sys_load_from_grid = pb_field(pb.pow_get_sys_load_from_grid, lambda v: round(v, 2))
-    pow_get_sys_load_from_pv = pb_field(pb.pow_get_sys_load_from_pv, lambda v: round(v, 2))
+    pow_get_sys_load_from_bp = pb_field(
+        pb.pow_get_sys_load_from_bp, lambda v: round(v, 2)
+    )
+    pow_get_sys_load_from_grid = pb_field(
+        pb.pow_get_sys_load_from_grid, lambda v: round(v, 2)
+    )
+    pow_get_sys_load_from_pv = pb_field(
+        pb.pow_get_sys_load_from_pv, lambda v: round(v, 2)
+    )
     pow_sys_ac_in_max = pb_field(pb.pow_sys_ac_in_max)
     pow_sys_ac_out_max = pb_field(pb.pow_sys_ac_out_max)
     scoket1_bind_device_sn = pb_field(pb.scoket1_bind_device_sn)
@@ -85,7 +91,9 @@ class Device(stream_pro.Device, ProtobufProps):
     series_connect_device_id = pb_field(pb.series_connect_device_id)
     series_connect_device_status = pb_field(pb.series_connect_device_status)
     socket_measure_power = pb_field(pb.socket_measure_power, lambda v: round(v, 2))
-    sys_grid_connection_power = pb_field(pb.sys_grid_connection_power, lambda v: round(v, 2))
+    sys_grid_connection_power = pb_field(
+        pb.sys_grid_connection_power, lambda v: round(v, 2)
+    )
     system_group_id = pb_field(pb.system_group_id)
     system_mesh_id = pb_field(pb.system_mesh_id)
     town_code = pb_field(pb.town_code)

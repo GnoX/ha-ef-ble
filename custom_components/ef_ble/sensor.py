@@ -466,7 +466,6 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         state_class=SensorStateClass.MEASUREMENT,
     ),
     # Additional sensor definitions to add to SENSOR_TYPES dictionary
-
     # CMS Battery Management
     "cms_batt_soc": SensorEntityDescription(
         key="cms_batt_soc",
@@ -519,7 +518,6 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-
     # BMS Advanced Monitoring
     "bms_batt_soh": SensorEntityDescription(
         key="bms_batt_soh",
@@ -568,7 +566,6 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-
     # System Power Limits
     "max_inv_input": SensorEntityDescription(
         key="max_inv_input",
@@ -600,7 +597,6 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-
     # Inverter and Grid
     "inv_target_pwr": SensorEntityDescription(
         key="inv_target_pwr",
@@ -625,7 +621,6 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-
     # System Power Distribution
     "pow_get_sys_load": SensorEntityDescription(
         key="pow_get_sys_load",
@@ -676,7 +671,6 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
     ),
-
     # Schuko Sockets
     "pow_get_schuko1": SensorEntityDescription(
         key="pow_get_schuko1",
@@ -692,7 +686,6 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
     ),
-
     # Additional PV Monitoring
     "pow_get_pv": SensorEntityDescription(
         key="pow_get_pv",
@@ -722,7 +715,6 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
     ),
-
     # PV Voltage and Current
     "plug_in_info_pv_vol": SensorEntityDescription(
         key="plug_in_info_pv_vol",
@@ -780,7 +772,6 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
     ),
-
     # Grid Connection Advanced
     "grid_connection_vol": SensorEntityDescription(
         key="grid_connection_vol",
@@ -823,7 +814,6 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
     ),
-
     # System Capabilities
     "pow_sys_ac_out_max": SensorEntityDescription(
         key="pow_sys_ac_out_max",
@@ -837,7 +827,6 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
-
     # Miscellaneous
     "pow_consumption_measurement": SensorEntityDescription(
         key="pow_consumption_measurement",
@@ -852,7 +841,6 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         state_class=SensorStateClass.MEASUREMENT,
         entity_registry_enabled_default=False,
     ),
-
     # Stream Ultra
     "cloud_metter_model": SensorEntityDescription(
         key="cloud_metter_model",
@@ -931,9 +919,9 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
 
 
 async def async_setup_entry(
-        hass: HomeAssistant,
-        config_entry: DeviceConfigEntry,
-        async_add_entities: AddEntitiesCallback,
+    hass: HomeAssistant,
+    config_entry: DeviceConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Add sensors for passed config_entry in HA."""
     device = config_entry.runtime_data
