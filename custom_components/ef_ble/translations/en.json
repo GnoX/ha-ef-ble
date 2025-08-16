@@ -1,5 +1,6 @@
 {
   "config": {
+    "flow_title": "{name} ({address}) [SN: {serial}] – {type}",
     "abort": {
       "already_configured": "Device is already configured",
       "not_supported": "Device is not supported",
@@ -20,7 +21,7 @@
     },
     "step": {
       "bluetooth_confirm": {
-        "title": "Discovered Device Configuration",
+        "title": "Configure {name} ({address}) [SN: {serial}] – {type}",
         "data": {
           "user_id": "EcoFlow User ID",
           "address": "BLE Device",
@@ -43,13 +44,13 @@
             "name": "Logging Options",
             "description": "Detailed logging options. Most of these will flood your logs, so avoid leaving them enabled for long periods.",
             "data": {
-                "log_masked": "Mask sensitive information (useful when sharing logs publicly)",
-                "log_connection": "Log device connection requests and responses",
-                "log_messages": "Log deserialized device update messages",
-                "log_packets": "Log packet objects",
-                "log_encrypted_payloads": "Log encrypted payloads",
-                "log_payloads": "Log decrypted payloads",
-                "log_bleak": "Enable bleak debug log level (not masked and not filtered to this device)"
+              "log_masked": "Mask sensitive information (useful when sharing logs publicly)",
+              "log_connection": "Log device connection requests and responses",
+              "log_messages": "Log deserialized device update messages",
+              "log_packets": "Log packet objects",
+              "log_encrypted_payloads": "Log encrypted payloads",
+              "log_payloads": "Log decrypted payloads",
+              "log_bleak": "Enable bleak debug log level (not masked and not filtered to this device)"
             }
           }
         }
@@ -78,13 +79,13 @@
             "name": "Logging Options",
             "description": "Detailed logging options. Most of these will flood your logs, so avoid leaving them enabled for long periods.",
             "data": {
-                "log_masked": "Mask sensitive information (useful when sharing logs publicly)",
-                "log_connection": "Log device connection requests and responses",
-                "log_messages": "Log deserialized device update messages",
-                "log_packets": "Log packet objects",
-                "log_encrypted_payloads": "Log encrypted payloads",
-                "log_payloads": "Log decrypted payloads",
-                "log_bleak": "Enable bleak debug log level (not masked and not filtered to this device)"
+              "log_masked": "Mask sensitive information (useful when sharing logs publicly)",
+              "log_connection": "Log device connection requests and responses",
+              "log_messages": "Log deserialized device update messages",
+              "log_packets": "Log packet objects",
+              "log_encrypted_payloads": "Log encrypted payloads",
+              "log_payloads": "Log decrypted payloads",
+              "log_bleak": "Enable bleak debug log level (not masked and not filtered to this device)"
             }
           }
         }
@@ -111,13 +112,13 @@
             "name": "Logging Options",
             "description": "Detailed logging options. Most of these will flood your logs, so avoid leaving them enabled for long periods.",
             "data": {
-                "log_masked": "Mask sensitive information (useful when sharing logs publicly)",
-                "log_connection": "Log device connection requests and responses",
-                "log_messages": "Log deserialized device update messages",
-                "log_packets": "Log packet objects",
-                "log_encrypted_payloads": "Log encrypted payloads",
-                "log_payloads": "Log decrypted payloads",
-                "log_bleak": "Enable bleak debug log level (not masked and not filtered to this device)"
+              "log_masked": "Mask sensitive information (useful when sharing logs publicly)",
+              "log_connection": "Log device connection requests and responses",
+              "log_messages": "Log deserialized device update messages",
+              "log_packets": "Log packet objects",
+              "log_encrypted_payloads": "Log encrypted payloads",
+              "log_payloads": "Log decrypted payloads",
+              "log_bleak": "Enable bleak debug log level (not masked and not filtered to this device)"
             }
           }
         }
@@ -169,6 +170,9 @@
       },
       "battery_level_main": {
         "name": "Main Battery Level"
+      },
+      "battery_level_bms": {
+        "name": "BMS Battery Level"
       },
       "input_power": {
         "name": "Input Power"
@@ -322,6 +326,252 @@
       },
       "port_power_pv": {
         "name": "PV ({index}) Power"
+      },
+      "port_voltage_pv": {
+        "name": "LAN System Device Count"
+      },
+      "lan_sys_home_need_power": {
+        "name": "LAN Home Need Power"
+      },
+      "lan_sys_work_mode": {
+        "name": "LAN System Work Mode"
+      },
+      "cascade_sys_soc": {
+        "name": "Cascade System SoC"
+      },
+      "cms_batt_soc": {
+        "name": "CMS Battery SOC"
+      },
+      "cms_batt_soh": {
+        "name": "CMS Battery SOH"
+      },
+      "cms_batt_full_energy": {
+        "name": "CMS Battery Full Energy"
+      },
+      "cms_dsg_rem_time": {
+        "name": "CMS Discharge Remaining Time"
+      },
+      "cms_chg_rem_time": {
+        "name": "CMS Charge Remaining Time"
+      },
+      "cms_batt_pow_out_max": {
+        "name": "CMS Battery Max Output Power"
+      },
+      "cms_batt_pow_in_max": {
+        "name": "CMS Battery Max Input Power"
+      },
+      "cms_max_chg_soc": {
+        "name": "CMS Max Charge SOC"
+      },
+      "cms_min_dsg_soc": {
+        "name": "CMS Min Discharge SOC"
+      },
+      "bms_batt_soh": {
+        "name": "BMS Battery SOH"
+      },
+      "bms_design_cap": {
+        "name": "BMS Design Capacity"
+      },
+      "bms_dsg_rem_time": {
+        "name": "BMS Discharge Remaining Time"
+      },
+      "bms_chg_rem_time": {
+        "name": "BMS Charge Remaining Time"
+      },
+      "bms_min_cell_temp": {
+        "name": "BMS Min Cell Temperature"
+      },
+      "bms_max_cell_temp": {
+        "name": "BMS Max Cell Temperature"
+      },
+      "bms_min_mos_temp": {
+        "name": "BMS Min MOSFET Temperature"
+      },
+      "bms_max_mos_temp": {
+        "name": "BMS Max MOSFET Temperature"
+      },
+      "max_inv_input": {
+        "name": "Max Inverter Input"
+      },
+      "max_inv_output": {
+        "name": "Max Inverter Output"
+      },
+      "max_bp_input": {
+        "name": "Max Battery Pack Input"
+      },
+      "max_bp_output": {
+        "name": "Max Battery Pack Output"
+      },
+      "busbar_pow_limit": {
+        "name": "Busbar Power Limit"
+      },
+      "inv_target_pwr": {
+        "name": "Inverter Target Power"
+      },
+      "backup_reverse_soc": {
+        "name": "Backup Reserve SOC"
+      },
+      "feed_grid_mode_pow_limit": {
+        "name": "Feed Grid Mode Power Limit"
+      },
+      "feed_grid_mode_pow_max": {
+        "name": "Feed Grid Mode Max Power"
+      },
+      "pow_get_sys_load": {
+        "name": "System Load Power"
+      },
+      "pow_get_sys_grid": {
+        "name": "System Grid Power"
+      },
+      "pow_get_pv_sum": {
+        "name": "Total PV Power"
+      },
+      "pow_get_bp_cms": {
+        "name": "Battery Pack CMS Power"
+      },
+      "pow_get_sys_load_from_pv": {
+        "name": "System Load from PV"
+      },
+      "pow_get_sys_load_from_bp": {
+        "name": "System Load from Battery"
+      },
+      "pow_get_sys_load_from_grid": {
+        "name": "System Load from Grid"
+      },
+      "pow_get_schuko1": {
+        "name": "Schuko Socket 1 Power"
+      },
+      "pow_get_schuko2": {
+        "name": "Schuko Socket 2 Power"
+      },
+      "pow_get_pv": {
+        "name": "PV Power"
+      },
+      "pow_get_pv2": {
+        "name": "PV 2 Power"
+      },
+      "pow_get_pv3": {
+        "name": "PV 3 Power"
+      },
+      "pow_get_pv4": {
+        "name": "PV 4 Power"
+      },
+      "plug_in_info_pv_vol": {
+        "name": "PV Voltage"
+      },
+      "plug_in_info_pv_amp": {
+        "name": "PV Current"
+      },
+      "plug_in_info_pv2_vol": {
+        "name": "PV 2 Voltage"
+      },
+      "plug_in_info_pv2_amp": {
+        "name": "PV 2 Current"
+      },
+      "plug_in_info_pv3_vol": {
+        "name": "PV 3 Voltage"
+      },
+      "plug_in_info_pv3_amp": {
+        "name": "PV 3 Current"
+      },
+      "plug_in_info_pv4_vol": {
+        "name": "PV 4 Voltage"
+      },
+      "plug_in_info_pv4_amp": {
+        "name": "PV 4 Current"
+      },
+      "grid_connection_vol": {
+        "name": "Grid Connection Voltage"
+      },
+      "grid_connection_amp": {
+        "name": "Grid Connection Current"
+      },
+      "grid_connection_power": {
+        "name": "Grid Connection Power"
+      },
+      "grid_connection_power_factor": {
+        "name": "Grid Connection Power Factor"
+      },
+      "sys_grid_connection_power": {
+        "name": "System Grid Connection Power"
+      },
+      "socket_measure_power": {
+        "name": "Socket Measured Power"
+      },
+      "pow_sys_ac_out_max": {
+        "name": "System AC Max Output"
+      },
+      "pow_sys_ac_in_max": {
+        "name": "System AC Max Input"
+      },
+      "pow_consumption_measurement": {
+        "name": "Power Consumption Measurement"
+      },
+      "module_wifi_rssi": {
+        "name": "WiFi Signal Strength"
+      },
+      "brightness": {
+        "name": "Display Brightness"
+      },
+      "cloud_metter_model": {
+        "name": "Cloud Meter Model"
+      },
+      "cloud_metter_sn": {
+        "name": "Cloud Meter SN"
+      },
+      "cloud_metter_phase_a_power": {
+        "name": "Cloud Meter Phase A Power"
+      },
+      "distributed_device_status": {
+        "name": "Distributed Device Status"
+      },
+      "energy_backup_state": {
+        "name": "Energy Backup State"
+      },
+      "feed_grid_mode": {
+        "name": "Feed Grid Mode"
+      },
+      "grid_code_selection": {
+        "name": "Grid Code Selection"
+      },
+      "grid_code_version": {
+        "name": "Grid Code Version"
+      },
+      "grid_connection_sta": {
+        "name": "Grid Connection Status"
+      },
+      "grid_sys_device_cnt": {
+        "name": "Grid System Device Count"
+      },
+      "scoket1_bind_device_sn": {
+        "name": "Socket 1 Bind Device SN"
+      },
+      "scoket2_bind_device_sn": {
+        "name": "Socket 2 Bind Device SN"
+      },
+      "series_connect_device_id": {
+        "name": "Series Connect Device ID"
+      },
+      "series_connect_device_status": {
+        "name": "Series Connect Device Status"
+      },
+      "system_group_id": {
+        "name": "System Group ID"
+      },
+      "system_mesh_id": {
+        "name": "System Mesh ID"
+      },
+      "town_code": {
+        "name": "Town Code"
+      },
+      "update_ban_flag": {
+        "name": "Update Ban Flag"
+      },
+      "utc_timezone": {
+        "name": "UTC Timezone"
+      },
+      "utc_timezone_id": {
+        "name": "UTC Timezone ID"
       }
     },
     "select": {

@@ -81,6 +81,12 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="not_supported")
         self._discovery_info = discovery_info
         self._discovered_device = device
+        # Ensure discovered card shows both name and MAC using flow_title
+        title = device.name_by_user or device.name
+        self.context["title_placeholders"] = {
+            "name": title,
+            "address": discovery_info.address,
+        }
         _LOGGER.debug("Discovered device: %s", device)
         return await self.async_step_bluetooth_confirm()
 
@@ -100,7 +106,13 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
 
         self._set_confirm_only()
 
-        placeholders = {"name": title}
+        # Include name, MAC address, serial, and device type in discovery title placeholders
+        placeholders = {
+            "name": title,
+            "address": device.address,
+            "serial": getattr(device, "serial_number", None) or "",
+            "type": getattr(device, "device", None) or "EcoFlow Device",
+        }
         self.context["title_placeholders"] = placeholders
 
         if user_input is not None:
@@ -119,7 +131,11 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                 {
                     vol.Optional(CONF_USER_ID, default=self._user_id): str,
                     **self._login_option(),
-                    vol.Required(CONF_ADDRESS): vol.In([f"{title} ({device.address})"]),
+                    vol.Required(CONF_ADDRESS): vol.In(
+                        [
+                            f"{title} ({device.address}) [SN: {placeholders['serial']}] – {placeholders['type']}"
+                        ]
+                    ),
                     **_update_period_option(),
                     **_timeout_option(),
                     **ConfLogOptions.schema(
@@ -167,7 +183,11 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
             )
             if device is not None:
                 name = device.name_by_user or device.name
-                self._discovered_devices[f"{name} ({address})"] = device
+                serial = getattr(device, "serial_number", "")
+                dtype = getattr(device, "device", None) or "EcoFlow Device"
+                self._discovered_devices[
+                    f"{name} ({address}) [SN: {serial}] – {dtype}"
+                ] = device
 
         if not self._discovered_devices:
             return self.async_abort(reason="no_devices_found")

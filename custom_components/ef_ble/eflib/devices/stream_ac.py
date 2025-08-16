@@ -22,18 +22,19 @@ class Device(DeviceBase, ProtobufProps):
     SN_PREFIX = (b"BK51",)
     NAME_PREFIX = "EF-6"
 
-    battery_level = pb_field(pb.cms_batt_soc)
+    battery_level = pb_field(pb.cms_batt_soc, lambda v: round(v, 2))
+    battery_level_bms = pb_field(pb.bms_batt_soc, lambda v: round(v, 2))
     cell_temperature = pb_field(pb.bms_max_cell_temp)
 
-    grid_power = pb_field(pb.grid_connection_power)
+    grid_power = pb_field(pb.grid_connection_power, lambda v: round(v, 2))
     grid_voltage = pb_field(pb.grid_connection_vol, lambda v: round(v, 2))
     grid_frequency = pb_field(pb.grid_connection_freq, lambda v: round(v, 2))
 
     battery_charge_limit_min = pb_field(pb.cms_min_dsg_soc)
     battery_charge_limit_max = pb_field(pb.cms_max_chg_soc)
 
-    load_from_battery = pb_field(pb.pow_get_sys_load_from_bp)
-    load_from_grid = pb_field(pb.pow_get_sys_load_from_grid)
+    load_from_battery = pb_field(pb.pow_get_sys_load_from_bp, lambda v: round(v, 2))
+    load_from_grid = pb_field(pb.pow_get_sys_load_from_grid, lambda v: round(v, 2))
 
     feed_grid = pb_field(pb.feed_grid_mode, lambda x: x == 2)
     feed_grid_pow_limit = pb_field(pb.feed_grid_mode_pow_limit)

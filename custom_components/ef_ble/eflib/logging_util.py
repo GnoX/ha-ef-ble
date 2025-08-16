@@ -142,15 +142,29 @@ def _mask_sn(sn: str):
 
 
 def _mask_mac(mac_addr: str):
-    regex = re.compile(mac_addr.replace(":", "(.)"))
+    # If address is colon-delimited, capture the delimiter to preserve formatting
+    if ":" in mac_addr:
+        pattern = re.escape(mac_addr).replace(":", "(.)")
+        regex = re.compile(pattern)
+
+        def _mask(input: str):
+            match = regex.search(input)
+            if match and match.lastindex and match.lastindex >= 1:
+                delim = match.group(1)
+                parts = mac_addr.split(":")
+                masked = delim.join([parts[0], parts[1], "**", "**", "**"])
+                return regex.sub(masked, input)
+            return None
+
+        return _mask
+
+    # Fallback: non-standard address (e.g., CoreBluetooth UUID on macOS)
+    # Mask generically by keeping first/last few chars
+    regex = re.compile(re.escape(mac_addr))
 
     def _mask(input: str):
-        match = regex.search(input)
-        if match:
-            delim = match.group(1)
-            return regex.sub(
-                delim.join([mac_addr[:2], mac_addr[3:5], "**", "**", "**"]), input
-            )
+        if regex.search(input):
+            return regex.sub(f"{mac_addr[:4]}***{mac_addr[-4:]}", input)
         return None
 
     return _mask
