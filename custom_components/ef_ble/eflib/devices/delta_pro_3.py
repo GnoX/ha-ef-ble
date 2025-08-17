@@ -16,6 +16,8 @@ from ..props import (
     proto_attr_mapper,
 )
 
+_LOGGER = logging.getLogger(__name__)
+
 
 def _out_power(x) -> float:
     return -round(x, 2) if x != 0 else 0
@@ -42,7 +44,7 @@ class DCPortState(IntEnum):
         try:
             return cls(value)
         except ValueError:
-            logging.debug("Encountered invalid value %s for DCPortState", value)
+            _LOGGER.debug("Encountered invalid value %s for DCPortState", value)
             return cls.UNKNOWN
 
     @property

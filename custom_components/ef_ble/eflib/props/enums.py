@@ -1,6 +1,8 @@
 import logging
 from enum import IntEnum
 
+_LOGGER = logging.getLogger(__name__)
+
 
 class IntFieldValue(IntEnum):
     @classmethod
@@ -8,8 +10,8 @@ class IntFieldValue(IntEnum):
         try:
             return cls(value)
         except ValueError:
-            logging.debug("Encountered invalid value %s for %s", value, cls.__name__)
-            return getattr(cls, "UNKNOWN")
+            _LOGGER.debug("Encountered invalid value %s for %s", value, cls.__name__)
+            return cls.UNKNOWN
 
     @property
     def state_name(self):
