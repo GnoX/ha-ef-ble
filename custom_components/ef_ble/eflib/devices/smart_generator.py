@@ -16,7 +16,7 @@ class FuelType(IntFieldValue):
 
     LNG = 1
     LPG = 2
-    PETROL = 3  # original name: OIL
+    GASOLINE = 3  # original name: OIL
 
 
 class EngineOpen(IntFieldValue):
@@ -70,7 +70,7 @@ class AbnormalState(IntFieldValue):
     UNKNOWN = -1
 
     NO = 0
-    PETROL_LOW = 1  # original name: OIL_LOW
+    GASOLINE_LOW = 1  # original name: OIL_LOW
 
 
 class Device(DeviceBase, ProtobufProps):

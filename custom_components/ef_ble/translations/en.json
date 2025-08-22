@@ -335,7 +335,7 @@
         "name": "Abnormal State",
         "state": {
           "no": "No",
-          "petrol_low": "Petrol Low"
+          "gasoline_low": "Gasoline Low"
         }
       },
       "sub_battery_soc": {
