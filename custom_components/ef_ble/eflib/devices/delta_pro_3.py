@@ -14,8 +14,6 @@ from ..props import (
 )
 from ..props.enums import IntFieldValue
 
-_LOGGER = logging.getLogger(__name__)
-
 
 def _out_power(x) -> float:
     return -round(x, 2) if x != 0 else 0

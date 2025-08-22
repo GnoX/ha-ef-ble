@@ -13,6 +13,8 @@ from ..props.enums import IntFieldValue
 
 pb = proto_attr_mapper(dc009_apl_comm_pb2.DisplayPropertyUpload)
 
+_LOGGER = logging.getLogger(__name__)
+
 
 class ChargerMode(IntFieldValue):
     UNKNOWN = -1
@@ -27,7 +29,7 @@ class ChargerMode(IntFieldValue):
         try:
             return cls(mode)
         except ValueError:
-            logging.debug("Encountered invalid value %s for %s", mode, cls.__name__)
+            _LOGGER.debug("Encountered invalid value %s for %s", mode, cls.__name__)
             return ChargerMode.UNKNOWN
 
     def as_pb_enum(self):
@@ -35,9 +37,11 @@ class ChargerMode(IntFieldValue):
             ChargerMode.IDLE: dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_IDLE,
             ChargerMode.CHARGE: dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_DRIVING_CHG,
             ChargerMode.BATTERY_MAINTENANCE: (
-                dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_BAT_MAINTENANCE,
+                dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_BAT_MAINTENANCE
             ),
-            ChargerMode.REVERSE_CHARGE: dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_PARKING_CHG,
+            ChargerMode.REVERSE_CHARGE: (
+                dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_PARKING_CHG
+            ),
         }[self]
 
 
