@@ -35,7 +35,7 @@ class ChargerMode(IntFieldValue):
             ChargerMode.IDLE: dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_IDLE,
             ChargerMode.CHARGE: dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_DRIVING_CHG,
             ChargerMode.BATTERY_MAINTENANCE: (
-                dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_BAT_MAINTENANCE,
+                dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_BAT_MAINTENANCE
             ),
             ChargerMode.REVERSE_CHARGE: dc009_apl_comm_pb2.SP_CHARGER_CHG_MODE_PARKING_CHG,
         }[self]
