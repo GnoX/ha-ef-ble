@@ -79,7 +79,7 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
-        suggested_display_precision=2,
+        suggested_display_precision=1,
     ),
     "in_use_power": SensorEntityDescription(
         key="in_use_power",
@@ -394,7 +394,7 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         native_unit_of_measurement=UnitOfElectricPotential.VOLT,
         device_class=SensorDeviceClass.VOLTAGE,
         state_class=SensorStateClass.MEASUREMENT,
-        suggested_display_precision=2,
+        suggested_display_precision=1,
     ),
     "grid_frequency": SensorEntityDescription(
         key="grid_frequency",
@@ -415,6 +415,12 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
     ),
+    "load_from_pv": SensorEntityDescription(
+        key="load_from_pv",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
     **{
         f"ac_power_{i}": SensorEntityDescription(
             key=f"ac_power_{i}",
@@ -428,12 +434,13 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
     },
     **{
         f"pv_power_{i}": SensorEntityDescription(
-            key=f"ac_power_{i}",
+            key=f"pv_power_{i}",
             native_unit_of_measurement=UnitOfPower.WATT,
             device_class=SensorDeviceClass.POWER,
             state_class=SensorStateClass.MEASUREMENT,
-            translation_key="port_power_pv",
-            translation_placeholders={"index": f"{i}"},
+            suggested_display_precision=1,
+            translation_key="port_power",
+            translation_placeholders={"name": f"PV ({i})"},
         )
         for i in range(5)
     },

@@ -319,9 +319,6 @@
       },
       "grid_frequency": {
         "name": "Grid Frequency"
-      },
-      "port_power_pv": {
-        "name": "PV ({index}) Power"
       }
     },
     "select": {

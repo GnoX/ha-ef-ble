@@ -11,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from custom_components.ef_ble.eflib import DeviceBase
 
 from . import DeviceConfigEntry
-from .eflib.devices import river3, river3_plus
+from .eflib.devices import river3, river3_plus, stream_ac
 from .entity import EcoflowEntity
 
 
@@ -39,6 +39,16 @@ SELECT_TYPES: list[EcoflowSelectEntityDescription] = [
         set_state=(
             lambda device, value: device.set_dc_charging_type(
                 river3.DcChargingType[value.upper()]
+            )
+        ),
+    ),
+    EcoflowSelectEntityDescription[stream_ac.Device](
+        key="energy_strategy",
+        name="Energy Strategy",
+        options=stream_ac.EnergyStrategy.options(include_unknown=False),
+        set_state=(
+            lambda device, value: device.set_energy_strategy(
+                stream_ac.EnergyStrategy[value.upper()]
             )
         ),
     ),

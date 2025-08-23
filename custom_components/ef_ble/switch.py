@@ -46,12 +46,12 @@ SWITCH_TYPES = [
     ),
     SwitchEntityDescription(
         key="ac_1",
-        name="AC Port (1)",
+        name="AC (1)",
         device_class=SwitchDeviceClass.OUTLET,
     ),
     SwitchEntityDescription(
         key="ac_2",
-        name="AC Port (2)",
+        name="AC (2)",
         device_class=SwitchDeviceClass.OUTLET,
     ),
     SwitchEntityDescription(
