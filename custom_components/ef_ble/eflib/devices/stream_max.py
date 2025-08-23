@@ -12,8 +12,8 @@ class Device(stream_ac.Device, ProtobufProps):
     ac_power_1 = pb_field(pb.pow_get_schuko1)
     ac_1 = pb_field(pb.relay2_onoff)
 
-    pv_sum = pb_field(pb.pow_get_pv_sum)
+    pv_sum = pb_field(pb.pow_get_pv_sum, lambda v: round(v, 2))
     pv_power_1 = pb_field(pb.pow_get_pv, lambda v: round(v, 2))
     pv_power_2 = pb_field(pb.pow_get_pv2, lambda v: round(v, 2))
 
-    load_from_pv = pb_field(pb.pow_get_sys_load_from_pv)
+    load_from_pv = pb_field(pb.pow_get_sys_load_from_pv, lambda v: round(v, 2))

@@ -9,7 +9,7 @@ class Device(stream_max.Device, ProtobufProps):
 
     SN_PREFIX = (b"BK12",)
 
+    ac_power_2 = pb_field(pb.pow_get_schuko2, lambda v: round(v, 2))
     ac_2 = pb_field(pb.relay3_onoff)
-    ac_power_2 = pb_field(pb.pow_get_schuko2)
 
     pv_power_3 = pb_field(pb.pow_get_pv3, lambda v: round(v, 2))
