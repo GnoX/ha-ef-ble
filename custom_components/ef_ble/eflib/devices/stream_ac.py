@@ -9,6 +9,10 @@ from ..props.enums import IntFieldValue
 pb = proto_attr_mapper(bk_series_pb2.DisplayPropertyUpload)
 
 
+def _round(value: float):
+    return round(value, 2)
+
+
 class EnergyStrategy(IntFieldValue):
     SELF_POWERED = 1
     SCHEDULED = 2
@@ -26,8 +30,8 @@ class Device(DeviceBase, ProtobufProps):
     cell_temperature = pb_field(pb.bms_max_cell_temp)
 
     grid_power = pb_field(pb.grid_connection_power)
-    grid_voltage = pb_field(pb.grid_connection_vol, lambda v: round(v, 2))
-    grid_frequency = pb_field(pb.grid_connection_freq, lambda v: round(v, 2))
+    grid_voltage = pb_field(pb.grid_connection_vol, _round)
+    grid_frequency = pb_field(pb.grid_connection_freq, _round)
 
     battery_charge_limit_min = pb_field(pb.cms_min_dsg_soc)
     battery_charge_limit_max = pb_field(pb.cms_max_chg_soc)

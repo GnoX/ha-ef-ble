@@ -18,7 +18,8 @@ from custom_components.ef_ble.eflib.props import Field
 if TYPE_CHECKING:
     from custom_components.ef_ble.eflib.devices import ModuleWithDevice
 
-_bk_msg_str = """energy_backup_state: 0
+_bk_msg_str = """
+energy_backup_state: 0
 pow_get_pv2: 0
 plug_in_info_pv2_amp: 0
 power_socket {
