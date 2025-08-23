@@ -9,4 +9,4 @@ class Device(stream_pro.Device, ProtobufProps):
 
     SN_PREFIX = (b"BK11", b"ES11")
 
-    pv_power_4 = pb_field(pb.pow_get_pv4)
+    pv_power_4 = pb_field(pb.pow_get_pv4, lambda v: round(v, 2))
