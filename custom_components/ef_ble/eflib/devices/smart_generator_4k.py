@@ -22,8 +22,6 @@ class Device(smart_generator.Device, ProtobufProps):
     xt150_battery_level = pb_field(pb.cms_batt_soc)
     xt150_charge_type = pb_field(pb.plug_in_info_dcp_dsg_chg_type)
 
-    output_power = pb_field(pb.pow_out_sum_w)
-
     # dc_out_max = pb_field(pb.generator_dc_out_pow_max)
 
     # async def set_dc_output_power_max(self, dc_out_max: int):
