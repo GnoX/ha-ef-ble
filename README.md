@@ -84,7 +84,7 @@ Recognized devices:
 </details>
 
 <details><summary>
-<b>Delta 3 (Plus, 1500) (EF-D3####, FW Version: 6.49.76.57)</b>
+<b>Delta 3 (Plus) (EF-D3####, FW Version: 6.49.76.57)</b>
 </summary>
 
 | *Sensors*                           | *Switches*     | *Sliders*                            |
@@ -138,6 +138,34 @@ Recognized devices:
 | USB C (2) Output Power      |                |                      |
 | AC Plugged In               |                |                      |
 | Cell Temperature (disabled) |                |                      |
+</details>
+
+<details><summary>
+<b>Smart Generator (3000, 4000)</b>
+| *Sensors*                  | *Switches*           | *Sliders*  | *Selects*        |
+|----------------------------|----------------------|------------|------------------|
+| Output Power               | Engine               | Gas Weight | Performance Mode |
+| AC Output Power            | Self Start           |            | Gas Unit         |
+| Engine State               | LPG Level Monitoring |            |                  |
+| Fuel Type                  | AC Ports             |            |                  |
+| Gas Consumption            |                      |            |                  |
+| Abnormal State             |                      |            |                  |
+| Internal Battery Power     |                      |            |                  |
+| Internal Battery State     |                      |            |                  |
+| XT150 Battery Level (4000) |                      |            |                  |
+| XT150 Charge Type (4000)   |                      |            |                  |
+</summary>
+</details>
+
+<details><summary>
+<b>Alternator Charger</b>
+| *Sensors*           | *Switches* | *Sliders*                | *Selects*    |
+|---------------------|------------|--------------------------|--------------|
+| Battery Level       | Charger    | Start Voltage            | Charger Mode |
+| Battery Temperature |            | Reverse Charging Current |              |
+| DC Power            |            | Charging Current         |              |
+| Battery Voltage     |            | Power Limit              |              |
+</summary>
 </details>
 
 </p>
