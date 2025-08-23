@@ -142,6 +142,8 @@ Recognized devices:
 
 <details><summary>
 <b>Smart Generator (3000, 4000)</b>
+</summary>
+
 | *Sensors*                  | *Switches*           | *Sliders*  | *Selects*        |
 |----------------------------|----------------------|------------|------------------|
 | Output Power               | Engine               | Gas Weight | Performance Mode |
@@ -154,18 +156,18 @@ Recognized devices:
 | Internal Battery State     |                      |            |                  |
 | XT150 Battery Level (4000) |                      |            |                  |
 | XT150 Charge Type (4000)   |                      |            |                  |
-</summary>
 </details>
 
 <details><summary>
 <b>Alternator Charger</b>
+</summary>
+
 | *Sensors*           | *Switches* | *Sliders*                | *Selects*    |
 |---------------------|------------|--------------------------|--------------|
 | Battery Level       | Charger    | Start Voltage            | Charger Mode |
 | Battery Temperature |            | Reverse Charging Current |              |
 | DC Power            |            | Charging Current         |              |
 | Battery Voltage     |            | Power Limit              |              |
-</summary>
 </details>
 
 </p>
