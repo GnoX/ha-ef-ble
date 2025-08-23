@@ -19,6 +19,7 @@ pb = proto_attr_mapper(pr705_pb2.DisplayPropertyUpload)
 
 class DcChargingType(IntFieldValue):
     UNKNOWN = -1
+
     AUTO = 0
     CAR = 1
     SOLAR = 2
@@ -96,7 +97,7 @@ class Device(DeviceBase, ProtobufProps):
     dc_12v_port = pb_field(pb.flow_info_12v, _flow_is_on)
     ac_ports = pb_field(pb.flow_info_ac_out, _flow_is_on)
 
-    dc_charging_type = pb_field(pb.pv_chg_type, lambda x: DcChargingType.from_value(x))
+    dc_charging_type = pb_field(pb.pv_chg_type, DcChargingType.from_value)
     dc_charging_max_amps = pb_field(pb.plug_in_info_pv_dc_amp_max)
     dc_charging_current_max = Field[int]()
 

@@ -102,6 +102,15 @@
             },
             "hv_solar_power": {
                 "default": "mdi:solar-panel-large"
+            },
+            "generator_abnormal_state": {
+                "default": "mdi:alert-circle"
+            },
+            "fuel_type": {
+                "default": "mdi:barrel"
+            },
+            "liquefied_gas_type": {
+                "default": "mdi:gas-cylinder"
             }
         },
         "switch": {
@@ -110,6 +119,22 @@
                 "state": {
                     "off": "mdi:battery-sync-outline"
                 }
+            },
+            "lpg_level_monitoring": {
+                "default": "mdi:meter-gas",
+                "state": {
+                    "off": "mdi:meter-gas-outline"
+                }
+            }
+        },
+        "select": {
+            "liquefied_gas_unit": {
+                "default": "mdi:storage-tank-outline"
+            }
+        },
+        "number": {
+            "liquefied_gas_value": {
+                "default": "mdi:storage-tank"
             }
         }
     }

@@ -129,6 +129,36 @@ Recognized devices:
 | Cell Temperature (disabled) |                |                      |
 </details>
 
+<details><summary>
+<b>Smart Generator (3000, 4000)</b>
+</summary>
+
+| *Sensors*                  | *Switches*           | *Sliders*  | *Selects*        |
+|----------------------------|----------------------|------------|------------------|
+| Output Power               | Engine               | Gas Weight | Performance Mode |
+| AC Output Power            | Self Start           |            | Gas Unit         |
+| Engine State               | LPG Level Monitoring |            |                  |
+| Fuel Type                  | AC Ports             |            |                  |
+| Gas Consumption            |                      |            |                  |
+| Abnormal State             |                      |            |                  |
+| Internal Battery Power     |                      |            |                  |
+| Internal Battery State     |                      |            |                  |
+| XT150 Battery Level (4000) |                      |            |                  |
+| XT150 Charge Type (4000)   |                      |            |                  |
+</details>
+
+<details><summary>
+<b>Alternator Charger</b>
+</summary>
+
+| *Sensors*           | *Switches* | *Sliders*                | *Selects*    |
+|---------------------|------------|--------------------------|--------------|
+| Battery Level       | Charger    | Start Voltage            | Charger Mode |
+| Battery Temperature |            | Reverse Charging Current |              |
+| DC Power            |            | Charging Current         |              |
+| Battery Voltage     |            | Power Limit              |              |
+</details>
+
 </p>
 
 **NOTICE**: this integration utilizes Bluetooth LE of the EF device, which is supporting just one

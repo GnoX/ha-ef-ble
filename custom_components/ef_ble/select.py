@@ -1,6 +1,5 @@
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from enum import Enum
 
 from homeassistant.components.select import (
     SelectEntity,
@@ -10,6 +9,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from custom_components.ef_ble.eflib import DeviceBase
+from custom_components.ef_ble.eflib.devices import alternator_charger, smart_generator
 
 from . import DeviceConfigEntry
 from .eflib.devices import river3, river3_plus
@@ -20,13 +20,14 @@ from .entity import EcoflowEntity
 class EcoflowSelectEntityDescription[T: DeviceBase](SelectEntityDescription):
     set_state: Callable[[T, str], Awaitable] | None = None
 
+    availability_prop: str | None = None
+
 
 SELECT_TYPES: list[EcoflowSelectEntityDescription] = [
     # River 3 Plus
     EcoflowSelectEntityDescription[river3_plus.Device](
         key="led_mode",
-        name="LED",
-        options=[opt.name.lower() for opt in river3_plus.LedMode],
+        options=river3_plus.LedMode.options(include_unknown=False),
         set_state=(
             lambda device, value: device.set_led_mode(
                 river3_plus.LedMode[value.upper()]
@@ -35,15 +36,38 @@ SELECT_TYPES: list[EcoflowSelectEntityDescription] = [
     ),
     EcoflowSelectEntityDescription[river3.Device](
         key="dc_charging_type",
-        name="DC Charging Type",
-        options=[
-            opt.name.lower()
-            for opt in river3.DcChargingType
-            if opt is not river3.DcChargingType.UNKNOWN
-        ],
+        options=river3.DcChargingType.options(include_unknown=False),
         set_state=(
             lambda device, value: device.set_dc_charging_type(
                 river3.DcChargingType[value.upper()]
+            )
+        ),
+    ),
+    EcoflowSelectEntityDescription[smart_generator.Device](
+        key="performance_mode",
+        options=smart_generator.PerformanceMode.options(include_unknown=False),
+        set_state=(
+            lambda device, value: device.set_performance_mode(
+                smart_generator.PerformanceMode[value.upper()]
+            )
+        ),
+    ),
+    EcoflowSelectEntityDescription[smart_generator.Device](
+        key="liquefied_gas_unit",
+        options=smart_generator.LiquefiedGasUnit.options(include_unknown=False),
+        availability_prop="lpg_level_monitoring",
+        set_state=(
+            lambda device, value: device.set_liquefied_gas_unit(
+                smart_generator.LiquefiedGasUnit[value.upper()]
+            )
+        ),
+    ),
+    EcoflowSelectEntityDescription[alternator_charger.Device](
+        key="charger_mode",
+        options=alternator_charger.ChargerMode.options(include_unknown=False),
+        set_state=(
+            lambda device, value: device.set_charger_mode(
+                alternator_charger.ChargerMode[value.upper()]
             )
         ),
     ),
@@ -81,18 +105,56 @@ class EcoflowSelect(EcoflowEntity, SelectEntity):
         self._prop_name = self.entity_description.key
         self._set_state = description.set_state
         self._attr_current_option = None
+        self._availability_prop = description.availability_prop
+
+        if self.entity_description.translation_key is None:
+            self._attr_translation_key = self.entity_description.key
+
+        self._register_update_callback(
+            entity_attr="_attr_current_option",
+            prop_name=self._prop_name,
+            get_state=(
+                lambda value: value.name.lower()
+                if value is not None
+                else self.SkipWrite
+            ),
+        )
+        self._register_update_callback(
+            entity_attr="_attr_available",
+            prop_name=self._availability_prop,
+            get_state=lambda state: state if state is not None else self.SkipWrite,
+        )
+
+    @property
+    def available(self):
+        is_available = super().available
+        if not is_available or self._availability_prop is None:
+            return is_available
+
+        return self._attr_available
 
     async def async_added_to_hass(self):
         """Run when this Entity has been added to HA."""
-        self._device.register_state_update_callback(self.state_updated, self._prop_name)
+        await super().async_added_to_hass()
+
+        if self._availability_prop is not None:
+            self._device.register_state_update_callback(
+                self.availability_updated,
+                self._availability_prop,
+            )
 
     async def async_will_remove_from_hass(self) -> None:
         """Entity being removed from hass."""
-        self._device.remove_state_update_calback(self.state_updated, self._prop_name)
+        await super().async_will_remove_from_hass()
+        if self._availability_prop is not None:
+            self._device.remove_state_update_calback(
+                self.availability_updated,
+                self._availability_prop,
+            )
 
     @callback
-    def state_updated(self, state: Enum):
-        self._attr_current_option = state.name.lower()
+    def availability_updated(self, state: bool):
+        self._attr_available = state
         self.async_write_ha_state()
 
     async def async_select_option(self, option: str) -> None:

@@ -2,6 +2,7 @@
 
 import itertools
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -13,6 +14,7 @@ from homeassistant.components.sensor import (
 from homeassistant.const import (
     PERCENTAGE,
     UnitOfElectricCurrent,
+    UnitOfElectricPotential,
     UnitOfEnergy,
     UnitOfPower,
     UnitOfTemperature,
@@ -20,9 +22,11 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from custom_components.ef_ble.eflib.devices import delta3
+
 from . import DeviceConfigEntry
 from .eflib import DeviceBase
-from .eflib.devices import shp2
+from .eflib.devices import delta_pro_3, shp2, smart_generator
 from .entity import EcoflowEntity
 
 _UPPER_WORDS = ["ac", "dc", "lv", "hv", "tt", "5p8"]
@@ -38,7 +42,7 @@ def _auto_name_from_key(key: str):
 
 
 @dataclass(frozen=True, kw_only=True)
-class EcoflowSensorEntityDescription(SensorEntityDescription):
+class EcoflowSensorEntityDescription[Device: DeviceBase](SensorEntityDescription):
     state_attribute_fields: list[str] = field(default_factory=list)
 
 
@@ -220,6 +224,13 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         suggested_display_precision=3,
         suggested_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
     ),
+    "dc_output_power": SensorEntityDescription(
+        key="dc_output_power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+    ),
     "dc12v_output_power": SensorEntityDescription(
         key="dc12v_output_power",
         native_unit_of_measurement=UnitOfPower.WATT,
@@ -313,10 +324,12 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
     "dc_port_state": SensorEntityDescription(
         key="dc_port_state",
         device_class=SensorDeviceClass.ENUM,
+        options=delta3.DCPortState.options(),
     ),
     "dc_port_2_state": SensorEntityDescription(
         key="dc_port_2_state",
         device_class=SensorDeviceClass.ENUM,
+        options=delta3.DCPortState.options(),
     ),
     "solar_input_power": SensorEntityDescription(
         key="input_power_solar",
@@ -378,10 +391,74 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
     "dc_lv_state": SensorEntityDescription(
         key="dc_lv_state",
         device_class=SensorDeviceClass.ENUM,
+        options=delta_pro_3.DCPortState.options(),
     ),
     "dc_hv_state": SensorEntityDescription(
         key="dc_hv_state",
         device_class=SensorDeviceClass.ENUM,
+        options=delta_pro_3.DCPortState.options(),
+    ),
+    # Smart Generator
+    "xt150_battery_level": SensorEntityDescription(
+        key="xt150_battery_level",
+        native_unit_of_measurement=PERCENTAGE,
+        device_class=SensorDeviceClass.BATTERY,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    "engine_state": SensorEntityDescription(
+        key="engine_state",
+        device_class=SensorDeviceClass.ENUM,
+        options=smart_generator.EngineOpen.options(),
+    ),
+    "liquefied_gas_type": SensorEntityDescription(
+        key="liquefied_gas_type",
+        device_class=SensorDeviceClass.ENUM,
+        options=smart_generator.LiquefiedGasType.options(),
+    ),
+    "liquefied_gas_consumption": EcoflowSensorEntityDescription[smart_generator.Device](
+        key="liquefied_gas_consumption",
+        device_class=SensorDeviceClass.WEIGHT,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+    ),
+    "generator_abnormal_state": SensorEntityDescription(
+        key="generator_abnormal_state",
+        device_class=SensorDeviceClass.ENUM,
+        options=smart_generator.AbnormalState.options(),
+    ),
+    "sub_battery_soc": SensorEntityDescription(
+        key="sub_battery_soc",
+        native_unit_of_measurement=PERCENTAGE,
+        device_class=SensorDeviceClass.BATTERY,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    "sub_battery_state": SensorEntityDescription(
+        key="sub_battery_state",
+        device_class=SensorDeviceClass.ENUM,
+        options=smart_generator.SubBatteryState.options(),
+    ),
+    "fuel_type": SensorEntityDescription(
+        key="fuel_type",
+        device_class=SensorDeviceClass.ENUM,
+    ),
+    # Alternator Charger
+    "battery_temperature": SensorEntityDescription(
+        key="battery_temperature",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    "car_battery_voltage": SensorEntityDescription(
+        key="car_battery_voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    "dc_power": SensorEntityDescription(
+        key="dc_power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
     ),
 }
 
@@ -428,7 +505,10 @@ class EcoflowSensor(EcoflowEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the value of the sensor."""
-        return getattr(self._device, self._sensor, None)
+        value = getattr(self._device, self._sensor, None)
+        if isinstance(value, Enum):
+            return value.name.lower()
+        return value
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -443,8 +523,10 @@ class EcoflowSensor(EcoflowEntity, SensorEntity):
 
     async def async_added_to_hass(self):
         """Run when this Entity has been added to HA."""
+        await super().async_added_to_hass()
         self._device.register_callback(self.async_write_ha_state, self._sensor)
 
     async def async_will_remove_from_hass(self):
         """Entity being removed from hass."""
+        await super().async_will_remove_from_hass()
         self._device.remove_callback(self.async_write_ha_state, self._sensor)

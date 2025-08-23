@@ -64,6 +64,7 @@ class _DcAmpSettingField(
 
 class DCPortState(IntFieldValue):
     UNKNOWN = -1
+
     OFF = 0
     CAR = 1
     SOLAR = 2
@@ -86,9 +87,7 @@ class Device(DeviceBase, ProtobufProps):
 
     dc12v_output_power = pb_field(pb.pow_get_12v, _out_power)
     dc_port_input_power = pb_field(pb.pow_get_pv, lambda value: round(value, 2))
-    dc_port_state = pb_field(
-        pb.plug_in_info_pv_type, lambda v: DCPortState.from_value(v).state_name
-    )
+    dc_port_state = pb_field(pb.plug_in_info_pv_type, DCPortState.from_value)
 
     usbc_output_power = pb_field(pb.pow_get_typec1, _out_power)
     usbc2_output_power = pb_field(pb.pow_get_typec2, _out_power)

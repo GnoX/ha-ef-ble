@@ -38,6 +38,18 @@
             "manufacturer_id": 46517,
             "manufacturer_data_start": [19, 77, 82, 53, 49],
             "connectable": true
+        },
+        {
+            "local_name": "EF-GE*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 71, 51],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-F3*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 70, 51, 55, 49],
+            "connectable": true
         }
     ],
 

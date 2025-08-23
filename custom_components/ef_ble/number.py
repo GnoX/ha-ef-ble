@@ -1,25 +1,37 @@
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any
 
 from homeassistant.components.number import (
     NumberDeviceClass,
     NumberEntity,
     NumberEntityDescription,
+    NumberMode,
 )
-from homeassistant.const import PERCENTAGE, UnitOfElectricCurrent, UnitOfPower
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.const import (
+    PERCENTAGE,
+    UnitOfElectricCurrent,
+    UnitOfElectricPotential,
+    UnitOfPower,
+)
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import DeviceConfigEntry
 from .eflib import DeviceBase
-from .eflib.devices import delta3, delta3_plus, delta_pro_3, river3
+from .eflib.devices import (
+    alternator_charger,
+    delta3,
+    delta3_plus,
+    delta_pro_3,
+    river3,
+    smart_generator,
+)
 from .entity import EcoflowEntity
 
 
 @dataclass(frozen=True, kw_only=True)
-class EcoflowNumberEntityDescription[T: DeviceBase](NumberEntityDescription):
-    async_set_native_value: Callable[[T, float], Awaitable[bool]] | None = None
+class EcoflowNumberEntityDescription[Device: DeviceBase](NumberEntityDescription):
+    async_set_native_value: Callable[[Device, float], Awaitable[bool]] | None = None
 
     min_value_prop: str | None = None
     max_value_prop: str | None = None
@@ -103,6 +115,65 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
             lambda device, value: device.set_dc_charging_amps_max_2(int(value))
         ),
     ),
+    EcoflowNumberEntityDescription[smart_generator.Device](
+        key="liquefied_gas_value",
+        name="Gas Weight",
+        native_min_value=0,
+        native_step=0.1,
+        availability_prop="lpg_level_monitoring",
+        mode=NumberMode.BOX,
+        async_set_native_value=(
+            lambda device, value: device.set_liquefied_gas_value(value)
+        ),
+    ),
+    EcoflowNumberEntityDescription[alternator_charger.Device](
+        key="power_limit",
+        name="Power Limit",
+        device_class=NumberDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        native_step=1,
+        native_min_value=0,
+        max_value_prop="power_max",
+        async_set_native_value=(
+            lambda device, value: device.set_power_limit(int(value))
+        ),
+    ),
+    EcoflowNumberEntityDescription[alternator_charger.Device](
+        key="start_voltage",
+        name="Start Voltage",
+        device_class=NumberDeviceClass.VOLTAGE,
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        native_step=1,
+        min_value_prop="start_voltage_min",
+        max_value_prop="start_voltage_max",
+        async_set_native_value=(
+            lambda device, value: device.set_battery_voltage(int(value))
+        ),
+    ),
+    EcoflowNumberEntityDescription[alternator_charger.Device](
+        key="reverse_charging_current_limit",
+        name="Reverse Charging Current",
+        device_class=NumberDeviceClass.CURRENT,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        native_step=0.1,
+        native_min_value=0,
+        max_value_prop="reverse_charging_current_max",
+        async_set_native_value=(
+            lambda device, value: device.set_car_battery_curent_charge_limit(value)
+        ),
+    ),
+    EcoflowNumberEntityDescription[alternator_charger.Device](
+        key="charging_current_limit",
+        name="Charging Current",
+        device_class=NumberDeviceClass.CURRENT,
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        native_step=1,
+        native_min_value=0,
+        max_value_prop="charging_current_max",
+        async_set_native_value=(
+            lambda device, value: device.set_device_battery_current_charge_limit(value)
+        ),
+    ),
 ]
 
 
@@ -137,7 +208,9 @@ class EcoflowNumber(EcoflowEntity, NumberEntity):
         self._set_native_value = entity_description.async_set_native_value
         self._prop_name = entity_description.key
         self._attr_native_value = getattr(device, self._prop_name)
-        self._update_callbacks: list[tuple[str, Callable[[Any], None]]] = []
+
+        if entity_description.translation_key is None:
+            self._attr_translation_key = self.entity_description.key
 
         self._register_update_callback("_attr_native_value", self._prop_name)
         self._register_update_callback(
@@ -148,16 +221,13 @@ class EcoflowNumber(EcoflowEntity, NumberEntity):
         self._register_update_callback(
             "_attr_native_min_value",
             self._min_value_prop,
-            lambda state: state if state is not None else EcoflowNumber._SkipWrite,
+            lambda state: state if state is not None else self.SkipWrite,
         )
         self._register_update_callback(
             "_attr_native_max_value",
             self._max_value_prop,
-            lambda state: state if state is not None else EcoflowNumber._SkipWrite,
+            lambda state: state if state is not None else self.SkipWrite,
         )
-
-    class _SkipWrite:
-        """Sentinel value for skipping write in update callback"""
 
     @property
     def available(self):
@@ -173,35 +243,3 @@ class EcoflowNumber(EcoflowEntity, NumberEntity):
             return
 
         await super().async_set_native_value(value)
-
-    def _register_update_callback(
-        self,
-        entity_attr: str,
-        prop_name: str | None,
-        get_state: Callable[[Any], _SkipWrite | Any] = lambda x: x,
-    ):
-        if prop_name is None:
-            return
-
-        @callback
-        def state_updated(state: Any):
-            if (state := get_state(state)) is EcoflowNumber._SkipWrite:
-                return
-
-            setattr(self, entity_attr, state)
-            self.async_write_ha_state()
-
-        if state := getattr(self._device, prop_name, None):
-            setattr(self, entity_attr, state)
-
-        self._update_callbacks.append((prop_name, state_updated))
-
-    async def async_added_to_hass(self) -> None:
-        for prop, state_callback in self._update_callbacks:
-            self._device.register_state_update_callback(state_callback, prop)
-        await super().async_added_to_hass()
-
-    async def async_will_remove_from_hass(self) -> None:
-        for prop, state_callback in self._update_callbacks:
-            self._device.remove_state_update_calback(state_callback, prop)
-        await super().async_will_remove_from_hass()
