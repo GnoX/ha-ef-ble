@@ -174,11 +174,17 @@ async def test_stream_ac_updates_from_message(device, bk_message):
         stream_ac.Device.grid_power,
         stream_ac.Device.load_from_battery,
         stream_ac.Device.load_from_grid,
+        stream_ac.Device.energy_strategy,
     ]
 
     for field in expected_updated_fields:
         assert field.public_name in device.updated_fields
         assert getattr(device, field.public_name) is not None
+
+    assert (
+        getattr(device, stream_ac.Device.energy_strategy.public_name)
+        == stream_ac.EnergyStrategy.SELF_POWERED
+    )
 
 
 async def test_stream_ac_pro_updates_from_message(device, bk_message):
