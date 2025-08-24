@@ -147,7 +147,7 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
         min_value_prop="start_voltage_min",
         max_value_prop="start_voltage_max",
         async_set_native_value=(
-            lambda device, value: device.set_battery_voltage(int(value))
+            lambda device, value: device.set_battery_voltage(value)
         ),
     ),
     EcoflowNumberEntityDescription[alternator_charger.Device](
