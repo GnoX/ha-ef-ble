@@ -36,13 +36,16 @@ class EnergyStrategy(IntFieldValue):
             return cls.INTELLIGENT_SCHEDULE
         return cls.UNKNOWN
 
-    def as_pb(self):
-        operate_mode = bk_series_pb2.CfgEnergyStrategyOperateMode(
-            operate_self_powered_open=False,
-            operate_scheduled_open=False,
-            operate_intelligent_schedule_mode_open=False,
-            operate_tou_mode_open=False,
-        )
+    def as_pb(
+        self, operate_mode: bk_series_pb2.CfgEnergyStrategyOperateMode | None = None
+    ):
+        if operate_mode is None:
+            operate_mode = bk_series_pb2.CfgEnergyStrategyOperateMode()
+        else:
+            operate_mode.operate_self_powered_open = False
+            operate_mode.operate_scheduled_open = False
+            operate_mode.operate_intelligent_schedule_mode_open = False
+            operate_mode.operate_tou_mode_open = False
 
         match self:
             case EnergyStrategy.SELF_POWERED:
@@ -72,8 +75,8 @@ class Device(DeviceBase, ProtobufProps):
     battery_charge_limit_min = pb_field(pb.cms_min_dsg_soc)
     battery_charge_limit_max = pb_field(pb.cms_max_chg_soc)
 
-    load_from_battery = pb_field(pb.pow_get_sys_load_from_bp)
-    load_from_grid = pb_field(pb.pow_get_sys_load_from_grid)
+    load_from_battery = pb_field(pb.pow_get_sys_load_from_bp, _round)
+    load_from_grid = pb_field(pb.pow_get_sys_load_from_grid, _round)
 
     feed_grid = pb_field(pb.feed_grid_mode, lambda x: x == 2)
     feed_grid_pow_limit = pb_field(pb.feed_grid_mode_pow_limit)
@@ -150,5 +153,5 @@ class Device(DeviceBase, ProtobufProps):
 
     async def set_energy_strategy(self, strategy: EnergyStrategy):
         cfg = bk_series_pb2.ConfigWrite()
-        cfg.cfg_energy_strategy_operate_mode = strategy.as_pb()
+        strategy.as_pb(cfg.cfg_energy_strategy_operate_mode)
         await self._send_config_packet(cfg)
