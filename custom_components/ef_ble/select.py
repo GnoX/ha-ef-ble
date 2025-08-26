@@ -81,7 +81,7 @@ SELECT_TYPES: list[EcoflowSelectEntityDescription] = [
                 stream_ac.EnergyStrategy[value.upper()]
             )
         ),
-    )
+    ),
 ]
 
 

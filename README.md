@@ -169,7 +169,7 @@ Recognized devices:
 | Grid Power                             | AC (1) (AC Pro, Max, Pro, Ultra) | Backup Reserve Level  |                 |
 | Grid Voltage                           | AC (2) (AC Pro, Pro, Ultra)      | Charge Limit          |                 |
 | Grid Frequency                         |                                  | Discharge Limit       |                 |
-| Load from Battery                      |                                  |                       |                 |
+| Load from Battery                      |                                  | Base Load Power¹      |                 |
 | Load from Grid                         |                                  |                       |                 |
 | Load from PV (Max, Pro, Ultra)         |                                  |                       |                 |
 | AC (1) Power (AC Pro, Max, Pro, Ultra) |                                  |                       |                 |
@@ -179,6 +179,8 @@ Recognized devices:
 | PV (3) Power (Pro, Ultra)              |                                  |                       |                 |
 | PV (4) Power (Ultra)                   |                                  |                       |                 |
 | Cell Temperature (disabled)            |                                  |                       |                 |
+
+¹ Not available when there's no base load timeframe or more than 1 timeframe configured.
 </details>
 
 </p>

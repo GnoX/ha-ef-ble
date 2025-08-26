@@ -1,9 +1,16 @@
 import time
+from collections.abc import Sequence
 
 from ..devicebase import DeviceBase
 from ..packet import Packet
 from ..pb import bk_series_pb2
-from ..props import ProtobufProps, pb_field, proto_attr_mapper
+from ..props import (
+    Field,
+    ProtobufProps,
+    pb_field,
+    proto_attr_mapper,
+    repeated_pb_field_type,
+)
 from ..props.enums import IntFieldValue
 
 pb = proto_attr_mapper(bk_series_pb2.DisplayPropertyUpload)
@@ -11,6 +18,13 @@ pb = proto_attr_mapper(bk_series_pb2.DisplayPropertyUpload)
 
 def _round(value: float):
     return round(value, 2)
+
+
+class ResidentLoad(repeated_pb_field_type(pb.day_resident_load_list.load)):
+    def get_item(
+        self, value: Sequence[bk_series_pb2.ResidentLoad]
+    ) -> bk_series_pb2.ResidentLoad | None:
+        return value[0] if len(value) == 1 else None
 
 
 class EnergyStrategy(IntFieldValue):
@@ -86,8 +100,11 @@ class Device(DeviceBase, ProtobufProps):
         pb.energy_strategy_operate_mode,
         EnergyStrategy.from_pb,
     )
-
     energy_backup_battery_level = pb_field(pb.backup_reverse_soc)
+
+    _resident_load = ResidentLoad()
+    _load_power_enabled = Field[bool]()
+    base_load_power = Field[int]()
 
     @classmethod
     def check(cls, sn):
@@ -101,6 +118,10 @@ class Device(DeviceBase, ProtobufProps):
         if packet.src == 0x02 and packet.cmdSet == 0xFE and packet.cmdId == 0x15:
             self.update_from_bytes(bk_series_pb2.DisplayPropertyUpload, packet.payload)
             processed = True
+
+        self._load_power_enabled = self._resident_load is not None
+        if self._resident_load is not None:
+            self.base_load_power = self._resident_load.load_power
 
         for field_name in self.updated_fields:
             self.update_callback(field_name)
@@ -155,3 +176,22 @@ class Device(DeviceBase, ProtobufProps):
         cfg = bk_series_pb2.ConfigWrite()
         strategy.as_pb(cfg.cfg_energy_strategy_operate_mode)
         await self._send_config_packet(cfg)
+
+    async def set_load_power(self, limit: int):
+        if self._resident_load is None:
+            return False
+
+        await self._send_config_packet(
+            bk_series_pb2.ConfigWrite(
+                cfg_day_resident_load_list=bk_series_pb2.DayResidentLoadList(
+                    load=[
+                        bk_series_pb2.ResidentLoad(
+                            load_power=limit,
+                            start_min=self._resident_load.start_min,
+                            end_min=self._resident_load.end_min,
+                        )
+                    ]
+                )
+            )
+        )
+        return True
