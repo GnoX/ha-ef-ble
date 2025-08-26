@@ -187,6 +187,19 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
             lambda device, value: device.set_feed_grid_pow_limit(int(value))
         ),
     ),
+    EcoflowNumberEntityDescription[stream_ac.Device](
+        key="base_load_power",
+        name="Base Load Power",
+        device_class=NumberDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        native_step=1,
+        native_min_value=0,
+        max_value_prop="feed_grid_pow_max",
+        async_set_native_value=(
+            lambda device, value: device.set_load_power(int(value))
+        ),
+        availability_prop="_load_power_enabled",
+    ),
 ]
 
 

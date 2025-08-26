@@ -20,58 +20,58 @@ if TYPE_CHECKING:
 
 _bk_msg_str = """
 energy_backup_state: 0
-pow_get_pv2: 0
-plug_in_info_pv2_amp: 0
+pow_get_pv2: 5.89536715
+plug_in_info_pv2_amp: 0.189511433
 power_socket {
 }
 utc_timezone: 200
-utc_timezone_id: "Europe/Madrid"
+utc_timezone_id: "Europe/London"
 utc_set_mode: true
-bms_batt_soc: 23
+bms_batt_soc: 51
 bms_batt_soh: 100
 bms_design_cap: 1920
-bms_dsg_rem_time: 4051
+bms_dsg_rem_time: 291
 bms_chg_rem_time: 5939
-bms_min_cell_temp: 29
-bms_max_cell_temp: 29
-bms_min_mos_temp: 31
-bms_max_mos_temp: 31
-cms_batt_soc: 23
+bms_min_cell_temp: 33
+bms_max_cell_temp: 34
+bms_min_mos_temp: 36
+bms_max_mos_temp: 36
+cms_batt_soc: 51
 cms_batt_soh: 100
-cms_dsg_rem_time: 4051
+cms_dsg_rem_time: 291
 cms_chg_rem_time: 5939
-cms_max_chg_soc: 85
-cms_min_dsg_soc: 20
+cms_max_chg_soc: 90
+cms_min_dsg_soc: 15
 cms_bms_run_state: 1
-bms_chg_dsg_state: 0
-cms_chg_dsg_state: 0
-pow_get_pv: 0
-plug_in_info_pv_flag: false
-plug_in_info_pv_vol: 0
-plug_in_info_pv_amp: 0
+bms_chg_dsg_state: 1
+cms_chg_dsg_state: 1
+pow_get_pv: 6.53502131
+plug_in_info_pv_flag: true
+plug_in_info_pv_vol: 31.1227493
+plug_in_info_pv_amp: 0.209975705
 energy_strategy_operate_mode {
   operate_self_powered_open: true
 }
-plug_in_info_pv2_flag: false
-plug_in_info_pv2_vol: 0
+plug_in_info_pv2_flag: true
+plug_in_info_pv2_vol: 31.1082401
 cms_batt_pow_out_max: 1200
-cms_batt_pow_in_max: 1026
-backup_reverse_soc: 23
+cms_batt_pow_in_max: 1030
+backup_reverse_soc: 18
 cms_batt_full_energy: 1920
-pow_get_sys_grid: 600
-pow_get_sys_load: 600
+pow_get_sys_grid: 0
+pow_get_sys_load: 200
 pow_get_pv_sum: 0
-pow_get_bp_cms: 0
-feed_grid_mode: 2
-feed_grid_mode_pow_limit: 600
-module_wifi_rssi: -35
-grid_connection_vol: 234.986893
-grid_connection_freq: 49.9898643
-grid_connection_power: 0
-grid_connection_sta: PANEL_GRID_IN
+pow_get_bp_cms: -200
+feed_grid_mode: 1
+feed_grid_mode_pow_limit: 800
+module_wifi_rssi: -38
+grid_connection_vol: 239.02565
+grid_connection_freq: 49.9994431
+grid_connection_power: 199.262299
+grid_connection_sta: PANEL_FEED_GRID
 dev_errcode_list {
 }
-feed_grid_mode_pow_max: 600
+feed_grid_mode_pow_max: 800
 town_code: 0
 grid_code_selection: GRID_STD_CODE_EU_GENERAL
 grid_code_version: 10001
@@ -93,31 +93,35 @@ timezone_change_list {
 }
 update_ban_flag: 0
 day_resident_load_list {
+  load {
+    end_min: 1440
+    load_power: 200
+  }
 }
 relay2_onoff: false
 relay4_onoff: true
 relay3_onoff: false
 relay1_onoff: true
-system_group_id: 1614761986
-pow_sys_ac_out_max: 600
-plug_in_info_pv3_flag: false
+system_group_id: 142807041
+pow_sys_ac_out_max: 800
+plug_in_info_pv3_flag: true
 plug_in_info_pv4_flag: false
 pow_sys_ac_in_max: 2231
 distributed_device_status: MASTER
 series_connect_device_status: MASTER
-sys_grid_connection_power: 0
+sys_grid_connection_power: 199.262299
 socket_measure_power: 0
 brightness: 100
 system_mesh_id: 1
-pow_get_pv3: 0
+pow_get_pv3: 9.31538105
 pow_get_pv4: 0
-plug_in_info_pv3_vol: 0
-plug_in_info_pv3_amp: 0
-plug_in_info_pv4_vol: 0
-plug_in_info_pv4_amp: 0
+plug_in_info_pv3_vol: 31.2470322
+plug_in_info_pv3_amp: 0.298120499
+plug_in_info_pv4_vol: 2.69650793
+plug_in_info_pv4_amp: -0.0138375871
 pow_get_sys_load_from_pv: 0
-pow_get_sys_load_from_bp: -0
-pow_get_sys_load_from_grid: 600
+pow_get_sys_load_from_bp: 199.262299
+pow_get_sys_load_from_grid: 0.737701416
 pow_get_schuko1: 0
 pow_get_schuko2: 0
 bms_batt_heating: false
@@ -133,7 +137,8 @@ grid_connection_port_bind {
 }
 scoket1_bind_device_sn: ""
 scoket2_bind_device_sn: ""
-sys_offgrid: false"""
+sys_offgrid: false
+"""
 
 
 @pytest.fixture
@@ -175,6 +180,7 @@ async def test_stream_ac_updates_from_message(device, bk_message):
         stream_ac.Device.load_from_battery,
         stream_ac.Device.load_from_grid,
         stream_ac.Device.energy_strategy,
+        stream_ac.Device._resident_load,
     ]
 
     for field in expected_updated_fields:
