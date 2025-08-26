@@ -71,6 +71,11 @@ class DeviceBase(abc.ABC):
     def name_by_user(self):
         return self._name_by_user
 
+    @property
+    def serial_number(self):
+        """Full device serial number parsed from manufacturer data."""
+        return self._sn
+
     def isValid(self):
         return self._sn is not None
 
