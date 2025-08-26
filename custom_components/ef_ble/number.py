@@ -130,13 +130,25 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
     EcoflowNumberEntityDescription[alternator_charger.Device](
         key="power_limit",
         name="Power Limit",
+        max_value_prop="power_max",
         device_class=NumberDeviceClass.POWER,
         native_unit_of_measurement=UnitOfPower.WATT,
         native_step=1,
         native_min_value=0,
-        max_value_prop="power_max",
         async_set_native_value=(
             lambda device, value: device.set_power_limit(int(value))
+        ),
+    ),
+    EcoflowNumberEntityDescription[stream_ac.Device](
+        key="feed_grid_pow_limit",
+        name="Feed Grid Power Limit",
+        device_class=NumberDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        native_step=1,
+        native_min_value=0,
+        max_value_prop="feed_grid_pow_max",
+        async_set_native_value=(
+            lambda device, value: device.set_feed_grid_pow_limit(int(value))
         ),
     ),
     EcoflowNumberEntityDescription[alternator_charger.Device](
@@ -144,7 +156,7 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
         name="Start Voltage",
         device_class=NumberDeviceClass.VOLTAGE,
         native_unit_of_measurement=UnitOfElectricPotential.VOLT,
-        native_step=0.1,
+        native_step=1,
         min_value_prop="start_voltage_min",
         max_value_prop="start_voltage_max",
         async_set_native_value=(
@@ -156,7 +168,7 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
         name="Reverse Charging Current",
         device_class=NumberDeviceClass.CURRENT,
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
-        native_step=1,
+        native_step=0.1,
         native_min_value=0,
         max_value_prop="reverse_charging_current_max",
         async_set_native_value=(
@@ -186,6 +198,19 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
         async_set_native_value=(
             lambda device, value: device.set_feed_grid_pow_limit(int(value))
         ),
+    ),
+    EcoflowNumberEntityDescription[stream_ac.Device](
+        key="base_load_power",
+        name="Base Load Power",
+        device_class=NumberDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        native_step=1,
+        native_min_value=0,
+        max_value_prop="feed_grid_pow_max",
+        async_set_native_value=(
+            lambda device, value: device.set_load_power(int(value))
+        ),
+        availability_prop="_load_power_enabled",
     ),
 ]
 
@@ -221,6 +246,9 @@ class EcoflowNumber(EcoflowEntity, NumberEntity):
         self._set_native_value = entity_description.async_set_native_value
         self._prop_name = entity_description.key
         self._attr_native_value = getattr(device, self._prop_name)
+
+        if entity_description.translation_key is None:
+            self._attr_translation_key = self.entity_description.key
 
         if entity_description.translation_key is None:
             self._attr_translation_key = self.entity_description.key

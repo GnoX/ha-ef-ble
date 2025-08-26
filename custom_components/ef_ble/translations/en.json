@@ -3,7 +3,7 @@
     "abort": {
       "already_configured": "Device is already configured",
       "not_supported": "Device is not supported",
-      "no_devices_found": "No supported EcoFlow devices found",
+      "no_devices_found": "No supported EcoFlow devices found. Make sure your device is not connected to the EcoFlow app via Bluetooth.",
       "reconfigure_successful": "Reconfiguration was successful"
     },
     "error": {

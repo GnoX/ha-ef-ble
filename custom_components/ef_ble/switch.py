@@ -78,7 +78,6 @@ SWITCH_TYPES = [
     SwitchEntityDescription(
         key="feed_grid",
         name="Feed Grid",
-        device_class=SwitchDeviceClass.OUTLET,
     ),
 ]
 
