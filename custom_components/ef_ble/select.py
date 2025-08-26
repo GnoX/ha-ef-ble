@@ -36,6 +36,7 @@ SELECT_TYPES: list[EcoflowSelectEntityDescription] = [
     ),
     EcoflowSelectEntityDescription[river3.Device](
         key="dc_charging_type",
+        name="DC Charging Type",
         options=river3.DcChargingType.options(include_unknown=False),
         set_state=(
             lambda device, value: device.set_dc_charging_type(
@@ -166,6 +167,15 @@ class EcoflowSelect(EcoflowEntity, SelectEntity):
     def availability_updated(self, state: bool):
         self._attr_available = state
         self.async_write_ha_state()
+        self._register_update_callback(
+            entity_attr="_attr_current_option",
+            prop_name=self._prop_name,
+            get_state=(
+                lambda value: value.name.lower()
+                if value is not None
+                else self.SkipWrite
+            ),
+        )
 
     async def async_select_option(self, option: str) -> None:
         if self._set_state is not None:
