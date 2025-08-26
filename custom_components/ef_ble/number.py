@@ -13,7 +13,6 @@ from homeassistant.const import (
     UnitOfElectricPotential,
     UnitOfPower,
 )
-from homeassistant.const import PERCENTAGE, UnitOfElectricCurrent, UnitOfPower
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -187,6 +186,31 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
         async_set_native_value=(
             lambda device, value: device.set_device_battery_current_charge_limit(value)
         ),
+    ),
+    EcoflowNumberEntityDescription[stream_ac.Device](
+        key="feed_grid_pow_limit",
+        name="Feed Grid Power Limit",
+        device_class=NumberDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        native_step=1,
+        native_min_value=0,
+        max_value_prop="feed_grid_pow_max",
+        async_set_native_value=(
+            lambda device, value: device.set_feed_grid_pow_limit(int(value))
+        ),
+    ),
+    EcoflowNumberEntityDescription[stream_ac.Device](
+        key="base_load_power",
+        name="Base Load Power",
+        device_class=NumberDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        native_step=1,
+        native_min_value=0,
+        max_value_prop="feed_grid_pow_max",
+        async_set_native_value=(
+            lambda device, value: device.set_load_power(int(value))
+        ),
+        availability_prop="_load_power_enabled",
     ),
 ]
 
