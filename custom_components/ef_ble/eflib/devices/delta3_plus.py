@@ -26,7 +26,7 @@ class Device(delta3.Device):
         self.solar_input_power_2 = (
             round(self.dc_port_2_input_power, 2)
             if (
-                self.dc_port_2_state == DCPortState.SOLAR.state_name
+                self.dc_port_2_state is DCPortState.SOLAR
                 and self.dc_port_2_input_power is not None
             )
             else 0

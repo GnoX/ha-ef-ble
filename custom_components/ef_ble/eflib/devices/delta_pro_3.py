@@ -57,12 +57,8 @@ class Device(DeviceBase, ProtobufProps):
 
     dc_lv_input_power = pb_field(pb.pow_get_pv_l)
     dc_hv_input_power = pb_field(pb.pow_get_pv_h)
-    dc_lv_input_state = pb_field(
-        pb.plug_in_info_pv_l_type, lambda v: DCPortState.from_value(v).state_name
-    )
-    dc_hv_input_state = pb_field(
-        pb.plug_in_info_pv_h_type, lambda v: DCPortState.from_value(v).state_name
-    )
+    dc_lv_input_state = pb_field(pb.plug_in_info_pv_l_type, DCPortState)
+    dc_hv_input_state = pb_field(pb.plug_in_info_pv_h_type, DCPortState.from_value)
 
     usbc_output_power = pb_field(pb.pow_get_typec1, _out_power)
     usbc2_output_power = pb_field(pb.pow_get_typec2, _out_power)
@@ -134,9 +130,7 @@ class Device(DeviceBase, ProtobufProps):
 
     def _get_solar_power(self, power: float | None, state: str | None):
         return (
-            round(power, 2)
-            if state == DCPortState.SOLAR.state_name and power is not None
-            else 0
+            round(power, 2) if state is DCPortState.SOLAR and power is not None else 0
         )
 
     async def _send_config_packet(self, message: Message):
