@@ -110,7 +110,7 @@ class Device(DeviceBase, ProtobufProps):
         pb.generator_sub_battery_state, SubBatteryState.from_value
     )
 
-    ac_ports = pb_field(pb.ac_out_open)
+    ac_port = pb_field(pb.ac_out_open)
 
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
