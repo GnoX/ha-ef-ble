@@ -5,7 +5,7 @@ pb = stream_ac.pb
 
 
 class Device(stream_ac.Device, ProtobufProps):
-    """STREAM AC PRO"""
+    """STREAM Max"""
 
     SN_PREFIX = (b"BK41",)
 
