@@ -389,13 +389,13 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         native_unit_of_measurement=UnitOfPower.WATT,
         suggested_display_precision=2,
     ),
-    "dc_lv_state": SensorEntityDescription(
-        key="dc_lv_state",
+    "dc_lv_input_state": SensorEntityDescription(
+        key="dc_lv_input_state",
         device_class=SensorDeviceClass.ENUM,
         options=delta_pro_3.DCPortState.options(),
     ),
-    "dc_hv_state": SensorEntityDescription(
-        key="dc_hv_state",
+    "dc_hv_input_state": SensorEntityDescription(
+        key="dc_hv_input_state",
         device_class=SensorDeviceClass.ENUM,
         options=delta_pro_3.DCPortState.options(),
     ),

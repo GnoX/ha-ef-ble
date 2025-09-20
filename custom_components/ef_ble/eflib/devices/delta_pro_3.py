@@ -128,7 +128,7 @@ class Device(DeviceBase, ProtobufProps):
 
         return processed
 
-    def _get_solar_power(self, power: float | None, state: str | None):
+    def _get_solar_power(self, power: float | None, state: DCPortState | None):
         return (
             round(power, 2) if state is DCPortState.SOLAR and power is not None else 0
         )
