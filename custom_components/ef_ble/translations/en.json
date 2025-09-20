@@ -299,10 +299,10 @@
       "dc_hv_input_power": {
         "name": "LV DC Port Input Power"
       },
-      "dc_lv_state": {
+      "dc_lv_input_state": {
         "name": "LV DC Input Port State"
       },
-      "dc_hv_state": {
+      "dc_hv_input_state": {
         "name": "HV DC Input Port State"
       },
       "engine_state": {
