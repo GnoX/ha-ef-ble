@@ -231,6 +231,41 @@
     }
   },
   "entity": {
+    "binary_sensor": {
+      "channel_backup_is_ready": {
+        "name": "Channel {channel} Backup Ready"
+      },
+      "channel_is_enabled": {
+        "name": "Channel {channel} Enabled"
+      },
+      "channel_is_connected": {
+        "name": "Channel {channel} Connected"
+      },
+      "channel_is_ac_open": {
+        "name": "Channel {channel} AC Output"
+      },
+      "channel_is_power_output": {
+        "name": "Channel {channel} Power Output"
+      },
+      "channel_is_grid_charge": {
+        "name": "Channel {channel} Grid Charging"
+      },
+      "channel_is_mppt_charge": {
+        "name": "Channel {channel} Solar Charging"
+      },
+      "channel_ems_charging": {
+        "name": "Channel {channel} EMS Charging"
+      },
+      "channel_hw_connected": {
+        "name": "Channel {channel} Hardware Connected"
+      },
+      "error_happened": {
+        "name": "Error"
+      },
+      "plugged_in_ac": {
+        "name": "AC Plugged In"
+      }
+    },
     "sensor": {
       "collecting_data": {
         "name": "Collecting diagnostics data"
@@ -560,6 +595,80 @@
       },
       "outlet_temperature": {
         "name": "Outlet Temperature"
+      },
+      "backup_is_ready": {
+        "name": "Channel {channel} Backup Ready"
+      },
+      "backup_ctrl_status": {
+        "name": "Channel {channel} Control Status",
+        "state": {
+          "off": "Off",
+          "discharge": "Discharging",
+          "charge": "Charging",
+          "emergency_stop": "Emergency Stop",
+          "standby": "Standby"
+        }
+      },
+      "backup_force_charge": {
+        "name": "Channel {channel} Force Charge",
+        "state": {
+          "off": "Off",
+          "on": "On"
+        }
+      },
+      "backup_relay1_count": {
+        "name": "Channel {channel} Relay 1 Count"
+      },
+      "backup_relay2_count": {
+        "name": "Channel {channel} Relay 2 Count"
+      },
+      "backup_wakeup_charge": {
+        "name": "Channel {channel} Wakeup Charge Level"
+      },
+      "backup_connector_type": {
+        "name": "Channel {channel} Connector Type"
+      },
+      "channel_serial_number": {
+        "name": "Channel {channel} Serial Number"
+      },
+      "channel_device_type": {
+        "name": "Channel {channel} Device Type"
+      },
+      "channel_full_capacity": {
+        "name": "Channel {channel} Full Capacity"
+      },
+      "channel_rated_power": {
+        "name": "Channel {channel} Rated Power"
+      },
+      "channel_battery_level": {
+        "name": "Channel {channel} Battery Level"
+      },
+      "channel_output_power": {
+        "name": "Channel {channel} Output Power"
+      },
+      "channel_battery_temperature": {
+        "name": "Channel {channel} Battery Temperature"
+      },
+      "channel_lcd_input_power": {
+        "name": "Channel {channel} LCD Input Power"
+      },
+      "channel_pv_status": {
+        "name": "Channel {channel} PV Status",
+        "state": {
+          "none": "None",
+          "lv": "LV",
+          "hv": "HV",
+          "lv_and_hv": "LV&HV"
+        }
+      },
+      "channel_pv_lv_input_power": {
+        "name": "Channel {channel} PV LV Input Power"
+      },
+      "channel_pv_hv_input_power": {
+        "name": "Channel {channel} PV HV Input Power"
+      },
+      "channel_error_count": {
+        "name": "Channel {channel} Error Count"
       }
     },
     "select": {

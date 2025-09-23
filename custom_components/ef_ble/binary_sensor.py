@@ -14,11 +14,90 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from custom_components.ef_ble.eflib import DeviceBase
+from custom_components.ef_ble.eflib.devices import shp2
 
 from . import DeviceConfigEntry
 from .entity import EcoflowEntity
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _create_shp2_binary_sensors():
+    """Create binary sensor descriptions for SHP2 backup channel and energy info"""
+    sensors = {}
+
+    # Backup channel binary sensors
+    for i in range(1, shp2.Device.NUM_OF_CHANNELS + 1):
+        sensors[f"ch{i}_backup_is_ready"] = BinarySensorEntityDescription(
+            key=f"ch{i}_backup_is_ready",
+            translation_key="channel_backup_is_ready",
+            translation_placeholders={"channel": f"{i}"},
+            device_class=BinarySensorDeviceClass.BATTERY,
+            entity_registry_enabled_default=False,
+        )
+
+    # Energy binary sensors
+    for i in range(1, shp2.Device.NUM_OF_CHANNELS + 1):
+        sensors.update(
+            {
+                f"channel{i}_is_enabled": BinarySensorEntityDescription(
+                    key=f"channel{i}_is_enabled",
+                    translation_key="channel_is_enabled",
+                    translation_placeholders={"channel": f"{i}"},
+                    device_class=BinarySensorDeviceClass.POWER,
+                ),
+                f"channel{i}_is_connected": BinarySensorEntityDescription(
+                    key=f"channel{i}_is_connected",
+                    translation_key="channel_is_connected",
+                    translation_placeholders={"channel": f"{i}"},
+                    device_class=BinarySensorDeviceClass.CONNECTIVITY,
+                ),
+                f"channel{i}_is_ac_open": BinarySensorEntityDescription(
+                    key=f"channel{i}_is_ac_open",
+                    translation_key="channel_is_ac_open",
+                    translation_placeholders={"channel": f"{i}"},
+                    device_class=BinarySensorDeviceClass.POWER,
+                    entity_registry_enabled_default=False,
+                ),
+                f"channel{i}_is_power_output": BinarySensorEntityDescription(
+                    key=f"channel{i}_is_power_output",
+                    translation_key="channel_is_power_output",
+                    translation_placeholders={"channel": f"{i}"},
+                    device_class=BinarySensorDeviceClass.POWER,
+                    entity_registry_enabled_default=False,
+                ),
+                f"channel{i}_is_grid_charge": BinarySensorEntityDescription(
+                    key=f"channel{i}_is_grid_charge",
+                    translation_key="channel_is_grid_charge",
+                    translation_placeholders={"channel": f"{i}"},
+                    device_class=BinarySensorDeviceClass.BATTERY_CHARGING,
+                    entity_registry_enabled_default=False,
+                ),
+                f"channel{i}_is_mppt_charge": BinarySensorEntityDescription(
+                    key=f"channel{i}_is_mppt_charge",
+                    translation_key="channel_is_mppt_charge",
+                    translation_placeholders={"channel": f"{i}"},
+                    device_class=BinarySensorDeviceClass.BATTERY_CHARGING,
+                    entity_registry_enabled_default=False,
+                ),
+                f"channel{i}_ems_charging": BinarySensorEntityDescription(
+                    key=f"channel{i}_ems_charging",
+                    translation_key="channel_ems_charging",
+                    translation_placeholders={"channel": f"{i}"},
+                    device_class=BinarySensorDeviceClass.POWER,
+                    entity_registry_enabled_default=False,
+                ),
+                f"channel{i}_hw_connected": BinarySensorEntityDescription(
+                    key=f"channel{i}_hw_connected",
+                    translation_key="channel_hw_connected",
+                    translation_placeholders={"channel": f"{i}"},
+                    device_class=BinarySensorDeviceClass.CONNECTIVITY,
+                    entity_registry_enabled_default=False,
+                ),
+            }
+        )
+
+    return sensors
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -29,15 +108,15 @@ class EcoflowBinarySensorEntityDescription(BinarySensorEntityDescription):
 BINARY_SENSOR_TYPES = {
     "error_happened": BinarySensorEntityDescription(
         key="error",
-        name="Error",
         device_class=BinarySensorDeviceClass.PROBLEM,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "plugged_in_ac": BinarySensorEntityDescription(
         key="plugged_in_ac",
-        name="AC Plugged In",
         device_class=BinarySensorDeviceClass.PLUG,
     ),
+    # SHP2 Binary Sensors - dynamically generated
+    **_create_shp2_binary_sensors(),
 }
 
 

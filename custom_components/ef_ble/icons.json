@@ -126,6 +126,33 @@
             },
             "grid_current": {
                 "default": "mdi:current-ac"
+            },
+            "channel1_pv_status": {
+                "default": "mdi:solar-power"
+            },
+            "channel2_pv_status": {
+                "default": "mdi:solar-power"
+            },
+            "channel3_pv_status": {
+                "default": "mdi:solar-power"
+            },
+            "channel1_pv_lv_input": {
+                "default": "mdi:solar-panel"
+            },
+            "channel2_pv_lv_input": {
+                "default": "mdi:solar-panel"
+            },
+            "channel3_pv_lv_input": {
+                "default": "mdi:solar-panel"
+            },
+            "channel1_pv_hv_input": {
+                "default": "mdi:solar-panel-large"
+            },
+            "channel2_pv_hv_input": {
+                "default": "mdi:solar-panel-large"
+            },
+            "channel3_pv_hv_input": {
+                "default": "mdi:solar-panel-large"
             }
         },
         "switch": {
