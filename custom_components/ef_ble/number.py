@@ -20,11 +20,12 @@ from . import DeviceConfigEntry
 from .eflib import DeviceBase
 from .eflib.devices import (
     alternator_charger,
-    delta3,
+    delta3_classic,
     delta3_plus,
     delta_pro_3,
     river3,
     smart_generator,
+    smart_generator_4k,
     stream_ac,
 )
 from .entity import EcoflowEntity
@@ -80,7 +81,9 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
             lambda device, value: device.set_battery_charge_limit_max(int(value))
         ),
     ),
-    EcoflowNumberEntityDescription[river3.Device | delta3.Device | delta_pro_3.Device](
+    EcoflowNumberEntityDescription[
+        river3.Device | delta3_classic.Device | delta_pro_3.Device
+    ](
         key="ac_charging_speed",
         name="AC Charging Speed",
         device_class=NumberDeviceClass.POWER,
@@ -92,7 +95,7 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
             lambda device, value: device.set_ac_charging_speed(int(value))
         ),
     ),
-    EcoflowNumberEntityDescription[river3.Device | delta3.Device](
+    EcoflowNumberEntityDescription[river3.Device | delta3_classic.Device](
         key="dc_charging_max_amps",
         name="DC Charging Max Amps",
         device_class=NumberDeviceClass.CURRENT,
@@ -125,6 +128,18 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
         mode=NumberMode.BOX,
         async_set_native_value=(
             lambda device, value: device.set_liquefied_gas_value(value)
+        ),
+    ),
+    EcoflowNumberEntityDescription[smart_generator_4k.Device](
+        key="dc_output_power_limit",
+        name="DC Power Limit",
+        device_class=NumberDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        native_step=1,
+        native_min_value=0,
+        max_value_prop="dc_output_power_max",
+        async_set_native_value=(
+            lambda device, value: device.set_dc_output_power_max(int(value))
         ),
     ),
     EcoflowNumberEntityDescription[alternator_charger.Device](
