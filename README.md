@@ -161,21 +161,21 @@ you have to create it yourself, see this section from the official
 </details>
 
 <details><summary>
-<b>Smart Generator (3000, 4000⁴)</b>
+<b>Smart Generator (3000, 4000)</b>
 </summary>
 
-| *Sensors*              | *Switches*           | *Sliders*  | *Selects*        |
-|------------------------|----------------------|------------|------------------|
-| Output Power           | Engine               | Gas Weight | Performance Mode |
-| AC Output Power        | Self Start           |            | Gas Unit         |
-| Engine State           | LPG Level Monitoring |            |                  |
-| Fuel Type              | AC Ports             |            |                  |
-| Gas Consumption        |                      |            |                  |
-| Abnormal State         |                      |            |                  |
-| Internal Battery Power |                      |            |                  |
-| Internal Battery State |                      |            |                  |
-| XT150 Battery Level ⁴  |                      |            |                  |
-| XT150 Charge Type ⁴    |                      |            |                  |
+| *Sensors*              | *Switches*           | *Sliders*        | *Selects*        |
+|------------------------|----------------------|------------------|------------------|
+| Output Power           | Engine               | Gas Weight       | Performance Mode |
+| AC Output Power        | Self Start           | DC Output Power⁴ | Gas Unit         |
+| Engine State           | LPG Level Monitoring |                  |                  |
+| Fuel Type              | AC Ports             |                  |                  |
+| Gas Consumption        |                      |                  |                  |
+| Abnormal State         |                      |                  |                  |
+| Internal Battery Power |                      |                  |                  |
+| Internal Battery State |                      |                  |                  |
+| XT150 Battery Level ⁴  |                      |                  |                  |
+| XT150 Charge Type ⁴    |                      |                  |                  |
 
 ⁴ Only available on 4000 variant
 </details>
