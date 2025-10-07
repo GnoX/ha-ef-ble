@@ -55,61 +55,79 @@ Recognized devices:
 | AC I/O Output Power                  |
 </details>
 <details><summary>
-<b>River 3 (Plus, UPS) (EF-R3####, FW Version: 1.0.0.0)</b>
+<b>River 3 (Plus, UPS) (EF-R3####)</b>
 </summary>
 
-| *Sensors*                       | *Switches*     | *Sliders*            | *Selects*            |
-|---------------------------------|----------------|----------------------|----------------------|
-| AC Input Energy                 | AC Port        | Backup Reserve Level | Led Mode (Plus only) |
-| AC Input Power                  | DC Port        | Max Charge Limit     | DC Charging Type     |
-| AC Output Energy                | Backup Reserve | Min Discharge Limit  |                      |
-| AC Output Power                 |                | AC Charging Speed    |                      |
-| Main Battery Level (Plus only)  |                | DC Charging Max Amps |                      |
-| Battery Level                   |                |                      |                      |
-| DC 12V Port Output Energy       |                |                      |                      |
-| DC 12V Port Output Power        |                |                      |                      |
-| DC Input Energy                 |                |                      |                      |
-| DC Input Power                  |                |                      |                      |
-| Input Energy Total              |                |                      |                      |
-| Input Power Total               |                |                      |                      |
-| Output Energy Total             |                |                      |                      |
-| Output Power Total              |                |                      |                      |
-| USB A Output Energy             |                |                      |                      |
-| USB A Output Power              |                |                      |                      |
-| USB C Output Energy             |                |                      |                      |
-| USB C Output Power              |                |                      |                      |
-| Battery Input Power (disabled)  |                |                      |                      |
-| Battery Output Power (disabled) |                |                      |                      |
-| Cell Temperature (disabled)     |                |                      |                      |
+| *Sensors*                       | *Switches*     | *Sliders*            | *Selects*        |
+|---------------------------------|----------------|----------------------|------------------|
+| AC Input Energy                 | AC Port        | Backup Reserve Level | Led Mode⁺        |
+| AC Input Power                  | DC Port        | Max Charge Limit     | DC Charging Type |
+| AC Output Energy                | Backup Reserve | Min Discharge Limit  |                  |
+| AC Output Power                 |                | AC Charging Speed    |                  |
+| Main Battery Level ⁺            |                | DC Charging Max Amps |                  |
+| Battery Level                   |                |                      |                  |
+| DC 12V Port Output Energy       |                |                      |                  |
+| DC 12V Port Output Power        |                |                      |                  |
+| DC Input Energy                 |                |                      |                  |
+| DC Input Power                  |                |                      |                  |
+| Input Energy Total              |                |                      |                  |
+| Input Power Total               |                |                      |                  |
+| Output Energy Total             |                |                      |                  |
+| Output Power Total              |                |                      |                  |
+| USB A Output Energy             |                |                      |                  |
+| USB A Output Power              |                |                      |                  |
+| USB C Output Energy             |                |                      |                  |
+| USB C Output Power              |                |                      |                  |
+| Battery Input Power (disabled)  |                |                      |                  |
+| Battery Output Power (disabled) |                |                      |                  |
+| Cell Temperature (disabled)     |                |                      |                  |
+
+⁺ Only available on Plus variant
+
+**NOTE**: AC Input Energy sensor is not working as intended - this is a bug in firmware. If you
+need this sensor, create integral helper from AC Input Power instead. Also see
+[this issue](https://github.com/rabits/ha-ef-ble/issues/73).
+
+**WARNING**: This integration allows to set Backup Reserve Limit to Min Discharge Limit that may cause
+your AC ports to turn off it it hits this limit. The official application allows you to do the same,
+so it is also possible to set it from this integration but be aware that this is most likely a bug.
+See more info in [this issue](https://github.com/rabits/ha-ef-ble/issues/78).
 </details>
 
 <details><summary>
-<b>Delta 3 (Plus) (EF-D3####, FW Version: 6.49.76.57)</b>
+<b>Delta 3 (Classic, Plus) (EF-D3####)</b>
 </summary>
 
-| *Sensors*                           | *Switches*     | *Sliders*                            |
-|-------------------------------------|----------------|--------------------------------------|
-| Main Battery Level                  | AC Ports       | Backup Reserve Level                 |
-| Battery Level                       | DC Ports       | Max Charge Limit                     |
-| AC Input Power                      | Backup Reserve | Min Discharge Limit                  |
-| AC Output Power                     | USB Ports      | AC Charging Speed                    |
-| DC 12V Port Output Power            |                | DC Charging Max Amps                 |
-| DC Port Input Power                 |                | DC (2) Charging Max Amps (Plus only) |
-| DC Port Input State                 |                |                                      |
-| DC Port (2) Input Power (Plus only) |                |                                      |
-| DC Port (2) Input State (Plus only) |                |                                      |
-| Solar Power                         |                |                                      |
-| Solar Power (2) (Plus only)         |                |                                      |
-| Input Power Total                   |                |                                      |
-| Output Power Total                  |                |                                      |
-| USB A Output Power                  |                |                                      |
-| USB A (2) Output Power              |                |                                      |
-| USB C Output Power                  |                |                                      |
-| USB C (2) Output Power              |                |                                      |
-| AC Plugged In                       |                |                                      |
-| Battery Input Power (disabled)      |                |                                      |
-| Battery Output Power (disabled)     |                |                                      |
-| Cell Temperature (disabled)         |                |                                      |
+| *Sensors*                       | *Switches*     | *Sliders*                  |
+|---------------------------------|----------------|----------------------------|
+| Main Battery Level              | AC Ports       | Backup Reserve Level       |
+| Battery Level                   | DC Ports       | Max Charge Limit           |
+| AC Input Power                  | Backup Reserve | Min Discharge Limit        |
+| AC Output Power                 | USB Ports ¹    | AC Charging Speed          |
+| DC 12V Port Output Power        |                | DC Charging Max Amps       |
+| DC Port Input Power             |                | DC (2) Charging Max Amps ⁺ |
+| DC Port Input State             |                |                            |
+| DC Port (2) Input Power⁺        |                |                            |
+| DC Port (2) Input State⁺        |                |                            |
+| Solar Power                     |                |                            |
+| Solar Power (2) ⁺               |                |                            |
+| Input Power Total               |                |                            |
+| Output Power Total              |                |                            |
+| USB A Output Power              |                |                            |
+| USB A (2) Output Power          |                |                            |
+| USB C Output Power              |                |                            |
+| USB C (2) Output Power          |                |                            |
+| AC Plugged In                   |                |                            |
+| Battery Input Power (disabled)  |                |                            |
+| Battery Output Power (disabled) |                |                            |
+| Cell Temperature (disabled)     |                |                            |
+
+⁺ Only available on Plus variant  
+¹ Not available on Classic
+
+**NOTE**: Delta 3 models do not expose energy sensors - to use it for Energy dashboard,
+you have to create it yourself, see this section from the official
+[Home Assistant FAQ](https://www.home-assistant.io/docs/energy/faq/#creating-an-energy-sensor-out-of-a-power-sensor)
 </details>
 
 <details><summary>
@@ -138,24 +156,30 @@ Recognized devices:
 | USB C (2) Output Power      |                |                      |
 | AC Plugged In               |                |                      |
 | Cell Temperature (disabled) |                |                      |
+
+**NOTE**: Delta 3 Pro does not expose energy sensors - to use it for Energy dashboard,
+you have to create it yourself, see this section from the official
+[Home Assistant FAQ](https://www.home-assistant.io/docs/energy/faq/#creating-an-energy-sensor-out-of-a-power-sensor)
 </details>
 
 <details><summary>
-<b>Smart Generator (3000, 4000)</b>
+<b>Smart Generator (3000, 4000⁴)</b>
 </summary>
 
-| *Sensors*                  | *Switches*           | *Sliders*  | *Selects*        |
-|----------------------------|----------------------|------------|------------------|
-| Output Power               | Engine               | Gas Weight | Performance Mode |
-| AC Output Power            | Self Start           |            | Gas Unit         |
-| Engine State               | LPG Level Monitoring |            |                  |
-| Fuel Type                  | AC Ports             |            |                  |
-| Gas Consumption            |                      |            |                  |
-| Abnormal State             |                      |            |                  |
-| Internal Battery Power     |                      |            |                  |
-| Internal Battery State     |                      |            |                  |
-| XT150 Battery Level (4000) |                      |            |                  |
-| XT150 Charge Type (4000)   |                      |            |                  |
+| *Sensors*              | *Switches*           | *Sliders*  | *Selects*        |
+|------------------------|----------------------|------------|------------------|
+| Output Power           | Engine               | Gas Weight | Performance Mode |
+| AC Output Power        | Self Start           |            | Gas Unit         |
+| Engine State           | LPG Level Monitoring |            |                  |
+| Fuel Type              | AC Ports             |            |                  |
+| Gas Consumption        |                      |            |                  |
+| Abnormal State         |                      |            |                  |
+| Internal Battery Power |                      |            |                  |
+| Internal Battery State |                      |            |                  |
+| XT150 Battery Level ⁴  |                      |            |                  |
+| XT150 Charge Type ⁴    |                      |            |                  |
+
+⁴ Only available on 4000 variant
 </details>
 
 <details><summary>
@@ -174,23 +198,27 @@ Recognized devices:
 <b>STREAM (AC, AC Pro, Max, Pro, Ultra)</b>
 </summary>
 
-| *Sensors*                              | *Switches*                       | *Sliders*             | *Selects*       |
-|----------------------------------------|----------------------------------|-----------------------|-----------------|
-| Battery Level                          | Feed Grid                        | Feed Grid Power Limit | Energy Strategy |
-| Grid Power                             | AC (1) (AC Pro, Max, Pro, Ultra) | Backup Reserve Level  |                 |
-| Grid Voltage                           | AC (2) (AC Pro, Pro, Ultra)      | Charge Limit          |                 |
-| Grid Frequency                         |                                  | Discharge Limit       |                 |
-| Load from Battery                      |                                  | Base Load Power¹      |                 |
-| Load from Grid                         |                                  |                       |                 |
-| Load from PV (Max, Pro, Ultra)         |                                  |                       |                 |
-| AC (1) Power (AC Pro, Max, Pro, Ultra) |                                  |                       |                 |
-| AC (2) Power (AC Pro, Pro, Ultra)      |                                  |                       |                 |
-| PV (1) Power (Max, Pro, Ultra)         |                                  |                       |                 |
-| PV (2) Power (Max, Pro, Ultra)         |                                  |                       |                 |
-| PV (3) Power (Pro, Ultra)              |                                  |                       |                 |
-| PV (4) Power (Ultra)                   |                                  |                       |                 |
-| Cell Temperature (disabled)            |                                  |                       |                 |
+| *Sensors*                   | *Switches*  | *Sliders*             | *Selects*       |
+|-----------------------------|-------------|-----------------------|-----------------|
+| Battery Level               | Feed Grid   | Feed Grid Power Limit | Energy Strategy |
+| Grid Power                  | AC (1) ᴬᴹᴾᵁ | Backup Reserve Level  |                 |
+| Grid Voltage                | AC (2) ᴬᴾᵁ  | Charge Limit          |                 |
+| Grid Frequency              |             | Discharge Limit       |                 |
+| Load from Battery           |             | Base Load Power ¹     |                 |
+| Load from Grid              |             |                       |                 |
+| Load from PVᴹᴾᵁ             |             |                       |                 |
+| AC (1) Power ᴬᴹᴾᵁ           |             |                       |                 |
+| AC (2) Power ᴬᴾᵁ            |             |                       |                 |
+| PV (1) Poweri ᴹᴾᵁ           |             |                       |                 |
+| PV (2) Power ᴹᴾᵁ            |             |                       |                 |
+| PV (3) Power ᴾᵁ             |             |                       |                 |
+| PV (4) Power ᵁ              |             |                       |                 |
+| Cell Temperature (disabled) |             |                       |                 |
 
+ᴬ Only available on AC Pro variant  
+ᴹ Only available on Max variant  
+ᴾ Only available on Pro variant  
+ᵁ Only available on Ultra variant  
 ¹ Not available when there's no base load timeframe or more than 1 timeframe configured.
 </details>
 
