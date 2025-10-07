@@ -23,7 +23,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from custom_components.ef_ble.eflib.devices import delta3
+from custom_components.ef_ble.eflib.devices import delta3_classic
 
 from . import DeviceConfigEntry
 from .eflib import DeviceBase
@@ -325,12 +325,12 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
     "dc_port_state": SensorEntityDescription(
         key="dc_port_state",
         device_class=SensorDeviceClass.ENUM,
-        options=delta3.DCPortState.options(),
+        options=delta3_classic.DCPortState.options(),
     ),
     "dc_port_2_state": SensorEntityDescription(
         key="dc_port_2_state",
         device_class=SensorDeviceClass.ENUM,
-        options=delta3.DCPortState.options(),
+        options=delta3_classic.DCPortState.options(),
     ),
     "solar_input_power": SensorEntityDescription(
         key="input_power_solar",
