@@ -40,6 +40,12 @@
             "connectable": true
         },
         {
+            "local_name": "EF-P3*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 80, 51, 50, 49],
+            "connectable": true
+        },
+        {
             "local_name": "EF-DP3*",
             "manufacturer_id": 46517,
             "manufacturer_data_start": [19, 77, 82, 53, 49],
@@ -81,5 +87,5 @@
         "protobuf"
     ],
 
-    "version": "0.18.0"
+    "version": "0.19.0"
 }
