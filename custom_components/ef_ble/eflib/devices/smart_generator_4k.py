@@ -28,6 +28,7 @@ class Device(smart_generator.Device, ProtobufProps):
     ) -> None:
         super().__init__(ble_dev, adv_data, sn)
         self.dc_output_power_max = 3200
+        self.dc_output_power_min = 1000
 
     xt150_battery_level = pb_field(pb.cms_batt_soc)
     xt150_charge_type = pb_field(pb.plug_in_info_dcp_dsg_chg_type)
@@ -37,7 +38,8 @@ class Device(smart_generator.Device, ProtobufProps):
     async def set_dc_output_power_max(self, limit: int):
         if (
             self.dc_output_power_max is None
-            or limit < 0
+            or self.dc_output_power_min is None
+            or limit < self.dc_output_power_min
             or limit > self.dc_output_power_max
         ):
             return False

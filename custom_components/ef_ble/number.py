@@ -135,8 +135,9 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
         name="DC Power Limit",
         device_class=NumberDeviceClass.POWER,
         native_unit_of_measurement=UnitOfPower.WATT,
-        native_step=1,
-        native_min_value=0,
+        mode=NumberMode.SLIDER,
+        native_step=100,
+        min_value_prop="dc_output_power_min",
         max_value_prop="dc_output_power_max",
         async_set_native_value=(
             lambda device, value: device.set_dc_output_power_max(int(value))
