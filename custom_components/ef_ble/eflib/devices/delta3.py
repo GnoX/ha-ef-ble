@@ -73,7 +73,7 @@ class DCPortState(IntFieldValue):
 class Device(DeviceBase, ProtobufProps):
     """Delta 3"""
 
-    SN_PREFIX = (b"P231", b"D361")
+    SN_PREFIX = (b"P231",)
     NAME_PREFIX = "EF-D3"
 
     battery_level = pb_field(pb.cms_batt_soc, lambda value: round(value, 2))
@@ -133,10 +133,10 @@ class Device(DeviceBase, ProtobufProps):
     def device(self):
         model = ""
         match self._sn[:4]:
-            case "D361":
-                model = "1500"
             case "P351":
                 model = "Plus"
+            case "P321":
+                model = "Classic"
         return f"Delta 3 {model}".strip()
 
     async def packet_parse(self, data: bytes) -> Packet:
