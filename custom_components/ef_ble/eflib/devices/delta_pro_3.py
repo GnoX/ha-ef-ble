@@ -57,7 +57,7 @@ class Device(DeviceBase, ProtobufProps):
 
     dc_lv_input_power = pb_field(pb.pow_get_pv_l)
     dc_hv_input_power = pb_field(pb.pow_get_pv_h)
-    dc_lv_input_state = pb_field(pb.plug_in_info_pv_l_type, DCPortState)
+    dc_lv_input_state = pb_field(pb.plug_in_info_pv_l_type, DCPortState.from_value)
     dc_hv_input_state = pb_field(pb.plug_in_info_pv_h_type, DCPortState.from_value)
 
     usbc_output_power = pb_field(pb.pow_get_typec1, _out_power)
