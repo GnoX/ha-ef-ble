@@ -193,7 +193,7 @@ you have to create it yourself, see this section from the official
 </details>
 
 <details><summary>
-<b>STREAM (AC, AC Pro, Max, Pro, Ultra)</b>
+<b>STREAM (AC, AC Pro, Max, Pro, Ultra, Ultra X)</b>
 </summary>
 
 | *Sensors*                   | *Switches*  | *Sliders*             | *Selects*       |
@@ -216,7 +216,7 @@ you have to create it yourself, see this section from the official
 ᴬ Only available on AC Pro variant  
 ᴹ Only available on Max variant  
 ᴾ Only available on Pro variant  
-ᵁ Only available on Ultra variant  
+ᵁ Only available on Ultra and Ultra X variants
 ¹ Not available when there's no base load timeframe or more than 1 timeframe configured.
 </details>
 
