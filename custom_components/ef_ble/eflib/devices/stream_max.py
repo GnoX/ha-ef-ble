@@ -1,10 +1,10 @@
-from ..props import ProtobufProps, pb_field
+from ..props import pb_field
 from . import stream_ac
 
 pb = stream_ac.pb
 
 
-class Device(stream_ac.Device, ProtobufProps):
+class Device(stream_ac.Device):
     """STREAM Max"""
 
     SN_PREFIX = (b"BK41",)
