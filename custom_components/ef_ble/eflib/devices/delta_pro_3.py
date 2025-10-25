@@ -84,6 +84,10 @@ class Device(DeviceBase, ProtobufProps):
     solar_lv_power = Field[float]()
     solar_hv_power = Field[float]()
 
+    generator_start_stop = pb_field(pb.wireless_oil_self_start)
+    generator_start_level = pb_field(pb.wireless_oil_on_soc)
+    generator_stop_level = pb_field(pb.wireless_oil_off_soc)
+
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
     ) -> None:
@@ -199,5 +203,24 @@ class Device(DeviceBase, ProtobufProps):
 
         await self._send_config_packet(
             mr521_pb2.ConfigWrite(cfg_plug_in_info_ac_in_chg_pow_max=value)
+        )
+        return True
+
+    async def enable_generator_start_stop(self, enabled: bool):
+        cfg = mr521_pb2.ConfigWrite(cfg_wireless_oil_self_start=enabled)
+        if self.energy_backup:
+            cfg.cfg_energy_backup.energy_backup_en = False
+
+        await self._send_config_packet(cfg)
+
+    async def set_generator_start_level(self, on_soc: int):
+        await self._send_config_packet(
+            mr521_pb2.ConfigWrite(cfg_wireless_oil_on_soc=on_soc)
+        )
+        return True
+
+    async def set_generator_stop_level(self, off_soc: int):
+        await self._send_config_packet(
+            mr521_pb2.ConfigWrite(cfg_wireless_oil_off_soc=off_soc)
         )
         return True
