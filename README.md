@@ -333,6 +333,25 @@ you have to create it yourself, see this section from the official
 | Water Level        |                 |             |            |
 
 </details>
+<b>STREAM Microinverter</b>
+</summary>
+
+| *Sensors*      |
+|----------------|
+| Battery Level  |
+| Grid Power     |
+| Grid Voltage   |
+| Grid Current   |
+| Grid Frequency |
+| PV (1) Power   |
+| PV (1) Current |
+| PV (1) Voltage |
+| PV (2) Power   |
+| PV (2) Current |
+| PV (2) Voltage |
+
+</details>
+
 </p>
 
 **NOTICE**: this integration utilizes Bluetooth LE of the EF device, which is supporting just one
