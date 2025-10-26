@@ -533,6 +533,13 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
     ),
+    "grid_current": SensorEntityDescription(
+        key="grid_current",
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+    ),
     "load_from_battery": SensorEntityDescription(
         key="load_from_battery",
         native_unit_of_measurement=UnitOfPower.WATT,
@@ -766,6 +773,30 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.ENUM,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
+    **{
+        f"pv_current_{i}": SensorEntityDescription(
+            key=f"pv_current_{i}",
+            native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+            device_class=SensorDeviceClass.CURRENT,
+            state_class=SensorStateClass.MEASUREMENT,
+            suggested_display_precision=2,
+            translation_key="port_current",
+            translation_placeholders={"name": f"PV ({i})"},
+        )
+        for i in range(1, 3)
+    },
+    **{
+        f"pv_voltage_{i}": SensorEntityDescription(
+            key=f"pv_voltage_{i}",
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            device_class=SensorDeviceClass.VOLTAGE,
+            state_class=SensorStateClass.MEASUREMENT,
+            suggested_display_precision=1,
+            translation_key="port_voltage",
+            translation_placeholders={"name": f"PV ({i})"},
+        )
+        for i in range(1, 3)
+    },
 }
 
 
