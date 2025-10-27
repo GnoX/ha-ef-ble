@@ -84,9 +84,9 @@ class Device(DeviceBase, ProtobufProps):
     solar_lv_power = Field[float]()
     solar_hv_power = Field[float]()
 
-    generator_start_stop = pb_field(pb.wireless_oil_self_start)
-    generator_start_level = pb_field(pb.wireless_oil_on_soc)
-    generator_stop_level = pb_field(pb.wireless_oil_off_soc)
+    generator_start_stop = pb_field(pb.cms_oil_self_start)
+    generator_start_level = pb_field(pb.cms_oil_on_soc)
+    generator_stop_level = pb_field(pb.cms_oil_off_soc)
 
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
