@@ -79,6 +79,11 @@ SWITCH_TYPES = [
         key="feed_grid",
         name="Feed Grid",
     ),
+    SwitchEntityDescription(
+        key="generator_start_stop",
+        name="Generator Start/Stop",
+        entity_registry_enabled_default=False,
+    ),
 ]
 
 

@@ -134,28 +134,28 @@ you have to create it yourself, see this section from the official
 <b>Delta Pro 3 (EF-DP3####)</b>
 </summary>
 
-| *Sensors*                   | *Switches*     | *Sliders*            |
-|-----------------------------|----------------|----------------------|
-| Main Battery Level          | AC Ports       | Backup Reserve Level |
-| Battery Level               | DC Ports       | Max Charge Limit     |
-| AC Input Power              | Backup Reserve | Min Discharge Limit  |
-| AC LV Output Power          |                | AC Charging Speed    |
-| AC HV Output Power          |                |                      |
-| DC 12V Output Power         |                |                      |
-| DC LV Input Power           |                |                      |
-| DC LV Input State           |                |                      |
-| DC HV Input Power           |                |                      |
-| DC HV Input State           |                |                      |
-| Solar LV Power              |                |                      |
-| Solar HV Power              |                |                      |
-| Input Power Total           |                |                      |
-| Output Power Total          |                |                      |
-| USB A Output Power          |                |                      |
-| USB A (2) Output Power      |                |                      |
-| USB C Output Power          |                |                      |
-| USB C (2) Output Power      |                |                      |
-| AC Plugged In               |                |                      |
-| Cell Temperature (disabled) |                |                      |
+| *Sensors*                   | *Switches*                      | *Sliders*                        |
+|-----------------------------|---------------------------------|----------------------------------|
+| Main Battery Level          | AC Ports                        | Backup Reserve Level             |
+| Battery Level               | DC Ports                        | Max Charge Limit                 |
+| AC Input Power              | Backup Reserve                  | Min Discharge Limit              |
+| AC LV Output Power          | Generator Start/Stop (disabled) | AC Charging Speed                |
+| AC HV Output Power          |                                 | Generator Start Level (disabled) |
+| DC 12V Output Power         |                                 | Generator Stop Level (disabled)  |
+| DC LV Input Power           |                                 |                                  |
+| DC LV Input State           |                                 |                                  |
+| DC HV Input Power           |                                 |                                  |
+| DC HV Input State           |                                 |                                  |
+| Solar LV Power              |                                 |                                  |
+| Solar HV Power              |                                 |                                  |
+| Input Power Total           |                                 |                                  |
+| Output Power Total          |                                 |                                  |
+| USB A Output Power          |                                 |                                  |
+| USB A (2) Output Power      |                                 |                                  |
+| USB C Output Power          |                                 |                                  |
+| USB C (2) Output Power      |                                 |                                  |
+| AC Plugged In               |                                 |                                  |
+| Cell Temperature (disabled) |                                 |                                  |
 
 **NOTE**: Delta 3 Pro does not expose energy sensors - to use it for Energy dashboard,
 you have to create it yourself, see this section from the official
