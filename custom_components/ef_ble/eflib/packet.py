@@ -186,9 +186,9 @@ class Packet:
     def __repr__(self):
         return (
             "Packet("
-            f"src=dx{self.src:02X}"
+            f"src=0x{self.src:02X}, "
             f"dst=0x{self._dst:02X}, "
-            f"cmd_set=0x{self._cmd_set}, "
+            f"cmd_set=0x{self._cmd_set:02X}, "
             f"cmd_id=0x{self._cmd_id:02X}, "
             f"payload=bytes.fromhex('{self._payload_hex}'), "
             f"dsrc=0x{self._dsrc:02X}, "
