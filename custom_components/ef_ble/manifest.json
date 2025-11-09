@@ -64,6 +64,12 @@
             "connectable": true
         },
         {
+            "local_name": "EF-F3*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 44, 43, 30, 31],
+            "connectable": true
+        },
+        {
             "local_name": "EF-6*",
             "manufacturer_id": 46517,
             "manufacturer_data_start": [19, 66, 75],
