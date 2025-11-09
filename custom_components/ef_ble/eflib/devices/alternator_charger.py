@@ -48,7 +48,7 @@ class ChargerMode(IntFieldValue):
 class Device(DeviceBase, ProtobufProps):
     """Smart Generator"""
 
-    SN_PREFIX = (b"F371", b"F372")
+    SN_PREFIX = (b"F371", b"F372", b"DC01")
     NAME_PREFIX = "EF-F3"
 
     battery_level = pb_field(pb.cms_batt_soc)
@@ -88,7 +88,14 @@ class Device(DeviceBase, ProtobufProps):
 
     @property
     def device(self):
-        return "Alternator Charger"
+        model = ""
+        match self._sn[:4]:
+            case b"F371" | b"F372":
+                model = "(800W)"
+            case b"DC01":
+                model = "(500W)"
+
+        return f"Alternator Charger {model}".strip()
 
     async def packet_parse(self, data: bytes) -> Packet:
         return Packet.fromBytes(data, is_xor=True)
