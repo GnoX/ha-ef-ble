@@ -381,6 +381,18 @@
       },
       "grid_frequency": {
         "name": "Grid Frequency"
+      },
+      "ambient_temperature": {
+        "name": "Temperature"
+      },
+      "ambient_humidity": {
+        "name": "Humidity"
+      },
+      "operating_mode": {
+        "name": "Operating Mode"
+      },
+      "condensate_water_level": {
+        "name": "Water Level"
       }
     },
     "select": {
