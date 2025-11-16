@@ -20,6 +20,7 @@ from . import DeviceConfigEntry
 from .eflib import DeviceBase
 from .eflib.devices import (
     alternator_charger,
+    delta3,
     delta3_classic,
     delta3_plus,
     delta_pro_3,
@@ -227,6 +228,32 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
             lambda device, value: device.set_load_power(int(value))
         ),
         availability_prop="_load_power_enabled",
+    ),
+    EcoflowNumberEntityDescription[delta_pro_3.Device](
+        key="generator_start_level",
+        name="Generator Start Level",
+        native_unit_of_measurement=PERCENTAGE,
+        native_step=1,
+        native_min_value=0,
+        native_max_value=30,
+        async_set_native_value=(
+            lambda device, value: device.set_generator_start_level(int(value))
+        ),
+        availability_prop="generator_start_stop",
+        entity_registry_enabled_default=False,
+    ),
+    EcoflowNumberEntityDescription[delta3.Device](
+        key="generator_stop_level",
+        name="Generator Stop Level",
+        native_unit_of_measurement=PERCENTAGE,
+        native_step=1,
+        native_min_value=50,
+        native_max_value=100,
+        async_set_native_value=(
+            lambda device, value: device.set_generator_stop_level(int(value))
+        ),
+        availability_prop="generator_start_stop",
+        entity_registry_enabled_default=False,
     ),
 ]
 
