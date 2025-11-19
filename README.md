@@ -220,6 +220,31 @@ you have to create it yourself, see this section from the official
 ¹ Not available when there's no base load timeframe or more than 1 timeframe configured.
 </details>
 
+<details><summary>
+<b>Wave 3</b>
+</summary>
+
+| *Sensors*                        | *Sliders*       | *Switches* |
+|----------------------------------|-----------------|------------|
+| Battery Level                    | Charge Limit    | Power      |
+| Ambient Temperature              | Discharge Limit |            |
+| Ambient Humidity                 |                 |            |
+| Operating Mode                   |                 |            |
+| Condensate Water Level           |                 |            |
+| Cell Temperature (disabled)      |                 |            |
+| Fan Level                        |                 |            |
+| Drainage Mode                    |                 |            |
+| Input Power                      |                 |            |
+| Output Power                     |                 |            |
+| Indoor Supply Air Temperature    |                 |            |
+| Indoor Return Air Temperature    |                 |            |
+| Outdoor Ambient Temperature      |                 |            |
+| Condenser Temperature            |                 |            |
+| Evaporator Temperature           |                 |            |
+| Compressor Discharge Temperature |                 |            |
+| Sleep State                      |                 |            |
+</details>
+
 </p>
 
 **NOTICE**: this integration utilizes Bluetooth LE of the EF device, which is supporting just one

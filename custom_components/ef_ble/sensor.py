@@ -1,6 +1,7 @@
 """EcoFlow BLE sensor"""
 
 import itertools
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -24,11 +25,15 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from custom_components.ef_ble.eflib.devices import delta3_classic
-
 from . import DeviceConfigEntry
 from .eflib import DeviceBase
-from .eflib.devices import delta_pro_3, shp2, smart_generator
+from .eflib.devices import (
+    delta3_classic,
+    delta_pro_3,
+    shp2,
+    smart_generator,
+    wave3,
+)
 from .entity import EcoflowEntity
 
 _UPPER_WORDS = ["ac", "dc", "lv", "hv", "tt", "5p8"]
@@ -222,6 +227,15 @@ def _create_shp2_channel_sensors():
 @dataclass(frozen=True, kw_only=True)
 class EcoflowSensorEntityDescription[Device: DeviceBase](SensorEntityDescription):
     state_attribute_fields: list[str] = field(default_factory=list)
+    native_unit_of_measurement_field: str | Callable[[Device], str] | None = None
+
+
+def _wave3_unit(dev: wave3.Device):
+    return (
+        UnitOfTemperature.FAHRENHEIT
+        if dev.temp_unit is wave3.TemperatureUnit.FAHRENHEIT
+        else UnitOfTemperature.CELSIUS
+    )
 
 
 SENSOR_TYPES: dict[str, SensorEntityDescription] = {
@@ -698,6 +712,84 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         )
         for i in range(5)
     },
+    # Wave 3
+    "ambient_temperature": EcoflowSensorEntityDescription[wave3.Device](
+        key="ambient_temperature",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement_field=_wave3_unit,
+    ),
+    "ambient_humidity": SensorEntityDescription(
+        key="ambient_humidity",
+        device_class=SensorDeviceClass.HUMIDITY,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=PERCENTAGE,
+    ),
+    "operating_mode": SensorEntityDescription(
+        key="operating_mode",
+        device_class=SensorDeviceClass.ENUM,
+        options=wave3.OperatingMode.options(),
+    ),
+    "condensate_water_level": SensorEntityDescription(
+        key="condensate_water_level",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=PERCENTAGE,
+    ),
+    "sleep_state": SensorEntityDescription(
+        key="sleep_state",
+        device_class=SensorDeviceClass.ENUM,
+        options=wave3.SleepState.options(),
+    ),
+    "pcs_fan_level": SensorEntityDescription(
+        key="pcs_fan_level",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=PERCENTAGE,
+    ),
+    "in_drainage": SensorEntityDescription(
+        key="in_drainage",
+    ),
+    "drainage_mode": SensorEntityDescription(
+        key="drainage_mode",
+    ),
+    "lcd_show_temp_type": SensorEntityDescription(
+        key="lcd_show_temp_type",
+    ),
+    "temp_indoor_supply_air": EcoflowSensorEntityDescription(
+        key="temp_indoor_supply_air",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement_field=_wave3_unit,
+    ),
+    "temp_indoor_return_air": EcoflowSensorEntityDescription(
+        key="temp_indoor_return_air",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement_field=_wave3_unit,
+    ),
+    "temp_outdoor_ambient": EcoflowSensorEntityDescription(
+        key="temp_outdoor_ambient",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement_field=_wave3_unit,
+    ),
+    "temp_condenser": EcoflowSensorEntityDescription(
+        key="temp_condenser",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement_field=_wave3_unit,
+    ),
+    "temp_evaporator": EcoflowSensorEntityDescription(
+        key="temp_evaporator",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement_field=_wave3_unit,
+    ),
+    "temp_compressor_discharge": EcoflowSensorEntityDescription(
+        key="temp_compressor_discharge",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement_field=_wave3_unit,
+    ),
 }
 
 
@@ -747,6 +839,18 @@ class EcoflowSensor(EcoflowEntity, SensorEntity):
         if isinstance(value, Enum):
             return value.name.lower()
         return value
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        """Return the unit of measurement."""
+        if isinstance(self.entity_description, EcoflowSensorEntityDescription):
+            unit = self.entity_description.native_unit_of_measurement_field
+            match unit:
+                case str():
+                    return getattr(self._device, unit)
+                case Callable():
+                    return unit(self._device)
+        return self.entity_description.native_unit_of_measurement
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
