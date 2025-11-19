@@ -27,6 +27,7 @@ from .eflib.devices import (
     smart_generator,
     smart_generator_4k,
     stream_ac,
+    stream_microinverter,
 )
 from .entity import EcoflowEntity
 
@@ -227,6 +228,18 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
             lambda device, value: device.set_load_power(int(value))
         ),
         availability_prop="_load_power_enabled",
+    ),
+    EcoflowNumberEntityDescription[stream_microinverter.Device](
+        key="feed_grid_mode_power_limit",
+        name="Maximum Output Power",
+        device_class=NumberDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        native_step=1,
+        native_min_value=0,
+        max_value_prop="feed_grid_mode_power_max",
+        async_set_native_value=(
+            lambda device, value: device.set_feed_grid_mode_pow_limit(int(value))
+        ),
     ),
 ]
 
