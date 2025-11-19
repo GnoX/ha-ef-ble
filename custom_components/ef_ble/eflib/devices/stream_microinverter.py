@@ -34,6 +34,9 @@ class Device(DeviceBase, ProtobufProps):
     grid_current = pb_field(pb.grid_connection_amp, _round())
     grid_frequency = pb_field(pb.grid_connection_freq, _round())
 
+    feed_grid_mode_power_limit = pb_field(pb.feed_grid_mode_pow_limit)
+    feed_grid_mode_power_max = pb_field(pb.feed_grid_mode_pow_max)
+
     @classmethod
     def check(cls, sn):
         return sn[:4] in cls.SN_PREFIX
@@ -65,5 +68,18 @@ class Device(DeviceBase, ProtobufProps):
 
         await self._send_config_packet(
             bk_series_pb2.ConfigWrite(cfg_inv_target_pwr=power)
+        )
+        return True
+
+    async def set_feed_grid_mode_pow_limit(self, power: int):
+        if (
+            power < 0
+            or self.feed_grid_mode_power_max is None
+            or power > self.feed_grid_mode_power_max
+        ):
+            return False
+
+        await self._send_config_packet(
+            bk_series_pb2.ConfigWrite(cfg_feed_grid_mode_pow_limit=power)
         )
         return True
