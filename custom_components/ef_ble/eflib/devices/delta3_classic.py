@@ -128,18 +128,6 @@ class Device(DeviceBase, ProtobufProps):
     def check(cls, sn):
         return sn[:4] in cls.SN_PREFIX
 
-    @property
-    def device(self):
-        model = ""
-        match self._sn[:4]:
-            case "P351":
-                model = "Plus"
-            case "P321":
-                model = "Classic"
-            case "D3M1":
-                model = "Max Plus"
-        return f"Delta 3 {model}".strip()
-
     async def packet_parse(self, data: bytes) -> Packet:
         return Packet.fromBytes(data, is_xor=True)
 
