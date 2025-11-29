@@ -1,8 +1,7 @@
 """EcoFlow BLE binary sensor"""
 
-import logging
+import dataclasses
 from collections.abc import Callable
-from dataclasses import dataclass
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -13,30 +12,29 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from custom_components.ef_ble.eflib import DeviceBase
-
 from . import DeviceConfigEntry
+from .description_builder import BinarySensorBuilder
+from .eflib import DeviceBase, get_binary_sensors, sensors
 from .entity import EcoflowEntity
 
-_LOGGER = logging.getLogger(__name__)
+
+@dataclasses.dataclass
+class Builder[E: sensors.EntityType]:
+    builder: Callable[[E, BinarySensorBuilder], BinarySensorBuilder]
 
 
-@dataclass(frozen=True, kw_only=True)
-class EcoflowBinarySensorEntityDescription(BinarySensorEntityDescription):
-    update_state: Callable[[bool], None] | None = None
+type BuilderDict[E: sensors.EntityType] = dict[type[E], Builder[E]]
 
-
-BINARY_SENSOR_TYPES = {
-    "error_happened": BinarySensorEntityDescription(
-        key="error",
-        name="Error",
-        device_class=BinarySensorDeviceClass.PROBLEM,
-        entity_category=EntityCategory.DIAGNOSTIC,
+BUILDERS: BuilderDict = {
+    sensors.Plug: Builder[sensors.Plug](
+        lambda _, builder: builder.device_class(BinarySensorDeviceClass.PLUG)
     ),
-    "plugged_in_ac": BinarySensorEntityDescription(
-        key="plugged_in_ac",
-        name="AC Plugged In",
-        device_class=BinarySensorDeviceClass.PLUG,
+    sensors.Problem: Builder[sensors.Problem](
+        lambda _, builder: (
+            builder.device_class(BinarySensorDeviceClass.PROBLEM).entity_category(
+                EntityCategory.DIAGNOSTIC
+            )
+        )
     ),
 }
 
@@ -50,9 +48,18 @@ async def async_setup_entry(
     device = config_entry.runtime_data
 
     new_sensors = [
-        EcoflowBinarySensor(device, sensor)
-        for sensor in BINARY_SENSOR_TYPES
-        if hasattr(device, sensor)
+        EcoflowBinarySensor(
+            device,
+            BUILDERS[sensor.__class__]
+            .builder(
+                sensor,
+                BinarySensorBuilder(sensor.field)
+                .key(sensor.key)
+                .enabled(sensor.enabled),
+            )
+            .build(),
+        )
+        for sensor in get_binary_sensors(device)
     ]
 
     if new_sensors:
@@ -63,12 +70,12 @@ class EcoflowBinarySensor(EcoflowEntity, BinarySensorEntity):
     def __init__(
         self,
         device: DeviceBase,
-        sensor: str,
+        description: BinarySensorEntityDescription,
     ):
         super().__init__(device)
 
-        self._attr_unique_id = f"{self._device.name}_{sensor}"
-        self.entity_description = BINARY_SENSOR_TYPES[sensor]
+        self._attr_unique_id = f"{self._device.name}_{description.key}"
+        self.entity_description = description
         self._prop_name = self.entity_description.key
 
     async def async_added_to_hass(self):

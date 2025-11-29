@@ -1,8 +1,8 @@
 """EcoFlow BLE sensor"""
 
+import dataclasses
 import itertools
 from collections.abc import Callable
-from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
@@ -25,7 +25,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import DeviceConfigEntry
-from .eflib import DeviceBase
+from .description_builder import EcoflowSensorEntityDescription, SensorBuilder
+from .eflib import DeviceBase, get_sensors, sensors
 from .eflib.devices import (
     delta3_classic,
     delta_pro_3,
@@ -45,12 +46,6 @@ def _auto_name_from_key(key: str):
             for part in key.split("_")
         ]
     )
-
-
-@dataclass(frozen=True, kw_only=True)
-class EcoflowSensorEntityDescription[Device: DeviceBase](SensorEntityDescription):
-    state_attribute_fields: list[str] = field(default_factory=list)
-    native_unit_of_measurement_field: str | Callable[[Device], str] | None = None
 
 
 def _wave3_unit(dev: wave3.Device):
@@ -612,6 +607,55 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
 }
 
 
+@dataclasses.dataclass
+class Builder[E: sensors.EntityType]:
+    builder: Callable[[E, SensorBuilder], SensorBuilder]
+
+
+type BuilderDict[E: sensors.EntityType] = dict[type[E], Builder[E]]
+
+BUILDERS: BuilderDict = {
+    sensors.Battery: Builder[sensors.Battery](
+        lambda sensor, builder: (
+            builder.device_class(SensorDeviceClass.BATTERY)
+            .state_class(SensorStateClass.MEASUREMENT)
+            .native_unit_of_measurement(PERCENTAGE)
+            .suggested_display_precision(sensor.precision)
+        ),
+    ),
+    sensors.Power: Builder[sensors.Power](
+        lambda sensor, builder: (
+            builder.device_class(SensorDeviceClass.POWER)
+            .state_class(SensorStateClass.MEASUREMENT)
+            .native_unit_of_measurement(sensor.unit)
+            .suggested_display_precision(sensor.precision)
+        )
+    ),
+    sensors.Energy: Builder[sensors.Energy](
+        lambda sensor, builder: (
+            builder.device_class(SensorDeviceClass.ENERGY)
+            .state_class(SensorStateClass.TOTAL_INCREASING)
+            .native_unit_of_measurement(UnitOfEnergy.WATT_HOUR)
+            .suggested_unit_of_measurement(UnitOfEnergy.KILO_WATT_HOUR)
+            .suggested_display_precision(sensor.precision)
+        )
+    ),
+    sensors.Temperature: Builder[sensors.Temperature](
+        lambda sensor, builder: (
+            builder.device_class(SensorDeviceClass.TEMPERATURE)
+            .state_class(SensorStateClass.MEASUREMENT)
+            .native_unit_of_measurement(sensor.unit)
+            .suggested_display_precision(sensor.precision)
+        )
+    ),
+    sensors.Enum: Builder[sensors.Enum](
+        lambda sensor, builder: (
+            builder.device_class(SensorDeviceClass.ENUM).options(sensor.options)
+        )
+    ),
+}
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: DeviceConfigEntry,
@@ -621,9 +665,15 @@ async def async_setup_entry(
     device = config_entry.runtime_data
 
     new_sensors = [
-        EcoflowSensor(device, sensor)
-        for sensor in SENSOR_TYPES
-        if hasattr(device, sensor)
+        EcoflowSensor(
+            device,
+            (
+                BUILDERS[sensor.__class__]
+                .builder(sensor, SensorBuilder.from_entity(sensor))
+                .build()
+            ),
+        )
+        for sensor in get_sensors(device)
     ]
 
     if new_sensors:
@@ -633,17 +683,16 @@ async def async_setup_entry(
 class EcoflowSensor(EcoflowEntity, SensorEntity):
     """Base representation of a sensor."""
 
-    def __init__(self, device: DeviceBase, sensor: str):
+    def __init__(self, device: DeviceBase, description: SensorEntityDescription):
         """Initialize the sensor."""
         super().__init__(device)
 
-        self._sensor = sensor
-        self._attr_unique_id = f"{device.name}_{sensor}"
+        self._sensor = description.key
+        self._attr_unique_id = f"{device.name}_{description.key}"
 
-        if sensor in SENSOR_TYPES:
-            self.entity_description = SENSOR_TYPES[sensor]
-            if self.entity_description.translation_key is None:
-                self._attr_translation_key = self.entity_description.key
+        self.entity_description = description
+        if self.entity_description.translation_key is None:
+            self._attr_translation_key = self.entity_description.key
 
         self._attribute_fields = (
             self.entity_description.state_attribute_fields

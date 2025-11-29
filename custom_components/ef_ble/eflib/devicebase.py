@@ -2,7 +2,7 @@ import abc
 import time
 from collections import defaultdict
 from collections.abc import Callable
-from typing import Any
+from typing import Any, ClassVar
 
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
@@ -17,6 +17,7 @@ class DeviceBase(abc.ABC):
     """Device Base"""
 
     MANUFACTURER_KEY = 0xB5B5
+    NAME_PREFIX: ClassVar[str]
 
     @classmethod
     @abc.abstractmethod
@@ -76,7 +77,7 @@ class DeviceBase(abc.ABC):
         """Full device serial number parsed from manufacturer data."""
         return self._sn
 
-    def isValid(self):
+    def is_valid(self):
         return self._sn is not None
 
     @property
@@ -104,11 +105,11 @@ class DeviceBase(abc.ABC):
         return self
 
     async def data_parse(self, packet: Packet) -> bool:
-        """Function to parse incoming data and trigger sensors update"""
+        """Parse incoming data and trigger sensors update"""
         return False
 
     async def packet_parse(self, data: bytes):
-        """Function to parse packet"""
+        """Parse packet"""
         return Packet.fromBytes(data)
 
     async def connect(

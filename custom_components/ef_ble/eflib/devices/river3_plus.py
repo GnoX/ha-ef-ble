@@ -1,3 +1,4 @@
+from ..entity import sensors
 from ..pb import pr705_pb2
 from ..props import pb_field
 from ..props.enums import IntFieldValue
@@ -32,3 +33,5 @@ class Device(river3.Device):
             case "R635":
                 model = "Wireless"
         return f"River 3 Plus {model}".strip()
+
+    _sensors = [sensors.Battery(battery_level_main)]

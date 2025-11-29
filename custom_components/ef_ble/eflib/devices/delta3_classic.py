@@ -4,6 +4,7 @@ from google.protobuf.message import Message
 
 from ..commands import TimeCommands
 from ..devicebase import DeviceBase
+from ..entity import sensors
 from ..packet import Packet
 from ..pb import pd335_bms_bp_pb2, pd335_sys_pb2
 from ..props import (
@@ -116,6 +117,7 @@ class Device(DeviceBase, ProtobufProps):
         pd335_sys_pb2.PV_CHG_VOL_SPEC_12V, pd335_sys_pb2.PV_PLUG_INDEX_1
     )
     dc_charging_current_max = _DcChargingMaxField(pd335_sys_pb2.PV_CHG_VOL_SPEC_12V)
+    temp_unit = Field[str]()
 
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
@@ -123,6 +125,7 @@ class Device(DeviceBase, ProtobufProps):
         super().__init__(ble_dev, adv_data, sn)
         self._time_commands = TimeCommands(self)
         self.max_ac_charging_power = 1500
+        self.temp_unit = "C"
 
     @classmethod
     def check(cls, sn):
@@ -253,3 +256,31 @@ class Device(DeviceBase, ProtobufProps):
 
         await self._send_config_packet(config)
         return True
+
+    def _temp_unit(self) -> sensors.Temperature.Unit:
+        return (
+            sensors.Temperature.Unit.C
+            if self.temp_unit == "C"
+            else sensors.Temperature.Unit.F
+        )
+
+    _sensors = [
+        sensors.Battery(battery_level, precision=2),
+        sensors.Battery(battery_level_main, precision=2),
+        sensors.Power(ac_input_power),
+        sensors.Power(ac_output_power),
+        sensors.Power(dc12v_output_power),
+        sensors.Power(usbc_output_power),
+        sensors.Power(usbc2_output_power),
+        sensors.Power(usba_output_power),
+        sensors.Power(usba2_output_power),
+        sensors.Power(dc_port_input_power),
+        sensors.Power(solar_input_power),
+        sensors.Power(battery_input_power, enabled=False),
+        sensors.Power(battery_output_power, enabled=False),
+        sensors.Power(input_power),
+        sensors.Power(field=output_power),
+        sensors.Enum.from_enum(dc_port_state, DCPortState),
+        sensors.Temperature(cell_temperature, unit=_temp_unit),
+        sensors.Plug(plugged_in_ac),
+    ]

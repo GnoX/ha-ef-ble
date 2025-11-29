@@ -3,6 +3,7 @@ from bleak.backends.scanner import AdvertisementData
 
 from ..commands import TimeCommands
 from ..devicebase import DeviceBase
+from ..entity import controls, sensors
 from ..packet import Packet
 from ..pb import pr705_pb2
 from ..props import (
@@ -25,7 +26,7 @@ class DcChargingType(IntFieldValue):
     SOLAR = 2
 
 
-class _StatField(
+class _stat_field(
     repeated_pb_field_type(
         list_field=pb.display_statistics_sum.list_info,
         value_field=lambda x: x.statistics_content,
@@ -57,10 +58,10 @@ class Device(DeviceBase, ProtobufProps):
     battery_level = pb_field(pb.cms_batt_soc)
 
     ac_input_power = pb_field(pb.pow_get_ac_in)
-    ac_input_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_AC_IN_ENERGY)
+    ac_input_energy = _stat_field(pr705_pb2.STATISTICS_OBJECT_AC_IN_ENERGY)
 
     ac_output_power = pb_field(pb.pow_get_ac_out, _out_power)
-    ac_output_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_AC_OUT_ENERGY)
+    ac_output_energy = _stat_field(pr705_pb2.STATISTICS_OBJECT_AC_OUT_ENERGY)
 
     input_power = pb_field(pb.pow_in_sum_w)
     input_energy = Field[int]()
@@ -69,16 +70,16 @@ class Device(DeviceBase, ProtobufProps):
     output_energy = Field[int]()
 
     dc_input_power = pb_field(pb.pow_get_pv)
-    dc_input_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_PV_IN_ENERGY)
+    dc_input_energy = _stat_field(pr705_pb2.STATISTICS_OBJECT_PV_IN_ENERGY)
 
     dc12v_output_power = pb_field(pb.pow_get_12v)
-    dc12v_output_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_DC12V_OUT_ENERGY)
+    dc12v_output_energy = _stat_field(pr705_pb2.STATISTICS_OBJECT_DC12V_OUT_ENERGY)
 
     usbc_output_power = pb_field(pb.pow_get_typec1, _out_power)
-    usbc_output_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_TYPEC_OUT_ENERGY)
+    usbc_output_energy = _stat_field(pr705_pb2.STATISTICS_OBJECT_TYPEC_OUT_ENERGY)
 
     usba_output_power = pb_field(pb.pow_get_qcusb1, _out_power)
-    usba_output_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_USBA_OUT_ENERGY)
+    usba_output_energy = _stat_field(pr705_pb2.STATISTICS_OBJECT_USBA_OUT_ENERGY)
 
     ac_charging_speed = pb_field(pb.plug_in_info_ac_in_chg_pow_max)
     max_ac_charging_power = pb_field(pb.plug_in_info_ac_in_chg_hal_pow_max)
@@ -250,3 +251,30 @@ class Device(DeviceBase, ProtobufProps):
             pr705_pb2.ConfigWrite(cfg_plug_in_info_pv_dc_amp_max=value)
         )
         return True
+
+    _sensors = [
+        sensors.Battery(battery_level),
+        sensors.Power(ac_input_power),
+        sensors.Energy(ac_input_energy),
+        sensors.Power(ac_output_power),
+        sensors.Energy(ac_output_energy),
+        sensors.Power(input_power),
+        sensors.Energy(input_energy),
+        sensors.Power(output_power),
+        sensors.Energy(output_energy),
+        sensors.Power(dc_input_power),
+        sensors.Energy(dc_input_energy),
+        sensors.Power(dc12v_output_power),
+        sensors.Energy(dc12v_output_energy),
+        sensors.Power(usbc_output_power),
+        sensors.Energy(usbc_output_energy),
+        sensors.Power(usba_output_power),
+        sensors.Energy(usba_output_energy),
+        sensors.Temperature(cell_temperature),
+        sensors.Plug(plugged_in_ac),
+    ]
+
+    _controls = [
+        controls.Switch(ac_ports, enable_ac_ports),
+        controls.Switch(dc_12v_port, enable_dc_12v_port),
+    ]

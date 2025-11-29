@@ -119,6 +119,9 @@ class ProtobufField[T](Field[T]):
 
         super().__set__(instance, value)
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.public_name})"
+
 
 @overload
 def pb_field[T_ATTR](

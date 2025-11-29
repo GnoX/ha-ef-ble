@@ -9,9 +9,15 @@ class IntFieldValue(IntEnum):
     def from_value(cls, value: int):
         try:
             return cls(value)
-        except ValueError:
+        except ValueError as e:
             _LOGGER.debug("Encountered invalid value %s for %s", value, cls.__name__)
-            return cls.UNKNOWN
+            unknown = getattr(cls, "UNKNOWN", None)
+            if unknown is None:
+                raise ValueError(
+                    f"Invalid value {value} for {cls.__name__}. Did you forget to "
+                    "define UNKNOWN?"
+                ) from e
+            return unknown
 
     @classmethod
     def str_from_value(cls, value: int):

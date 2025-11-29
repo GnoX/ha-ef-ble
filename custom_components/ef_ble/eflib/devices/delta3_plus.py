@@ -2,6 +2,7 @@ from functools import partialmethod
 
 from custom_components.ef_ble.eflib.pb import pd335_sys_pb2
 
+from ..entity import sensors
 from ..props import Field, pb_field
 from . import delta3
 from .delta3_classic import DCPortState, _DcAmpSettingField, _DcChargingMaxField, pb
@@ -35,3 +36,9 @@ class Device(delta3.Device):
     set_dc_charging_amps_max_2 = partialmethod(
         delta3.Device.set_dc_charging_amps_max, plug_index=pd335_sys_pb2.PV_PLUG_INDEX_2
     )
+
+    _sensors = [
+        sensors.Enum.from_enum(dc_port_2_state, DCPortState),
+        sensors.Power(dc_port_2_input_power),
+        sensors.Power(solar_input_power_2),
+    ]
