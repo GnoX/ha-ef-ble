@@ -3,7 +3,7 @@ from bleak.backends.scanner import AdvertisementData
 
 from ..commands import TimeCommands
 from ..devicebase import DeviceBase
-from ..entity import controls, sensors
+from ..entity import controls, dynamic, sensors
 from ..packet import Packet
 from ..pb import pr705_pb2
 from ..props import (
@@ -170,88 +170,6 @@ class Device(DeviceBase, ProtobufProps):
 
         return processed
 
-    async def _send_config_packet(self, message):
-        payload = message.SerializeToString()
-        packet = Packet(0x20, 0x02, 0xFE, 0x11, payload, 0x01, 0x01, 0x13)
-        await self._conn.sendPacket(packet)
-
-    async def set_energy_backup_battery_level(self, value: int):
-        config = pr705_pb2.ConfigWrite()
-        config.cfg_energy_backup.energy_backup_en = True
-        config.cfg_energy_backup.energy_backup_start_soc = value
-        await self._send_config_packet(config)
-        return True
-
-    async def enable_energy_backup(self, enabled: bool):
-        config = pr705_pb2.ConfigWrite()
-        config.cfg_energy_backup.energy_backup_en = enabled
-        if enabled and self.energy_backup_battery_level is not None:
-            config.cfg_energy_backup.energy_backup_start_soc = (
-                self.energy_backup_battery_level
-            )
-        await self._send_config_packet(config)
-
-    async def enable_dc_12v_port(self, enabled: bool):
-        await self._send_config_packet(
-            pr705_pb2.ConfigWrite(cfg_dc_12v_out_open=enabled)
-        )
-
-    async def enable_ac_ports(self, enabled: bool):
-        await self._send_config_packet(pr705_pb2.ConfigWrite(cfg_ac_out_open=enabled))
-
-    async def set_battery_charge_limit_min(self, limit: int):
-        if (
-            self.battery_charge_limit_max is not None
-            and limit > self.battery_charge_limit_max
-        ):
-            return False
-
-        await self._send_config_packet(pr705_pb2.ConfigWrite(cfg_min_dsg_soc=limit))
-        return True
-
-    async def set_battery_charge_limit_max(self, limit: int):
-        if (
-            self.battery_charge_limit_min is not None
-            and limit < self.battery_charge_limit_min
-        ):
-            return False
-
-        await self._send_config_packet(
-            message=pr705_pb2.ConfigWrite(cfg_max_chg_soc=limit)
-        )
-        return True
-
-    async def set_ac_charging_speed(self, value: int):
-        if (
-            self.max_ac_charging_power is None
-            or value > self.max_ac_charging_power
-            or value < 0
-        ):
-            return False
-
-        await self._send_config_packet(
-            pr705_pb2.ConfigWrite(cfg_plug_in_info_ac_in_chg_pow_max=value)
-        )
-        return True
-
-    async def set_dc_charging_type(self, state: DcChargingType):
-        await self._send_config_packet(
-            pr705_pb2.ConfigWrite(cfg_pv_chg_type=state.value)
-        )
-
-    async def set_dc_charging_amps_max(self, value: int):
-        if (
-            self.dc_charging_current_max is None
-            or value < 0
-            or value > self.dc_charging_current_max
-        ):
-            return False
-
-        await self._send_config_packet(
-            pr705_pb2.ConfigWrite(cfg_plug_in_info_pv_dc_amp_max=value)
-        )
-        return True
-
     _sensors = [
         sensors.Battery(battery_level),
         sensors.Power(ac_input_power),
@@ -274,7 +192,104 @@ class Device(DeviceBase, ProtobufProps):
         sensors.Plug(plugged_in_ac),
     ]
 
-    _controls = [
-        controls.Switch(ac_ports, enable_ac_ports),
-        controls.Switch(dc_12v_port, enable_dc_12v_port),
-    ]
+    async def _send_config_packet(self, message):
+        payload = message.SerializeToString()
+        packet = Packet(0x20, 0x02, 0xFE, 0x11, payload, 0x01, 0x01, 0x13)
+        await self._conn.sendPacket(packet)
+
+    @controls.switch(energy_backup)
+    async def enable_energy_backup(self, enabled: bool):
+        config = pr705_pb2.ConfigWrite()
+        config.cfg_energy_backup.energy_backup_en = enabled
+        if enabled and self.energy_backup_battery_level is not None:
+            config.cfg_energy_backup.energy_backup_start_soc = (
+                self.energy_backup_battery_level
+            )
+        await self._send_config_packet(config)
+
+    @controls.switch(dc_12v_port)
+    async def enable_dc_12v_port(self, enabled: bool):
+        await self._send_config_packet(
+            pr705_pb2.ConfigWrite(cfg_dc_12v_out_open=enabled)
+        )
+
+    @controls.switch(ac_ports)
+    async def enable_ac_ports(self, enabled: bool):
+        await self._send_config_packet(pr705_pb2.ConfigWrite(cfg_ac_out_open=enabled))
+
+    @controls.battery(
+        energy_backup_battery_level,
+        min=dynamic(battery_charge_limit_min),
+        max=dynamic(battery_charge_limit_max),
+        availability=energy_backup,
+    )
+    async def set_energy_backup_battery_level(self, value: int):
+        config = pr705_pb2.ConfigWrite()
+        config.cfg_energy_backup.energy_backup_en = True
+        config.cfg_energy_backup.energy_backup_start_soc = int(value)
+        await self._send_config_packet(config)
+
+    @controls.battery(
+        battery_charge_limit_min,
+        max=dynamic(battery_charge_limit_max),
+    )
+    async def set_battery_charge_limit_min(self, limit: int):
+        if (
+            self.battery_charge_limit_max is not None
+            and limit > self.battery_charge_limit_max
+        ):
+            return
+
+        await self._send_config_packet(
+            pr705_pb2.ConfigWrite(cfg_min_dsg_soc=int(limit))
+        )
+
+    @controls.battery(
+        battery_charge_limit_max,
+        min=dynamic(battery_charge_limit_min),
+    )
+    async def set_battery_charge_limit_max(self, limit: int):
+        if (
+            self.battery_charge_limit_min is not None
+            and limit < self.battery_charge_limit_min
+        ):
+            return
+
+        await self._send_config_packet(
+            message=pr705_pb2.ConfigWrite(cfg_max_chg_soc=int(limit))
+        )
+
+    @controls.power(
+        ac_charging_speed,
+        max=dynamic(max_ac_charging_power),
+    )
+    async def set_ac_charging_speed(self, value: int):
+        if (
+            self.max_ac_charging_power is None
+            or value > self.max_ac_charging_power
+            or value < 0
+        ):
+            return
+
+        await self._send_config_packet(
+            pr705_pb2.ConfigWrite(cfg_plug_in_info_ac_in_chg_pow_max=int(value))
+        )
+
+    async def set_dc_charging_type(self, state: DcChargingType):
+        await self._send_config_packet(
+            pr705_pb2.ConfigWrite(cfg_pv_chg_type=state.value)
+        )
+
+    @controls.current(dc_charging_max_amps, max=dynamic(dc_charging_current_max))
+    async def set_dc_charging_amps_max(self, value: int):
+        if (
+            self.dc_charging_current_max is None
+            or value < 0
+            or value > self.dc_charging_current_max
+        ):
+            return False
+
+        await self._send_config_packet(
+            pr705_pb2.ConfigWrite(cfg_plug_in_info_pv_dc_amp_max=int(value))
+        )
+        return True

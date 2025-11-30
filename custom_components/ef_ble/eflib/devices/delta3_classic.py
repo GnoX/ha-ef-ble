@@ -257,13 +257,6 @@ class Device(DeviceBase, ProtobufProps):
         await self._send_config_packet(config)
         return True
 
-    def _temp_unit(self) -> sensors.Temperature.Unit:
-        return (
-            sensors.Temperature.Unit.C
-            if self.temp_unit == "C"
-            else sensors.Temperature.Unit.F
-        )
-
     _sensors = [
         sensors.Battery(battery_level, precision=2),
         sensors.Battery(battery_level_main, precision=2),
@@ -281,6 +274,6 @@ class Device(DeviceBase, ProtobufProps):
         sensors.Power(input_power),
         sensors.Power(field=output_power),
         sensors.Enum.from_enum(dc_port_state, DCPortState),
-        sensors.Temperature(cell_temperature, unit=_temp_unit),
+        sensors.Temperature(cell_temperature),
         sensors.Plug(plugged_in_ac),
     ]

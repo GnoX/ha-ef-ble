@@ -12,7 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import DeviceConfigEntry
 from .description_builder import EcoflowSwitchEntityDescription, SwitchBuilder
-from .eflib import DeviceBase, controls, get_toggles
+from .eflib import DeviceBase, controls, get_controls
 from .entity import EcoflowEntity
 
 # SWITCH_TYPES = [
@@ -127,7 +127,7 @@ async def async_setup_entry(
                 .build()
             ),
         )
-        for switch in get_toggles(device)
+        for switch in get_controls(device, controls.Toggle)
     ]
 
     if switches:

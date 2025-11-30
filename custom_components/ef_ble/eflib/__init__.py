@@ -9,6 +9,7 @@ from . import devices
 from .devicebase import DeviceBase
 from .entity import controls as controls
 from .entity import sensors as sensors
+from .entity import units as units
 from .props.updatable_props import UpdatableProps
 
 _LOGGER = logging.getLogger(__name__)
@@ -42,24 +43,24 @@ def _check_device(device: "DeviceBase"):
     return device
 
 
-def get_sensors(device: "DeviceBase"):
-    return _check_device(device).get_sensors(sensors.SensorType)
+def get_sensors[E: sensors.EntityType](
+    device: "DeviceBase", sensor_type: type[E] = sensors.SensorType
+):
+    return _check_device(device).get_sensors(sensor_type)
 
 
-def get_binary_sensors(device: "DeviceBase"):
-    return _check_device(device).get_sensors(sensors.BinarySensorType)
-
-
-def get_toggles(device: "DeviceBase") -> list[controls.Toggle]:
-    return _check_device(device).get_controls(controls.Toggle)
+def get_controls[E: "controls.ControlType"](
+    device: "DeviceBase", control_type: type[E]
+) -> list[E]:
+    return _check_device(device).get_controls(control_type)
 
 
 __all__ = [
     "DeviceBase",
     "NewDevice",
     "controls",
-    "get_binary_sensors",
+    "controls",
     "get_sensors",
-    "get_toggles",
     "sensors",
+    "units",
 ]

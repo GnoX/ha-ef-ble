@@ -1,17 +1,23 @@
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Self
+from typing import Any, Self
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntityDescription,
 )
+from homeassistant.components.number import NumberDeviceClass, NumberEntityDescription
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntityDescription
-from homeassistant.const import EntityCategory, UnitOfPower, UnitOfTemperature
+from homeassistant.const import (
+    EntityCategory,
+    UnitOfElectricCurrent,
+    UnitOfPower,
+    UnitOfTemperature,
+)
 
-from .eflib import DeviceBase, sensors
-from .eflib.entity.base import EntityType
+from .eflib import DeviceBase, sensors, units
+from .eflib.entity import DynamicValue, EntityType
 from .eflib.props import Field
 from .sensor import SensorEntityDescription
 
@@ -117,10 +123,8 @@ class SensorBuilder(EntityDescriptionBuilder):
         self._state_class = state_class
         return self
 
-    def native_unit_of_measurement(
-        self, unit: str | sensors.SensorUnit | sensors.DynamicUnit
-    ):
-        if isinstance(unit, sensors.DynamicValue):
+    def native_unit_of_measurement(self, unit: str | units.Unit | sensors.DynamicUnit):
+        if isinstance(unit, DynamicValue):
             self._native_unit_of_measurement_field = lambda dev: unit_to_hassunit(
                 unit.transform(getattr(dev, unit.field.public_name))
             )
@@ -235,13 +239,113 @@ class SwitchBuilder(EntityDescriptionBuilder):
         )
 
 
-def unit_to_hassunit(unit: str | sensors.Power.Unit | sensors.Temperature.Unit):
+@dataclass(frozen=True, kw_only=True)
+class EcoflowNumberEntityDescription(NumberEntityDescription):
+    async_set_native_value: Callable[[DeviceBase, float], Awaitable[bool]] | None = None
+
+    min_value_prop: str | None = None
+    max_value_prop: str | None = None
+    availability_prop: str | None = None
+
+
+class NumberSensorBuilder(EntityDescriptionBuilder):
+    def __init__(self, field: "Field"):
+        super().__init__(field)
+        self._native_unit_of_measurement = None
+        self._native_min_value = None
+        self._native_max_value = None
+        self._min_value_prop = None
+        self._max_value_prop = None
+        self._native_step = None
+        self._async_set_native_value = None
+        self._device_class = None
+        self._native_unit_of_measurement_field = None
+        self._availability_prop = None
+
+    def device_class(self, device_class: NumberDeviceClass):
+        self._device_class = device_class
+        return self
+
+    def native_unit_of_measurement(
+        self,
+        unit: str | units.Unit,
+    ):
+        self._native_unit_of_measurement = unit_to_hassunit(unit)
+        return self
+
+    def native_step(self, step: float):
+        self._native_step = step
+        return self
+
+    def _get_field(self, val: Any):
+        match val:
+            case Field():
+                return val
+            case DynamicValue():
+                return val.field
+            case _:
+                return None
+
+    def native_min_value(self, min_value: float | Field):
+        if field := self._get_field(min_value):
+            self._min_value_prop = field.public_name
+            return self
+
+        self._native_min_value = min_value
+        return self
+
+    def availability_prop(self, availability_prop: str | Field):
+        if field := self._get_field(availability_prop):
+            self._availability_prop = field.public_name
+            return self
+
+        self._availability_prop = availability_prop
+        return self
+
+    def native_max_value(self, max_value: float | Field | None):
+        if field := self._get_field(max_value):
+            self._max_value_prop = field.public_name
+            return self
+
+        self._native_max_value = max_value
+        return self
+
+    def async_set_native_value(
+        self, func: Callable[[DeviceBase, float], Awaitable[None]]
+    ):
+        self._async_set_native_value = func
+        return self
+
+    def build(self):
+        if self._field is None:
+            raise ValueError("Cannot build sensor entity without field")
+        return EcoflowNumberEntityDescription(
+            key=self._entity_key,
+            name=self._entity_name,
+            device_class=self._device_class,
+            native_unit_of_measurement=self._native_unit_of_measurement,
+            async_set_native_value=self._async_set_native_value,
+            native_min_value=self._native_min_value,
+            native_max_value=self._native_max_value,
+            min_value_prop=self._min_value_prop,
+            max_value_prop=self._max_value_prop,
+            availability_prop=self._availability_prop,
+            native_step=self._native_step,
+            translation_key=self._entity_translation_key,
+            entity_registry_enabled_default=self._entity_registry_enabled_default,
+            icon=self._icon,
+        )
+
+
+def unit_to_hassunit(unit: str | units.Unit):
     match unit:
-        case sensors.Power.Unit.WATT:
+        case units.Power.WATT:
             return UnitOfPower.WATT
-        case sensors.Temperature.Unit.C:
+        case units.Temperature.C:
             return UnitOfTemperature.CELSIUS
-        case sensors.Temperature.Unit.F:
+        case units.Temperature.F:
             return UnitOfTemperature.FAHRENHEIT
+        case units.Current.AMPERE:
+            return UnitOfElectricCurrent.AMPERE
         case str():
             return unit

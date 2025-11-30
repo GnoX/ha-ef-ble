@@ -27,7 +27,7 @@ class UpdatableProps:
     _updated_fields: list[str] | None = None
 
     _sensors: list["sensors.SensorType | sensors.BinarySensorType"] | None = None
-    _controls: list["controls.Switch"]
+    _controls: list["controls.ControlType"] | None = None
 
     @property
     def updated_fields(self):
@@ -77,6 +77,11 @@ class Field[T]:
         self.public_name = name
         self.private_name = f"_{name}"
         owner._fields = [*owner._fields, self]
+        if self.sensor_type is not None:
+            if owner._controls is None:
+                owner._controls = []
+
+            owner._controls.append(self.sensor_type)
 
     def __set__(self, instance, value: Any):
         self._set_value(instance, value)

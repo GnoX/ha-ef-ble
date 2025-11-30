@@ -1,10 +1,8 @@
-import dataclasses
-import enum
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from ..props.enums import IntFieldValue
-from .base import EntityType
+from . import EntityType, units
 
 if TYPE_CHECKING:
     from ..devicebase import DeviceBase
@@ -19,49 +17,27 @@ class BinarySensorType(EntityType):
     pass
 
 
-@dataclasses.dataclass
 class Battery(SensorType):
     precision: int = 0
 
 
-@dataclasses.dataclass
 class Power(SensorType):
-    class Unit(enum.Enum):
-        WATT = "WATT"
-
     precision: int = 0
-    unit: Unit = Unit.WATT
+    unit: units.Power = units.Power.WATT
 
 
-@dataclasses.dataclass
 class Energy(SensorType):
     precision: int = 3
 
 
-@dataclasses.dataclass
-class DynamicValue[F, T]:
-    field: "Field[F]"
-    transform: Callable[[F], T]
+type DynamicUnit[E: "DeviceBase"] = Callable[[E], units.Unit]
 
 
-def depends[F, T](field: "Field[F]", transform: Callable[[F], T]) -> T:
-    return DynamicValue(field, transform)  # pyright: ignore[reportReturnType]
-
-
-type DynamicUnit[E: "DeviceBase"] = Callable[[E], str]
-
-
-@dataclasses.dataclass
 class Temperature(SensorType):
-    class Unit(enum.Enum):
-        C = "C"
-        F = "F"
-
     precision: int = 1
-    unit: Unit | DynamicUnit = Unit.C
+    unit: units.Temperature | DynamicUnit = units.Temperature.C
 
 
-@dataclasses.dataclass
 class Enum(SensorType):
     options: list[str]
 
@@ -70,14 +46,9 @@ class Enum(SensorType):
         return cls(field=field, options=[item.name.lower() for item in enum_cls])
 
 
-type SensorUnit = Power.Unit | Temperature.Unit
-
-
-@dataclasses.dataclass
 class Plug(BinarySensorType):
     pass
 
 
-@dataclasses.dataclass
 class Problem(BinarySensorType):
     pass

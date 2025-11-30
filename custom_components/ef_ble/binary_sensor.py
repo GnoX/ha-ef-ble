@@ -14,7 +14,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import DeviceConfigEntry
 from .description_builder import BinarySensorBuilder
-from .eflib import DeviceBase, get_binary_sensors, sensors
+from .eflib import DeviceBase, get_sensors, sensors
 from .entity import EcoflowEntity
 
 
@@ -59,7 +59,7 @@ async def async_setup_entry(
             )
             .build(),
         )
-        for sensor in get_binary_sensors(device)
+        for sensor in get_sensors(device, sensors.BinarySensorType)
     ]
 
     if new_sensors:
