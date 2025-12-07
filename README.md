@@ -223,26 +223,6 @@ you have to create it yourself, see this section from the official
 </details>
 
 <details><summary>
-<b>Delta 2 (Delta 3 1500)</b>
-</summary>
-
-| *Sensors*                   | *Switches*  | *Sliders*           |
-|-----------------------------|-------------|---------------------|
-| Battery Level               | AC Ports    | Max Charge Limit    |
-| Input Power                 | DC 12V Port | Min Discharge Limit |
-| Output Power                | USB Ports   |                     |
-| AC Input Power              |             |                     |
-| AC Output Power             |             |                     |
-| DC Output Power             |             |                     |
-| DC 12V Output Voltage       |             |                     |
-| DC 12V Output Current       |             |                     |
-| USB A Output Power          |             |                     |
-| USB C Output Power          |             |                     |
-| Cell Temperature (disabled) |             |                     |
-
-</details>
-
-<details><summary>
 <b>Wave 3</b>
 </summary>
 
@@ -267,6 +247,25 @@ you have to create it yourself, see this section from the official
 | Sleep State                      |                 |            |
 </details>
 
+<details><summary>
+<b>Delta 2 (Delta 3 1500)</b>
+</summary>
+
+| *Sensors*                   | *Switches*  | *Sliders*           |
+|-----------------------------|-------------|---------------------|
+| Battery Level               | AC Ports    | Max Charge Limit    |
+| Input Power                 | DC 12V Port | Min Discharge Limit |
+| Output Power                | USB Ports   |                     |
+| AC Input Power              |             |                     |
+| AC Output Power             |             |                     |
+| DC Output Power             |             |                     |
+| DC 12V Output Voltage       |             |                     |
+| DC 12V Output Current       |             |                     |
+| USB A Output Power          |             |                     |
+| USB C Output Power          |             |                     |
+| Cell Temperature (disabled) |             |                     |
+
+</details>
 </p>
 
 **NOTICE**: this integration utilizes Bluetooth LE of the EF device, which is supporting just one
