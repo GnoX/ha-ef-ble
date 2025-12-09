@@ -135,14 +135,18 @@ class Connection:
         data_parse: Callable[[Packet], Awaitable[bool]],
         packet_parse: Callable[[bytes], Awaitable[Packet]],
         on_state_change: Callable[[ConnectionState], None] = lambda _: None,
+        packet_version: int = 0x03,
     ) -> None:
         self._ble_dev = ble_dev
         self._address = ble_dev.address
         self._dev_sn = dev_sn
         self._user_id = user_id
+
         self._data_parse = data_parse
         self._packet_parse = packet_parse
         self._authenticated = False
+
+        self._packet_version = packet_version
 
         self._errors = 0
         self._client = None
@@ -771,8 +775,7 @@ class Connection:
             LogOptions.CONNECTION_DEBUG, "getKeyInfoReq: Receiving auth status"
         )
 
-        # Preparing packet with empty payload
-        packet = Packet(0x21, 0x35, 0x35, 0x89, b"", 0x01, 0x01, 0x03)
+        packet = Packet(0x21, 0x35, 0x35, 0x89, b"", 0x01, 0x01, self._packet_version)
 
         await self.sendPacket(packet, self.getAuthStatusHandler)
 
@@ -808,8 +811,10 @@ class Connection:
         # We need upper case in MD5 data here
         payload = ("".join(f"{c:02X}" for c in md5_data)).encode("ASCII")
 
-        # Forming packet
-        packet = Packet(0x21, 0x35, 0x35, 0x86, payload, 0x01, 0x01, 0x03)
+        # Forming packet - use detected protocol version (V2 or V3)
+        packet = Packet(
+            0x21, 0x35, 0x35, 0x86, payload, 0x01, 0x01, self._packet_version
+        )
 
         # Sending request and starting the common listener
         await self.sendPacket(packet, self.listenForDataHandler)

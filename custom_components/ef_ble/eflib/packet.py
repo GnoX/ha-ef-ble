@@ -88,12 +88,6 @@ class Packet:
     @staticmethod
     def fromBytes(data, is_xor=False):
         """Deserializes bytes stream into internal data"""
-        if len(data) < 20:
-            _LOGGER.error(
-                "Unable to parse packet - too small: %s", bytearray(data).hex()
-            )
-            return None
-
         if not data.startswith(Packet.PREFIX):
             _LOGGER.error(
                 "Unable to parse packet - prefix is incorrect: %s",
@@ -102,9 +96,15 @@ class Packet:
             return None
 
         version = data[1]
+        if (version == 2 and len(data) < 18) or (version == 3 and len(data) < 20):
+            _LOGGER.error(
+                "Unable to parse packet - too small: %s", bytearray(data).hex()
+            )
+            return None
+
         payload_length = struct.unpack("<H", data[2:4])[0]
 
-        if version == 3:
+        if version >= 2:
             # Check whole packet CRC16
             if crc16(data[:-2]) != struct.unpack("<H", data[-2:])[0]:
                 _LOGGER.error(
@@ -129,14 +129,18 @@ class Packet:
         # data[10:12] # static zeroes?
         src = data[12]
         dst = data[13]
-        dsrc = data[14]
-        ddst = data[15]
-        cmd_set = data[16]
-        cmd_id = data[17]
+
+        dsrc = ddst = 0
+        payload_start = 16 if version == 2 else 18
+
+        if version == 2:
+            cmd_set, cmd_id = data[14:payload_start]
+        else:
+            dsrc, ddst, cmd_set, cmd_id = data[14:payload_start]
 
         payload = b""
         if payload_length > 0:
-            payload = data[18 : 18 + payload_length]
+            payload = data[payload_start : payload_start + payload_length]
 
             # If first byte of seq is set - we need to xor payload with it to get the real data
             if is_xor is True and seq[0] != b"\x00":
@@ -157,8 +161,13 @@ class Packet:
         # Additional data
         data += self.productByte() + self._seq
         data += b"\x00\x00"  # Unknown static zeroes, no strings attached right now
+
         data += struct.pack("<B", self._src) + struct.pack("<B", self._dst)
-        data += struct.pack("<B", self._dsrc) + struct.pack("<B", self._ddst)
+
+        # V3+ includes dsrc/ddst fields, V2 does not
+        if self._version >= 0x03:
+            data += struct.pack("<B", self._dsrc) + struct.pack("<B", self._ddst)
+
         data += struct.pack("<B", self._cmd_set) + struct.pack("<B", self._cmd_id)
         # Payload
         data += self._payload
@@ -174,6 +183,17 @@ class Packet:
         return b"\x0c"
 
     def __repr__(self):
-        return "Packet(0x{_src:02X}, 0x{_dst:02X}, 0x{_cmd_set:02X}, 0x{_cmd_id:02X}, bytes.fromhex('{_payload_hex}'), 0x{_dsrc:02X}, 0x{_ddst:02X}, 0x{_version:02X}, {_seq}, 0x{_product_id:02X})".format(
-            **vars(self)
+        return (
+            "Packet("
+            f"src=0x{self._src:02X}, "
+            f"dst=0x{self._dst:02X}, "
+            f"cmd_set=0x{self._cmd_set:02X}, "
+            f"cmd_id=0x{self._cmd_id:02X}, "
+            f"payload=bytes.fromhex('{self._payload_hex}'), "
+            f"dsrc=0x{self._dsrc:02X}, "
+            f"ddst=0x{self._ddst:02X}, "
+            f"version=0x{self._version:02X}, "
+            f"seq={self._seq}, "
+            f"product_id=0x{self._product_id:02X}"
+            ")"
         )
