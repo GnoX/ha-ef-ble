@@ -198,22 +198,22 @@ you have to create it yourself, see this section from the official
 <b>STREAM (AC, AC Pro, Max, Pro, Ultra, Ultra X)</b>
 </summary>
 
-| *Sensors*                   | *Switches*  | *Sliders*             | *Selects*       |
-|-----------------------------|-------------|-----------------------|-----------------|
-| Battery Level               | Feed Grid   | Feed Grid Power Limit | Energy Strategy |
-| Grid Power                  | AC (1) ᴬᴹᴾᵁ | Backup Reserve Level  |                 |
-| Grid Voltage                | AC (2) ᴬᴾᵁ  | Charge Limit          |                 |
-| Grid Frequency              |             | Discharge Limit       |                 |
-| Load from Battery           |             | Base Load Power ¹     |                 |
-| Load from Grid              |             |                       |                 |
-| Load from PVᴹᴾᵁ             |             |                       |                 |
-| AC (1) Power ᴬᴹᴾᵁ           |             |                       |                 |
-| AC (2) Power ᴬᴾᵁ            |             |                       |                 |
-| PV (1) Poweri ᴹᴾᵁ           |             |                       |                 |
-| PV (2) Power ᴹᴾᵁ            |             |                       |                 |
-| PV (3) Power ᴾᵁ             |             |                       |                 |
-| PV (4) Power ᵁ              |             |                       |                 |
-| Cell Temperature (disabled) |             |                       |                 |
+| *Sensors*                   | *Switches*  | *Sliders*             | *Selects*       | *Numbers*              |
+|-----------------------------|-------------|-----------------------|-----------------|------------------------|
+| Battery Level               | Feed Grid   | Feed Grid Power Limit | Energy Strategy | Grid Input Power Limit |
+| Grid Power                  | AC (1) ᴬᴹᴾᵁ | Backup Reserve Level  |                 |                        |
+| Grid Voltage                | AC (2) ᴬᴾᵁ  | Charge Limit          |                 |                        |
+| Grid Frequency              |             | Discharge Limit       |                 |                        |
+| Load from Battery           |             | Base Load Power ¹     |                 |                        |
+| Load from Grid              |             |                       |                 |                        |
+| Load from PVᴹᴾᵁ             |             |                       |                 |                        |
+| AC (1) Power ᴬᴹᴾᵁ           |             |                       |                 |                        |
+| AC (2) Power ᴬᴾᵁ            |             |                       |                 |                        |
+| PV (1) Poweri ᴹᴾᵁ           |             |                       |                 |                        |
+| PV (2) Power ᴹᴾᵁ            |             |                       |                 |                        |
+| PV (3) Power ᴾᵁ             |             |                       |                 |                        |
+| PV (4) Power ᵁ              |             |                       |                 |                        |
+| Cell Temperature (disabled) |             |                       |                 |                        |
 
 ᴬ Only available on AC Pro variant  
 ᴹ Only available on Max variant  
