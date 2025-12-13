@@ -36,7 +36,8 @@
             "name": "EcoFlow Login (skip if you already know your user ID)",
             "data": {
               "email": "Email",
-              "password": "Password"
+              "password": "Password",
+              "region": "Region"
             }
           },
           "log_options": {
