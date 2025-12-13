@@ -96,6 +96,9 @@ class Device(DeviceBase, ProtobufProps):
     feed_grid_pow_limit = pb_field(pb.feed_grid_mode_pow_limit)
     feed_grid_pow_max = pb_field(pb.feed_grid_mode_pow_max)
 
+    grid_in_power_limit = pb_field(pb.sys_grid_in_pwr_limit)
+    max_ac_in_power = pb_field(pb.pow_sys_ac_in_max)
+
     energy_strategy = pb_field(
         pb.energy_strategy_operate_mode,
         EnergyStrategy.from_pb,
@@ -193,5 +196,14 @@ class Device(DeviceBase, ProtobufProps):
                     ]
                 )
             )
+        )
+        return True
+
+    async def set_grid_in_pow_limit(self, value: int):
+        if self.max_ac_in_power is None or value > self.max_ac_in_power or value < 0:
+            return False
+
+        await self._send_config_packet(
+            bk_series_pb2.ConfigWrite(cfg_sys_grid_in_pwr_limit=value)
         )
         return True
