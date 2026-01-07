@@ -370,7 +370,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         entry_data["local_name"] = self._local_names.get(device.address, None)
         entry_data.pop("login", None)
 
-        return self.async_create_entry(title=device.device, data=entry_data)
+        return self.async_create_entry(title=device.name, data=entry_data)
 
     async def _validate_user_id(
         self, device: eflib.DeviceBase, user_input: dict[str, Any]
