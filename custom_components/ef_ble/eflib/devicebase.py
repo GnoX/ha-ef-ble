@@ -1,15 +1,29 @@
 import abc
+import asyncio
 import time
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, MutableSequence
 from typing import Any
 
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from bleak_retry_connector import MAX_CONNECT_ATTEMPTS
 
-from .connection import Connection, ConnectionState, DisconnectListener
-from .logging_util import DeviceLogger, LogOptions
+from .connection import (
+    Connection,
+    ConnectionState,
+    ConnectionStateListener,
+    DisconnectListener,
+    PacketParsedListener,
+    PacketReceivedListener,
+)
+from .listeners import ListenerGroup
+from .logging_util import (
+    ConnectionLog,
+    DeviceDiagnosticsCollector,
+    DeviceLogger,
+    LogOptions,
+)
 from .packet import Packet
 
 
@@ -27,8 +41,9 @@ class DeviceBase(abc.ABC):
     ) -> None:
         self._sn = sn
         # We can't use advertisement name here - it's prone to change to "Ecoflow-dev"
-        self._name = self.NAME_PREFIX + self._sn[-4:]
-        self._name_by_user = self._name
+        self._default_name = self.NAME_PREFIX + self._sn[-4:]
+        self._name = self._default_name
+        self._name_by_user = None
         self._ble_dev = ble_dev
         self._address = ble_dev.address
 
@@ -42,6 +57,7 @@ class DeviceBase(abc.ABC):
         )
 
         self._conn = None
+        self._connection_event = asyncio.Event()
         self._callbacks = set()
         self._callbacks_map = {}
         self._state_update_callbacks: dict[str, set[Callable[[Any], None]]] = (
@@ -51,9 +67,15 @@ class DeviceBase(abc.ABC):
         self._last_updated = 0
         self._props_to_update = set()
         self._wait_until_throttle = 0
+        self._packet_version = 0x03
 
         self._reconnect_disabled = False
-        self._disconnect_listeners: list[DisconnectListener] = []
+        self._diagnostics = DeviceDiagnosticsCollector(self)
+
+        self._on_packet_received = ListenerGroup[PacketReceivedListener]()
+        self._on_disconnect = ListenerGroup[DisconnectListener]()
+        self._on_connection_state_change = ListenerGroup[ConnectionStateListener]()
+        self._on_packet_parsed = ListenerGroup[PacketParsedListener]()
 
     @property
     def device(self):
@@ -68,8 +90,8 @@ class DeviceBase(abc.ABC):
         return self._name
 
     @property
-    def name_by_user(self):
-        return self._name_by_user
+    def name_by_user(self) -> str:
+        return self._name_by_user if self._name_by_user is not None else self.name
 
     @property
     def serial_number(self):
@@ -85,11 +107,15 @@ class DeviceBase(abc.ABC):
 
     @property
     def packet_version(self) -> int:
-        return 0x03
+        return self._packet_version
 
     @property
     def connection_state(self):
-        return None if self._conn is None else self._conn._state
+        return None if self._conn is None else self._conn._connection_state
+
+    @property
+    def diagnostics(self):
+        return self._diagnostics
 
     def with_update_period(self, period: int):
         self._update_period = period
@@ -107,13 +133,35 @@ class DeviceBase(abc.ABC):
             self._conn.with_disabled_reconnect(is_disabled)
         return self
 
+    def with_packet_version(self, packet_version: int | None = None):
+        self._packet_version = (
+            packet_version if packet_version is not None else self._packet_version
+        )
+        return self
+
+    def with_enabled_packet_diagnostics(self, enabled: bool = True):
+        self._diagnostics.enabled(enabled)
+        return self
+
+    def with_name(self, name: str):
+        self._name = name
+        return self
+
     async def data_parse(self, packet: Packet) -> bool:
-        """Function to parse incoming data and trigger sensors update"""
+        """Parse incoming data and trigger sensors update"""
         return False
 
     async def packet_parse(self, data: bytes):
-        """Function to parse packet"""
+        """Parse packet"""
         return Packet.fromBytes(data)
+
+    @property
+    def connection_log(self):
+        if (connection_log := getattr(self, "_connection_log", None)) is not None:
+            return connection_log
+
+        self._connection_log = ConnectionLog(self.address.replace(":", "_"))
+        return self._connection_log
 
     async def connect(
         self,
@@ -124,23 +172,24 @@ class DeviceBase(abc.ABC):
         if self._conn is None:
             self._conn = (
                 Connection(
-                    self._ble_dev,
-                    self._sn,
-                    user_id,
-                    self.data_parse,
-                    self.packet_parse,
+                    ble_dev=self._ble_dev,
+                    dev_sn=self._sn,
+                    user_id=user_id,
+                    data_parse=self.data_parse,
+                    packet_parse=self.packet_parse,
                     packet_version=self.packet_version,
                 )
                 .with_logging_options(self._logger.options)
                 .with_disabled_reconnect(self._reconnect_disabled)
             )
+            self._connection_event.set()
+
             self._logger.info("Connecting to %s", self.device)
 
-            def _disconnect_callback(exc):
-                for callback in self._disconnect_listeners:
-                    callback(exc)
+            self._conn.on_disconnect(self._on_disconnect)
+            self._conn.on_packet_data_received(self._on_packet_received)
+            self._conn.on_state_change(self._on_connection_state_change)
 
-            self._conn.on_disconnect(listener=_disconnect_callback)
         elif self._conn._user_id != user_id:
             self._conn._user_id = user_id
 
@@ -152,6 +201,8 @@ class DeviceBase(abc.ABC):
             return
 
         await self._conn.disconnect()
+        self._connection_event.clear()
+        self._conn = None
 
     async def wait_connected(self, timeout: int = 20):
         if self._conn is None:
@@ -175,6 +226,14 @@ class DeviceBase(abc.ABC):
             raise_on_error=raise_on_error
         )
 
+    async def observe_connection(self):
+        while self._conn is None:
+            yield ConnectionState.NOT_CONNECTED
+            await self._connection_event.wait()
+
+        async for state in self._conn.observe_connection():
+            yield state
+
     def on_disconnect(self, listener: DisconnectListener):
         """
         Add disconnect listener
@@ -189,12 +248,28 @@ class DeviceBase(abc.ABC):
         -------
         Function to remove this listener
         """
-        self._disconnect_listeners.append(listener)
+        return self._add_listener(self._on_disconnect, listener)
+
+    def _add_listener(self, collection: MutableSequence[Callable], listener: Callable):
+        collection.append(listener)
 
         def _unlisten():
-            self._disconnect_listeners.remove(listener)
+            collection.remove(listener)
 
         return _unlisten
+
+    def on_packet_received(self, packet_received_listener: PacketReceivedListener):
+        return self._add_listener(self._on_packet_received, packet_received_listener)
+
+    def on_packet_parsed(self, packet_parsed_listener: PacketParsedListener):
+        return self._add_listener(self._on_packet_parsed, packet_parsed_listener)
+
+    def on_connection_state_change(
+        self, connection_state_listener: ConnectionStateListener
+    ):
+        return self._add_listener(
+            self._on_connection_state_change, connection_state_listener
+        )
 
     def register_callback(
         self, callback: Callable[[], None], propname: str | None = None
@@ -227,8 +302,8 @@ class DeviceBase(abc.ABC):
                 if self._wait_until_throttle is None:
                     return
 
-                # let first few messages update as soon as they come, otherwise everything
-                # would display unknown until first period ends
+                # let first few messages update as soon as they come, otherwise
+                # everything would display unknown until first period ends
                 if self._wait_until_throttle == 0:
                     self._wait_until_throttle = now + 5
                 elif self._wait_until_throttle < now:

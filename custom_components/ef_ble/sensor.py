@@ -805,6 +805,13 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
     ),
+    "collecting_data": SensorEntityDescription(
+        key="collecting_data",
+        name="Collecting data",
+        translation_key="collecting_data",
+        device_class=SensorDeviceClass.ENUM,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
 }
 
 
