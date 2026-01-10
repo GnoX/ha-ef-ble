@@ -89,6 +89,14 @@ SWITCH_TYPES = [
         name="Power",
         device_class=SwitchDeviceClass.SWITCH,
     ),
+    SwitchEntityDescription(
+        key="automatic_drain",
+        name="Automatic Drain",
+    ),
+    SwitchEntityDescription(
+        key="ambient_light",
+        name="Ambient Light",
+    ),
 ]
 
 

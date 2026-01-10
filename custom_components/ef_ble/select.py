@@ -8,11 +8,16 @@ from homeassistant.components.select import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from custom_components.ef_ble.eflib import DeviceBase
-from custom_components.ef_ble.eflib.devices import alternator_charger, smart_generator
-
 from . import DeviceConfigEntry
-from .eflib.devices import river3, river3_plus, stream_ac
+from .eflib import DeviceBase
+from .eflib.devices import (
+    alternator_charger,
+    river3,
+    river3_plus,
+    smart_generator,
+    stream_ac,
+    wave2,
+)
 from .entity import EcoflowEntity
 
 
@@ -80,6 +85,48 @@ SELECT_TYPES: list[EcoflowSelectEntityDescription] = [
             lambda device, value: device.set_energy_strategy(
                 stream_ac.EnergyStrategy[value.upper()]
             )
+        ),
+    ),
+    EcoflowSelectEntityDescription[wave2.Device](
+        key="power_mode",
+        name="Power Mode",
+        options=wave2.PowerMode.options(
+            include_unknown=False, exclude=[wave2.PowerMode.INIT]
+        ),
+        set_state=(
+            lambda device, value: device.set_power_mode(wave2.PowerMode[value.upper()])
+        ),
+    ),
+    EcoflowSelectEntityDescription[wave2.Device](
+        key="main_mode",
+        name="Main Mode",
+        options=wave2.MainMode.options(include_unknown=False),
+        set_state=(
+            lambda device, value: device.set_main_mode(wave2.MainMode[value.upper()])
+        ),
+    ),
+    EcoflowSelectEntityDescription[wave2.Device](
+        key="sub_mode",
+        name="Sub Mode",
+        options=wave2.SubMode.options(include_unknown=False),
+        set_state=(
+            lambda device, value: device.set_sub_mode(wave2.SubMode[value.upper()])
+        ),
+    ),
+    EcoflowSelectEntityDescription[wave2.Device](
+        key="fan_speed",
+        name="Fan Speed",
+        options=wave2.FanGear.options(include_unknown=False),
+        set_state=(
+            lambda device, value: device.set_fan_speed(wave2.FanGear[value.upper()])
+        ),
+    ),
+    EcoflowSelectEntityDescription[wave2.Device](
+        key="drain_mode",
+        name="Drain Mode",
+        options=wave2.DrainMode.options(include_unknown=False),
+        set_state=(
+            lambda device, value: device.set_drain_mode(wave2.DrainMode[value.upper()])
         ),
     ),
 ]
