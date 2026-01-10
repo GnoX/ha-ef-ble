@@ -22,9 +22,15 @@ class IntFieldValue(IntEnum):
         return self.name.lower()
 
     @classmethod
-    def options(cls, include_unknown: bool = True):
+    def options(
+        cls, include_unknown: bool = True, exclude: list["IntFieldValue"] = []
+    ) -> list[str]:
         return [
             opt.name.lower()
             for opt in cls
-            if opt is not getattr(cls, "UNKNOWN", None) or include_unknown
+            if (opt is not getattr(cls, "UNKNOWN", None) or include_unknown)
+            and opt not in exclude
         ]
+
+    def __repr__(self):
+        return self.state_name
