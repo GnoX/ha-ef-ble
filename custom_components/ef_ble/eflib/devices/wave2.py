@@ -1,6 +1,7 @@
 from ..devicebase import DeviceBase
 from ..model.kt210_sac import KT210SAC
 from ..packet import Packet
+from ..props import Field
 from ..props.enums import IntFieldValue
 from ..props.raw_data_field import dataclass_attr_mapper, raw_field
 from ..props.raw_data_props import RawDataProps
@@ -45,10 +46,10 @@ class DrainMode(IntFieldValue):
     DRAIN_FREE = 1
 
     @classmethod
-    def from_int(cls, value: int) -> "DrainMode":
-        if (value & 0b01) == 1:
-            return cls.DRAIN_FREE
-        return cls.EXTERNAL
+    def from_wte(cls, main_mode: MainMode, value: int) -> "DrainMode":
+        if main_mode is MainMode.COLD:
+            return cls.DRAIN_FREE if value in (1, 3) else cls.EXTERNAL
+        return cls.DRAIN_FREE if value == 3 else cls.EXTERNAL
 
 
 class Device(DeviceBase, RawDataProps):
@@ -74,8 +75,10 @@ class Device(DeviceBase, RawDataProps):
     power_psdr = raw_field(pb.psdr_pwr_watt)
     power_mppt = raw_field(pb.mptt_pwr_watt)
 
-    drain_mode = raw_field(pb.wte_fth_en, DrainMode.from_int)
-    automatic_drain = raw_field(pb.wte_fth_en, lambda x: (x & 0b10) == 0)
+    automatic_drain = raw_field(pb.wte_fth_en, lambda x: x in (0, 1))
+    wte_fth_en = raw_field(pb.wte_fth_en)
+    drain_mode = Field[DrainMode]()
+
     water_level = raw_field(pb.water_value, WaterLevel.from_value)
 
     ambient_light = raw_field(pb.rgb_state, lambda x: x == 0x01)
@@ -95,7 +98,6 @@ class Device(DeviceBase, RawDataProps):
         return sn.startswith(cls.SN_PREFIX)
 
     async def packet_parse(self, data: bytes) -> Packet:
-        # Wave 2 uses V2 protocol with XOR encoding based on sequence number
         return Packet.fromBytes(data, is_xor=True)
 
     async def data_parse(self, packet: Packet) -> bool:
@@ -105,6 +107,12 @@ class Device(DeviceBase, RawDataProps):
         if packet.src == 0x42 and packet.cmdSet == 0x42 and packet.cmdId == 0x50:
             self.update_from_bytes(KT210SAC, packet.payload)
             processed = True
+
+            if self.wte_fth_en is not None and self.main_mode is not None:
+                self.drain_mode = DrainMode.from_wte(self.main_mode, self.wte_fth_en)
+                self.update_callback("drain_mode")
+                self.update_state("drain_mode", self.drain_mode)
+
         # elif packet.src == 0x06 and packet.cmdSet == 0x20 and packet.cmdId == 0x32:
         #     processed = False
 
@@ -133,26 +141,45 @@ class Device(DeviceBase, RawDataProps):
         drain_mode = (
             self.drain_mode if self.drain_mode is not None else DrainMode.EXTERNAL
         )
-        if self.main_mode != MainMode.COLD and self.drain_mode != DrainMode.EXTERNAL:
-            drain_mode = DrainMode.EXTERNAL
+
+        if not enabled:
+            payload = 2 if drain_mode is DrainMode.EXTERNAL else 3
+        elif self.main_mode is not MainMode.COLD:
+            payload = 1
+        else:
+            payload = 0 if drain_mode is DrainMode.EXTERNAL else 1
 
         payload = (0 if enabled else 0b10) | drain_mode.value
+
         await self._send_config_packet(0x59, payload.to_bytes())
 
     async def set_drain_mode(self, mode: DrainMode):
-        if self.main_mode != MainMode.COLD:
-            mode = DrainMode.EXTERNAL
-        payload = (0 if self.automatic_drain else 0b10) | mode.value
-        if mode == self.drain_mode:
-            return
-
+        if not self.automatic_drain:
+            payload = 2 if mode is DrainMode.EXTERNAL else 3
+        elif self.main_mode is not MainMode.COLD:
+            payload = 1
+        else:
+            payload = 0 if mode is DrainMode.EXTERNAL else 1
         await self._send_config_packet(0x59, payload.to_bytes())
 
     async def set_fan_speed(self, fan_gear: FanGear):
         await self._send_config_packet(0x5E, fan_gear.to_bytes())
 
     async def set_main_mode(self, mode: MainMode):
+        set_drain_mode = False
+        if (
+            self.automatic_drain
+            and self.drain_mode != DrainMode.EXTERNAL
+            and mode != MainMode.COLD
+        ):
+            set_drain_mode = True
+
         await self._send_config_packet(0x51, mode.to_bytes())
+
+        if set_drain_mode:
+            payload = 1
+            await self._send_config_packet(0x59, payload.to_bytes())
+            self.drain_mode = DrainMode.EXTERNAL
 
     async def set_power_mode(self, mode: PowerMode):
         await self._send_config_packet(0x5B, mode.to_bytes())
