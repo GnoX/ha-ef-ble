@@ -78,6 +78,8 @@ class Device(DeviceBase, RawDataProps):
     automatic_drain = raw_field(pb.wte_fth_en, lambda x: (x & 0b10) == 0)
     water_level = raw_field(pb.water_value, WaterLevel.from_value)
 
+    wte_fth_en = raw_field(pb.wte_fth_en)
+
     ambient_light = raw_field(pb.rgb_state, lambda x: x == 0x01)
 
     target_temperature = raw_field(pb.set_temp)
@@ -133,18 +135,18 @@ class Device(DeviceBase, RawDataProps):
         drain_mode = (
             self.drain_mode if self.drain_mode is not None else DrainMode.EXTERNAL
         )
-        if self.main_mode != MainMode.COLD and self.drain_mode != DrainMode.EXTERNAL:
-            drain_mode = DrainMode.EXTERNAL
+        if self.main_mode != MainMode.COLD:
+            payload = 0x01
+        else:
+            payload = (0 if enabled else 0b10) | drain_mode.value
 
-        payload = (0 if enabled else 0b10) | drain_mode.value
         await self._send_config_packet(0x59, payload.to_bytes())
 
     async def set_drain_mode(self, mode: DrainMode):
         if self.main_mode != MainMode.COLD:
-            mode = DrainMode.EXTERNAL
-        payload = (0 if self.automatic_drain else 0b10) | mode.value
-        if mode == self.drain_mode:
-            return
+            payload = 0x01
+        else:
+            payload = (0 if self.automatic_drain else 0b10) | mode.value
 
         await self._send_config_packet(0x59, payload.to_bytes())
 

@@ -662,11 +662,14 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.ENUM,
         options=wave2.WaterLevel.options(),
     ),
+    "wte_fth_en": SensorEntityDescription(
+        key="wte_fth_en",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
     # unsupported
     "collecting_data": SensorEntityDescription(
         key="collecting_data",
         name="Collecting data",
-        translation_key="collecting_data",
         device_class=SensorDeviceClass.ENUM,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
