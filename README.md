@@ -271,12 +271,14 @@ you have to create it yourself, see this section from the official
 <b>Wave 2</b>
 </summary>
 
-| *Sensors*     | *Switches*      | *Sliders*   | *Selects*  |
-|---------------|-----------------|-------------|------------|
-| Battery Level | Automatic Drain | Temperature | Power Mode |
-| Battery Power | Ambient Light   |             | Main Mode  |
-| MPPT Power    |                 |             | Sub Mode   |
-| PSDR Power    |                 |             | Fan Speed  |
+| *Sensors*          | *Switches*      | *Sliders*   | *Selects*  |
+|--------------------|-----------------|-------------|------------|
+| Battery Level      | Automatic Drain | Temperature | Power Mode |
+| Battery Power      | Ambient Light   |             | Main Mode  |
+| MPPT Power         |                 |             | Sub Mode   |
+| PSDR Power         |                 |             | Fan Speed  |
+| Outlet Temperature |                 |             | Drain Mode |
+| Water Level        |                 |             |            |
 
 </details>
 </p>
