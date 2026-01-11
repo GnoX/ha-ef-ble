@@ -572,7 +572,7 @@
         "name": "Channel {channel} Error Count"
       },
       "ambient_temperature": {
-        "name": "Temperature"
+        "name": "Ambient Temperature"
       },
       "ambient_humidity": {
         "name": "Humidity"
@@ -624,8 +624,22 @@
       },
       "power": {
         "name": "Power"
+      },
+      "power_battery": {
+        "name": "Battery Power"
+      },
+      "power_psdr": {
+        "name": "PSDR Power"
+      },
+      "power_mppt": {
+        "name": "MPPT Power"
+      },
+      "water_level": {
+        "name": "Water Level"
+      },
+      "outlet_temperature": {
+        "name": "Outlet Temperature"
       }
-
     },
     "select": {
       "led_mode": {
@@ -648,8 +662,14 @@
           "reverse_charge": "Reverse Charge",
           "battery_maintenance": "Battery Maintenance"
         }
+      },
+      "drain_mode": {
+        "name": "Drain Mode",
+        "state": {
+          "drain_free": "Drain Free",
+          "external": "External"
+        }
       }
     }
-
   }
 }

@@ -265,6 +265,18 @@ you have to create it yourself, see this section from the official
 
 </details>
 
+<details><summary>
+<b>Wave 2</b>
+</summary>
+
+| *Sensors*     | *Switches*      | *Sliders*   | *Selects*  |
+|---------------|-----------------|-------------|------------|
+| Battery Level | Automatic Drain | Temperature | Power Mode |
+| Battery Power | Ambient Light   |             | Main Mode  |
+| MPPT Power    |                 |             | Sub Mode   |
+| PSDR Power    |                 |             | Fan Speed  |
+
+</details>
 </p>
 
 **NOTICE**: this integration utilizes Bluetooth LE of the EF device, which is supporting just one
