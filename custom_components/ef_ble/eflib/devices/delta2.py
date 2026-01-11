@@ -3,7 +3,6 @@ from ..model import (
     AllKitDetailData,
     DirectBmsMDeltaHeartbeatPack,
     DirectEmsDeltaHeartbeatPack,
-    DirectMpptHeartbeatPack,
     Mr330MpptHeart,
     Mr330PdHeart,
 )
@@ -12,7 +11,7 @@ from ..props.raw_data_field import dataclass_attr_mapper, raw_field
 from ..props.raw_data_props import RawDataProps
 
 pb_pd = dataclass_attr_mapper(Mr330PdHeart)
-pb_mppt = dataclass_attr_mapper(DirectMpptHeartbeatPack)
+pb_mppt = dataclass_attr_mapper(Mr330MpptHeart)
 pb_ems = dataclass_attr_mapper(DirectEmsDeltaHeartbeatPack)
 pb_bms = dataclass_attr_mapper(DirectBmsMDeltaHeartbeatPack)
 
