@@ -110,6 +110,8 @@ class Device(DeviceBase, RawDataProps):
 
             if self.wte_fth_en is not None and self.main_mode is not None:
                 self.drain_mode = DrainMode.from_wte(self.main_mode, self.wte_fth_en)
+                # NOTE(gnox): for some reason, drain mode gets removed from updated
+                # fields if updated like this so we just update it manually here
                 self.update_callback("drain_mode")
                 self.update_state("drain_mode", self.drain_mode)
 
