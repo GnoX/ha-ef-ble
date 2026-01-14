@@ -97,6 +97,10 @@ SWITCH_TYPES = [
         key="ambient_light",
         name="Ambient Light",
     ),
+    SwitchEntityDescription(
+        key="emergency_reverse_charging",
+        name="Emergency Reverse Charging",
+    ),
 ]
 
 
