@@ -93,7 +93,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
             .with_disabled_reconnect()
             .with_packet_version(packet_version.to_num())
             .with_enabled_packet_diagnostics(packet_collection_enabled)
-            .connect(user_id, timeout=timeout)
+            .connect(
+                user_id=user_id,
+                timeout=timeout,
+                max_attempts=0 if eflib.is_solar_only(device) else None,
+            )
         )
         state = await device.wait_until_authenticated_or_error(raise_on_error=True)
     except (ConnectionTimeout, BleakError, TimeoutError) as e:
