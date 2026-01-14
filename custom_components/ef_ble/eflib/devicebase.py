@@ -7,7 +7,6 @@ from typing import Any
 
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
-from bleak_retry_connector import MAX_CONNECT_ATTEMPTS
 
 from .connection import (
     Connection,
@@ -166,7 +165,7 @@ class DeviceBase(abc.ABC):
     async def connect(
         self,
         user_id: str | None = None,
-        max_attempts: int = MAX_CONNECT_ATTEMPTS,
+        max_attempts: int | None = None,
         timeout: int = 20,
     ):
         if self._conn is None:

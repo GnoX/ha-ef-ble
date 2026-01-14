@@ -7,7 +7,7 @@ from bleak.backends.scanner import AdvertisementData
 
 from . import devices
 from .devicebase import DeviceBase
-from .devices import unsupported
+from .devices import stream_microinverter, unsupported
 
 
 def sn_from_advertisement(adv_data: AdvertisementData):
@@ -25,6 +25,10 @@ def is_unsupported(
     device: DeviceBase | None,
 ) -> TypeGuard[unsupported.UnsupportedDevice]:
     return isinstance(device, unsupported.UnsupportedDevice)
+
+
+def is_solar_only(device: DeviceBase | None):
+    return isinstance(device, stream_microinverter.Device)
 
 
 def NewDevice(ble_dev: BLEDevice, adv_data: AdvertisementData) -> DeviceBase | None:
