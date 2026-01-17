@@ -18,7 +18,7 @@ def _round(precision: int = 2):
 class Device(DeviceBase, ProtobufProps):
     """STREAM Microinverter"""
 
-    SN_PREFIX = (b"BK01", b"BK02")
+    SN_PREFIX = (b"BK01", b"BK02", b"N011")
     NAME_PREFIX = "EF-BK"
 
     pv_power_1 = pb_field(pb.pow_get_pv, _round())
