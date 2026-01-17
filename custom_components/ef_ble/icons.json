@@ -123,6 +123,9 @@
             },
             "grid_frequency": {
                 "default": "mdi:cosine-wave"
+            },
+            "grid_current": {
+                "default": "mdi:current-ac"
             }
         },
         "switch": {
