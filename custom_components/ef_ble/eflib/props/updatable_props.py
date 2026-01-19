@@ -17,24 +17,24 @@ class UpdatableProps:
     """
 
     updated: bool = False
-    _updated_fields: list[str] | None = None
+    _updated_fields: set[str] | None = None
 
     @property
     def updated_fields(self):
         """List of field names that were updated after calling `reset_updated`"""
         if self._updated_fields is None:
-            self._updated_fields = []
+            self._updated_fields = set()
         return self._updated_fields
 
     @updated_fields.setter
     def updated_fields(self, value: list[str]):
-        self._updated_fields = value
+        self._updated_fields = set(value)
 
     _fields: ClassVar[list["Field[Any]"]] = []
 
     def reset_updated(self):
         self.updated = False
-        self.updated_fields = []
+        self.updated_fields.clear()
 
 
 @dataclass(kw_only=True)
@@ -61,7 +61,7 @@ class Field[T]:
 
         setattr(instance, self.private_name, value)
         instance.updated = True
-        instance.updated_fields.append(self.public_name)
+        instance.updated_fields.add(self.public_name)
 
     @overload
     def __get__(self, instance: None, owner: type[UpdatableProps]) -> Self: ...

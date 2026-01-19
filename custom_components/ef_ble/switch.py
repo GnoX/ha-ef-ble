@@ -107,6 +107,14 @@ SWITCH_TYPES = [
         device_class=SwitchDeviceClass.SWITCH,
         icon="mdi:clock-time-eight",
     ),
+    SwitchEntityDescription(
+        key="automatic_drain",
+        name="Automatic Drain",
+    ),
+    SwitchEntityDescription(
+        key="ambient_light",
+        name="Ambient Light",
+    ),
 ]
 
 

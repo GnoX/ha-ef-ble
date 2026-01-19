@@ -32,6 +32,7 @@ from .eflib.devices import (
     delta_pro_3,
     shp2,
     smart_generator,
+    wave2,
     wave3,
 )
 from .entity import EcoflowEntity
@@ -230,12 +231,15 @@ class EcoflowSensorEntityDescription[Device: DeviceBase](SensorEntityDescription
     native_unit_of_measurement_field: str | Callable[[Device], str] | None = None
 
 
-def _wave3_unit(dev: wave3.Device):
-    return (
-        UnitOfTemperature.FAHRENHEIT
-        if dev.temp_unit is wave3.TemperatureUnit.FAHRENHEIT
-        else UnitOfTemperature.CELSIUS
-    )
+def _wave_unit(dev: wave3.Device):
+    match dev:
+        case wave3.Device:
+            return (
+                UnitOfTemperature.FAHRENHEIT
+                if dev.temp_unit is wave3.TemperatureUnit.FAHRENHEIT
+                else UnitOfTemperature.CELSIUS
+            )
+    return UnitOfTemperature.CELSIUS
 
 
 SENSOR_TYPES: dict[str, SensorEntityDescription] = {
@@ -717,7 +721,7 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         key="ambient_temperature",
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement_field=_wave3_unit,
+        native_unit_of_measurement_field=_wave_unit,
     ),
     "ambient_humidity": SensorEntityDescription(
         key="ambient_humidity",
@@ -758,37 +762,37 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         key="temp_indoor_supply_air",
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement_field=_wave3_unit,
+        native_unit_of_measurement_field=_wave_unit,
     ),
     "temp_indoor_return_air": EcoflowSensorEntityDescription(
         key="temp_indoor_return_air",
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement_field=_wave3_unit,
+        native_unit_of_measurement_field=_wave_unit,
     ),
     "temp_outdoor_ambient": EcoflowSensorEntityDescription(
         key="temp_outdoor_ambient",
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement_field=_wave3_unit,
+        native_unit_of_measurement_field=_wave_unit,
     ),
     "temp_condenser": EcoflowSensorEntityDescription(
         key="temp_condenser",
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement_field=_wave3_unit,
+        native_unit_of_measurement_field=_wave_unit,
     ),
     "temp_evaporator": EcoflowSensorEntityDescription(
         key="temp_evaporator",
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement_field=_wave3_unit,
+        native_unit_of_measurement_field=_wave_unit,
     ),
     "temp_compressor_discharge": EcoflowSensorEntityDescription(
         key="temp_compressor_discharge",
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement_field=_wave3_unit,
+        native_unit_of_measurement_field=_wave_unit,
     ),
     # Delta 2
     "dc12v_output_voltage": SensorEntityDescription(
@@ -805,10 +809,43 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
     ),
+    # Wave 2
+    "outlet_temperature": SensorEntityDescription(
+        key="outlet_temperature",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+    ),
+    "power_battery": SensorEntityDescription(
+        key="power_battery",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
+    ),
+    "power_psdr": SensorEntityDescription(
+        key="power_psdr",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
+    ),
+    "power_mppt": SensorEntityDescription(
+        key="power_mppt",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
+    ),
+    "water_level": SensorEntityDescription(
+        key="water_level",
+        device_class=SensorDeviceClass.ENUM,
+        options=wave2.WaterLevel.options(),
+    ),
+    # unsupported
     "collecting_data": SensorEntityDescription(
         key="collecting_data",
         name="Collecting data",
-        translation_key="collecting_data",
         device_class=SensorDeviceClass.ENUM,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),

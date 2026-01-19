@@ -1,5 +1,5 @@
 import struct
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from functools import cache
 from inspect import get_annotations
 from typing import Annotated, ClassVar, Self, dataclass_transform, get_args, get_origin
@@ -109,6 +109,12 @@ class RawData:
             struct_fmt, size = cls._fit_struct_to_data(data_len)
 
         return struct.unpack(struct_fmt, data[:size])
+
+    def pack(self):
+        return struct.pack(
+            self._STRUCT_FMT,
+            *[getattr(self, field.name) for field in fields(self)],
+        )
 
     @classmethod
     def list_from_bytes(cls, data: bytes) -> list[Self]:

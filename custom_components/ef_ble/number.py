@@ -12,6 +12,7 @@ from homeassistant.const import (
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
     UnitOfPower,
+    UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -27,6 +28,7 @@ from .eflib.devices import (
     smart_generator,
     smart_generator_4k,
     stream_ac,
+    wave2,
 )
 from .entity import EcoflowEntity
 
@@ -227,6 +229,18 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
             lambda device, value: device.set_load_power(int(value))
         ),
         availability_prop="_load_power_enabled",
+    ),
+    EcoflowNumberEntityDescription[wave2.Device](
+        key="target_temperature",
+        name="Temperature",
+        device_class=NumberDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        native_step=1,
+        native_min_value=16,
+        native_max_value=30,
+        async_set_native_value=(
+            lambda device, value: device.set_temperature(int(value))
+        ),
     ),
 ]
 
