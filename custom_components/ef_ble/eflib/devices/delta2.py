@@ -3,6 +3,7 @@ from ..model import (
     AllKitDetailData,
     DirectBmsMDeltaHeartbeatPack,
     DirectEmsDeltaHeartbeatPack,
+    DirectInvDelta2HeartbeatPack,
     Mr330MpptHeart,
     Mr330PdHeart,
 )
@@ -14,6 +15,7 @@ pb_pd = dataclass_attr_mapper(Mr330PdHeart)
 pb_mppt = dataclass_attr_mapper(Mr330MpptHeart)
 pb_ems = dataclass_attr_mapper(DirectEmsDeltaHeartbeatPack)
 pb_bms = dataclass_attr_mapper(DirectBmsMDeltaHeartbeatPack)
+pb_inv = dataclass_attr_mapper(DirectInvDelta2HeartbeatPack)
 
 
 class Device(DeviceBase, RawDataProps):
@@ -26,7 +28,7 @@ class Device(DeviceBase, RawDataProps):
     def packet_version(self):
         return 2
 
-    ac_output_power = raw_field(pb_pd.ac_dsg_power)
+    ac_output_power = raw_field(pb_inv.output_watts)
     ac_input_power = raw_field(pb_pd.ac_input_watts)
     plugged_in_ac = raw_field(pb_pd.ac_charge_flag, lambda x: x == 1)
 
@@ -44,10 +46,16 @@ class Device(DeviceBase, RawDataProps):
 
     cell_temperature = raw_field(pb_pd.car_temp)
 
-    dc_12v_port = raw_field(pb_mppt.car_state, lambda x: x == 1)
+    dc_12v_port = raw_field(pb_pd.car_state, lambda x: x == 1)
     dc_output_power = raw_field(pb_pd.dc_pv_output_watts)
     dc12v_output_voltage = raw_field(pb_mppt.car_out_vol, lambda x: round(x / 1000, 2))
     dc12v_output_current = raw_field(pb_mppt.car_out_amp, lambda x: round(x / 1000, 2))
+
+    ac_ports = raw_field(pb_pd.cfg_ac_enabled, lambda x: x == 1)
+
+    def __init__(self, ble_dev, adv_data, sn: str) -> None:
+        super().__init__(ble_dev, adv_data, sn)
+        self._product_type: int | None = None
 
     @classmethod
     def check(cls, sn):
@@ -76,7 +84,8 @@ class Device(DeviceBase, RawDataProps):
                 self.update_from_bytes(Mr330PdHeart, packet.payload)
                 processed = True
             case 0x03, 0x03, 0x0E:
-                self.update_from_bytes(AllKitDetailData, packet.payload)
+                detail = self.update_from_bytes(AllKitDetailData, packet.payload)
+                self._update_product_type(detail)
                 processed = True
             case 0x03, 0x20, 0x02:
                 self.update_from_bytes(DirectEmsDeltaHeartbeatPack, packet.payload)
@@ -84,9 +93,9 @@ class Device(DeviceBase, RawDataProps):
             case 0x03, 0x20, 0x32:
                 self.update_from_bytes(DirectBmsMDeltaHeartbeatPack, packet.payload)
                 processed = True
-            # case 0x04, _, 0x02:
-            #     self.update_from_bytes(DirectInvDeltaHeartbeatPack, packet.payload)
-            #     processed = True
+            case 0x04, _, 0x02:
+                self.update_from_bytes(DirectInvDelta2HeartbeatPack, packet.payload)
+                processed = True
             case 0x05, 0x20, 0x02:
                 self.update_from_bytes(Mr330MpptHeart, packet.payload)
                 processed = True
@@ -110,10 +119,27 @@ class Device(DeviceBase, RawDataProps):
         await self._conn.sendPacket(packet)
 
     async def enable_dc_12v_port(self, enabled: bool):
-        packet = Packet(0x21, 0x05, 0x20, 0x51, enabled.to_bytes(), version=0x02)
+        packet = Packet(
+            0x21, self._dc_12v_dst(), 0x20, 0x51, enabled.to_bytes(), version=0x02
+        )
         await self._conn.sendPacket(packet)
 
     async def enable_ac_ports(self, enabled: bool):
         payload = bytes([1 if enabled else 0, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
         packet = Packet(0x21, 0x05, 0x20, 0x42, payload, version=0x02)
         await self._conn.sendPacket(packet)
+
+    def _update_product_type(self, detail: AllKitDetailData) -> None:
+        if not detail.kit_base_info:
+            return
+
+        sn_bytes = self._sn.encode()
+        for kit in detail.kit_base_info:
+            if kit.sn.rstrip(b"\x00") == sn_bytes:
+                self._product_type = kit.product_type
+                return
+
+        self._product_type = detail.kit_base_info[0].product_type
+
+    def _dc_12v_dst(self) -> int:
+        return 0x07 if self._product_type == 82 else 0x05
