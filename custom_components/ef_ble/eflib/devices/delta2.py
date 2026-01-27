@@ -1,34 +1,29 @@
-from ..devicebase import DeviceBase
+from _delta2_base import Delta2Base
+
 from ..model import (
     AllKitDetailData,
     DirectBmsMDeltaHeartbeatPack,
     DirectEmsDeltaHeartbeatPack,
-    DirectInvDelta2HeartbeatPack,
+    DirectInvDeltaHeartbeatPack,
     Mr330MpptHeart,
     Mr330PdHeart,
 )
 from ..packet import Packet
 from ..props.raw_data_field import dataclass_attr_mapper, raw_field
-from ..props.raw_data_props import RawDataProps
 
 pb_pd = dataclass_attr_mapper(Mr330PdHeart)
 pb_mppt = dataclass_attr_mapper(Mr330MpptHeart)
 pb_ems = dataclass_attr_mapper(DirectEmsDeltaHeartbeatPack)
 pb_bms = dataclass_attr_mapper(DirectBmsMDeltaHeartbeatPack)
-pb_inv = dataclass_attr_mapper(DirectInvDelta2HeartbeatPack)
+pb_inv = dataclass_attr_mapper(DirectInvDeltaHeartbeatPack)
 
 
-class Device(DeviceBase, RawDataProps):
+class Device(Delta2Base):
     """Delta 2"""
 
     SN_PREFIX = (b"R331", b"R335")
     NAME_PREFIX = "EF-R33"
 
-    @property
-    def packet_version(self):
-        return 2
-
-    ac_output_power = raw_field(pb_inv.output_watts)
     ac_input_power = raw_field(pb_pd.ac_input_watts)
     plugged_in_ac = raw_field(pb_pd.ac_charge_flag, lambda x: x == 1)
 
@@ -48,8 +43,6 @@ class Device(DeviceBase, RawDataProps):
 
     dc_12v_port = raw_field(pb_pd.car_state, lambda x: x == 1)
     dc_output_power = raw_field(pb_pd.dc_pv_output_watts)
-    dc12v_output_voltage = raw_field(pb_mppt.car_out_vol, lambda x: round(x / 1000, 2))
-    dc12v_output_current = raw_field(pb_mppt.car_out_amp, lambda x: round(x / 1000, 2))
 
     ac_ports = raw_field(pb_pd.cfg_ac_enabled, lambda x: x == 1)
 
@@ -96,7 +89,7 @@ class Device(DeviceBase, RawDataProps):
                 self.update_from_bytes(DirectBmsMDeltaHeartbeatPack, packet.payload)
                 processed = True
             case 0x04, _, 0x02:
-                self.update_from_bytes(DirectInvDelta2HeartbeatPack, packet.payload)
+                self.update_from_bytes(DirectInvDeltaHeartbeatPack, packet.payload)
                 processed = True
             case 0x05, 0x20, 0x02:
                 self.update_from_bytes(Mr330MpptHeart, packet.payload)
