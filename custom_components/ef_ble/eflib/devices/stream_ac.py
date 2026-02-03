@@ -1,5 +1,5 @@
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 from ..devicebase import DeviceBase
 from ..packet import Packet
@@ -12,8 +12,10 @@ from ..props import (
     repeated_pb_field_type,
 )
 from ..props.enums import IntFieldValue
+from ..props.protobuf_field import proto_has_attr
 
 pb = proto_attr_mapper(bk_series_pb2.DisplayPropertyUpload)
+pb_time_task = proto_attr_mapper(bk_series_pb2.TimerTask)
 
 
 def _round(value: float):
@@ -25,6 +27,23 @@ class ResidentLoad(repeated_pb_field_type(pb.day_resident_load_list.load)):
         self, value: Sequence[bk_series_pb2.ResidentLoad]
     ) -> bk_series_pb2.ResidentLoad | None:
         return value[0] if len(value) == 1 else None
+
+
+class ChargingTimerTask(repeated_pb_field_type(pb.all_timer_task.time_task)):
+    def get_item(
+        self, value: Sequence[bk_series_pb2.TimerTask]
+    ) -> bk_series_pb2.TimerTask | None:
+        if not value:
+            return None
+
+        for task in value:
+            if (
+                proto_has_attr(task, pb_time_task.chg_task)
+                and len(task.chg_task.dev_target_soc) > 0
+            ):
+                return task
+
+        return None
 
 
 class EnergyStrategy(IntFieldValue):
@@ -103,9 +122,30 @@ class Device(DeviceBase, ProtobufProps):
     )
     energy_backup_battery_level = pb_field(pb.backup_reverse_soc)
 
+    grid_in_power_limit = pb_field(pb.sys_grid_in_pwr_limit)
+    max_ac_in_power = pb_field(pb.pow_sys_ac_in_max)
+
     _resident_load = ResidentLoad()
-    _load_power_enabled = Field[bool]()
+    load_power_enabled = Field[bool]()
     base_load_power = Field[int]()
+
+    _charging_task = ChargingTimerTask()
+    _all_timer_tasks = pb_field(pb.all_timer_task)
+    charging_grid_power_limit_enabled = Field[bool]()
+    charging_grid_power_limit = Field[int]()
+    charging_grid_target_soc = Field[int]()
+    max_bp_input = pb_field(pb.max_bp_input)
+
+    @property
+    def _dev_target_soc(self):
+        if self._charging_task is None:
+            return None
+
+        for target_soc in self._charging_task.chg_task.dev_target_soc:
+            if target_soc.sn == self._sn:
+                return target_soc
+
+        return None
 
     @classmethod
     def check(cls, sn):
@@ -122,9 +162,15 @@ class Device(DeviceBase, ProtobufProps):
             self.update_from_bytes(bk_series_pb2.DisplayPropertyUpload, packet.payload)
             processed = True
 
-        self._load_power_enabled = self._resident_load is not None
+        self.load_power_enabled = self._resident_load is not None
         if self._resident_load is not None:
             self.base_load_power = self._resident_load.load_power
+
+        self.charging_grid_power_limit_enabled = self._dev_target_soc is not None
+
+        if (target_soc := self._dev_target_soc) is not None:
+            self.charging_grid_power_limit = target_soc.chg_from_grid_power_limited
+            self.charging_grid_target_soc = target_soc.target_soc
 
         for field_name in self.updated_fields:
             self.update_callback(field_name)
@@ -197,4 +243,49 @@ class Device(DeviceBase, ProtobufProps):
                 )
             )
         )
+        return True
+
+    async def set_grid_in_pow_limit(self, value: int):
+        if self.max_ac_in_power is None or value > self.max_ac_in_power or value < 0:
+            return False
+
+        await self._send_config_packet(
+            bk_series_pb2.ConfigWrite(cfg_sys_grid_in_pwr_limit=value)
+        )
+        return True
+
+    async def set_charging_grid_power_limit(self, limit: int):
+        def set_power_limit(dev_soc: bk_series_pb2.DeviceTargetSoc):
+            dev_soc.chg_from_grid_power_limited = limit
+
+        return await self._send_charging_task_packet(set_power_limit)
+
+    async def set_charging_grid_target_soc(self, soc: int):
+        def set_target_soc(dev_soc: bk_series_pb2.DeviceTargetSoc):
+            dev_soc.target_soc = soc
+
+        return await self._send_charging_task_packet(set_target_soc)
+
+    async def _send_charging_task_packet(
+        self, modify_dev_target_soc: Callable[[bk_series_pb2.DeviceTargetSoc], None]
+    ):
+        if (
+            self._charging_task is None
+            or self._all_timer_tasks is None
+            or len(self._charging_task.chg_task.dev_target_soc) < 1
+        ):
+            return False
+
+        config = bk_series_pb2.ConfigWrite()
+
+        for task in self._all_timer_tasks.time_task:
+            new_task = config.cfg_all_timer_task.time_task.add()
+            new_task.CopyFrom(task)
+
+            if task.task_index == self._charging_task.task_index:
+                for dev_target_soc in new_task.chg_task.dev_target_soc:
+                    if dev_target_soc.sn == self._sn:
+                        modify_dev_target_soc(dev_target_soc)
+
+        await self._send_config_packet(config)
         return True
