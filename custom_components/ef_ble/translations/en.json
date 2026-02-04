@@ -276,6 +276,9 @@
       "additional_battery_level": {
         "name": "Battery {index} Level"
       },
+      "additional_battery_temperature": {
+        "name": "Battery {index} Cell Temperature"
+      },
       "battery_level_main": {
         "name": "Main Battery Level"
       },
@@ -318,6 +321,12 @@
       "ac_input_power": {
         "name": "AC Input Power"
       },
+      "ac_input_voltage": {
+        "name": "AC Input Voltage"
+      },
+      "ac_input_current": {
+        "name": "AC Input Current"
+      },
       "ac_output_power": {
         "name": "AC Output Power"
       },
@@ -332,6 +341,9 @@
       },
       "dc_input_energy": {
         "name": "DC Input Energy"
+      },
+      "dc_output_power": {
+        "name": "DC Output Power"
       },
       "dc12v_output_power": {
         "name": "DC 12V Output Power"
@@ -368,6 +380,12 @@
       },
       "usba2_output_energy": {
         "name": "USB A (2) Output Energy"
+      },
+      "qc_usb1_output_power": {
+        "name": "USB A QC (1) Power"
+      },
+      "qc_usb2_output_power": {
+        "name": "USB A QC (2) Power"
       },
       "battery_input_power": {
         "name": "Battery Input Power"

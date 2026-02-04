@@ -362,6 +362,18 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         )
         for i in range(1, 6)
     },
+    **{
+        f"battery_{i}_cell_temperature": SensorEntityDescription(
+            key=f"battery_{i}_cell_temperature",
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            translation_key="additional_battery_temperature",
+            translation_placeholders={"index": f"{i}"},
+            entity_registry_enabled_default=False,
+        )
+        for i in range(1, 6)
+    },
     # River 3, Delta 3
     "input_energy": SensorEntityDescription(
         key="input_energy",
@@ -383,6 +395,20 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         key="ac_input_power",
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+    ),
+    "ac_input_voltage": SensorEntityDescription(
+        key="ac_input_voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+    ),
+    "ac_input_current": SensorEntityDescription(
+        key="ac_input_current",
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
     ),
@@ -482,6 +508,18 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
     ),
     "usba2_output_power": SensorEntityDescription(
         key="usba2_output_power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    "qc_usb1_output_power": SensorEntityDescription(
+        key="qc_usb1_output_power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    "qc_usb2_output_power": SensorEntityDescription(
+        key="qc_usb2_output_power",
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
