@@ -28,7 +28,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from . import DeviceConfigEntry
 from .eflib import DeviceBase
 from .eflib.devices import (
-    delta3_classic,
+    _delta3_base,
     delta_pro_3,
     shp2,
     smart_generator,
@@ -404,6 +404,7 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.VOLTAGE,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=1,
+        entity_registry_enabled_default=False,
     ),
     "ac_input_current": SensorEntityDescription(
         key="ac_input_current",
@@ -411,6 +412,7 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.CURRENT,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
+        entity_registry_enabled_default=False,
     ),
     "ac_output_power": SensorEntityDescription(
         key="ac_output_power",
@@ -562,12 +564,12 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
     "dc_port_state": SensorEntityDescription(
         key="dc_port_state",
         device_class=SensorDeviceClass.ENUM,
-        options=delta3_classic.DCPortState.options(),
+        options=_delta3_base.DCPortState.options(),
     ),
     "dc_port_2_state": SensorEntityDescription(
         key="dc_port_2_state",
         device_class=SensorDeviceClass.ENUM,
-        options=delta3_classic.DCPortState.options(),
+        options=_delta3_base.DCPortState.options(),
     ),
     "solar_input_power": SensorEntityDescription(
         key="input_power_solar",
@@ -873,6 +875,7 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.VOLTAGE,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
+        entity_registry_enabled_default=False,
     ),
     "dc12v_output_current": SensorEntityDescription(
         key="dc12v_output_current",
@@ -880,6 +883,7 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.CURRENT,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
+        entity_registry_enabled_default=False,
     ),
     # Wave 2
     "outlet_temperature": SensorEntityDescription(
