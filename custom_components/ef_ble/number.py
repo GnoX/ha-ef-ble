@@ -24,6 +24,7 @@ from .eflib.devices import (
     delta3_classic,
     delta3_plus,
     delta_pro_3,
+    river2,
     river3,
     smart_generator,
     smart_generator_4k,
@@ -84,20 +85,22 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
         ),
     ),
     EcoflowNumberEntityDescription[
-        river3.Device | delta3_classic.Device | delta_pro_3.Device
+        river3.Device | delta3_classic.Device | delta_pro_3.Device | river2.Device
     ](
         key="ac_charging_speed",
         name="AC Charging Speed",
         device_class=NumberDeviceClass.POWER,
         native_unit_of_measurement=UnitOfPower.WATT,
         native_step=1,
-        native_min_value=0,
+        min_value_prop="min_ac_charging_power",
         max_value_prop="max_ac_charging_power",
         async_set_native_value=(
             lambda device, value: device.set_ac_charging_speed(int(value))
         ),
     ),
-    EcoflowNumberEntityDescription[river3.Device | delta3_classic.Device](
+    EcoflowNumberEntityDescription[
+        river3.Device | delta3_classic.Device | river2.Device
+    ](
         key="dc_charging_max_amps",
         name="DC Charging Max Amps",
         device_class=NumberDeviceClass.CURRENT,
@@ -331,6 +334,7 @@ class EcoflowNumber(EcoflowEntity, NumberEntity):
             "_attr_native_min_value",
             self._min_value_prop,
             lambda state: state if state is not None else self.SkipWrite,
+            0,
         )
         self._register_update_callback(
             "_attr_native_max_value",

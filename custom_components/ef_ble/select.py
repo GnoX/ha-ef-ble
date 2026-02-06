@@ -12,6 +12,7 @@ from . import DeviceConfigEntry
 from .eflib import DeviceBase
 from .eflib.devices import (
     alternator_charger,
+    river2,
     river3,
     river3_plus,
     smart_generator,
@@ -47,6 +48,14 @@ SELECT_TYPES: list[EcoflowSelectEntityDescription] = [
             lambda device, value: device.set_dc_charging_type(
                 river3.DcChargingType[value.upper()]
             )
+        ),
+    ),
+    EcoflowSelectEntityDescription[river2.Device](
+        key="dc_mode",
+        name="DC Mode",
+        options=river2.DCMode.options(include_unknown=False),
+        set_state=(
+            lambda device, value: device.set_dc_mode(river2.DCMode[value.upper()])
         ),
     ),
     EcoflowSelectEntityDescription[smart_generator.Device](
