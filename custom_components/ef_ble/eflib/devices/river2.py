@@ -34,7 +34,7 @@ class Device(DeviceBase, RawDataProps):
     """River 2"""
 
     NAME_PREFIX = "EF-R2"
-    SN_PREFIX = ()  # TODO(gnox): add regular r2 support after we get samples
+    SN_PREFIX = (b"R601", b"R603")
 
     ac_ports = raw_field(pb_mppt.cfg_ac_enabled, lambda x: x == 1)
     dc_12v_port = raw_field(pb_mppt.car_state, lambda x: x == 1)
