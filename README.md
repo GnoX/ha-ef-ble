@@ -315,26 +315,6 @@ you have to create it yourself, see this section from the official
 </details>
 
 <details><summary>
-<b>River 2 (Pro, Max)</b>
-</summary>
-
-| *Sensors*                   | *Switches*     | *Sliders*            | *Selects* |
-|-----------------------------|----------------|----------------------|-----------|
-| Battery Level               | AC Ports       | Max Charge Limit     | DC Mode   |
-| Input Power                 | DC 12V Port    | Min Discharge Limit  |           |
-| Output Power                | USB Ports      | AC Charging Speed    |           |
-| AC Input Power              | Backup Reserve | DC Charging Max Amps |           |
-| AC Output Power             |                | Backup Reserve Level |           |
-| DC 12V Output Power         |                |                      |           |
-| DC Output Power             |                |                      |           |
-| USB A Output Power          |                |                      |           |
-| USB C Output Power          |                |                      |           |
-| Solar Input Power           |                |                      |           |
-| Cell Temperature (disabled) |                |                      |           |
-
-</details>
-
-<details><summary>
 <b>Wave 2</b>
 </summary>
 
