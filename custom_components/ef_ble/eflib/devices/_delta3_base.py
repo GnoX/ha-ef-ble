@@ -163,27 +163,6 @@ class Delta3Base(DeviceBase, ProtobufProps):
         packet = Packet(0x20, 0x02, 0xFE, 0x11, payload, 0x01, 0x01, 0x13)
         await self._conn.sendPacket(packet)
 
-    async def set_energy_backup_battery_level(self, value: int):
-        config = pd335_sys_pb2.ConfigWrite()
-        config.cfg_energy_backup.energy_backup_en = True
-        config.cfg_energy_backup.energy_backup_start_soc = value
-        await self._send_config_packet(config)
-        return True
-
-    async def enable_energy_backup(self, enabled: bool):
-        config = pd335_sys_pb2.ConfigWrite()
-        config.cfg_energy_backup.energy_backup_en = enabled
-        if enabled and self.energy_backup_battery_level is not None:
-            config.cfg_energy_backup.energy_backup_start_soc = (
-                self.energy_backup_battery_level
-            )
-        await self._send_config_packet(config)
-
-    async def enable_dc_12v_port(self, enabled: bool):
-        await self._send_config_packet(
-            pd335_sys_pb2.ConfigWrite(cfg_dc_12v_out_open=enabled)
-        )
-
     async def enable_ac_ports(self, enabled: bool):
         await self._send_config_packet(
             pd335_sys_pb2.ConfigWrite(cfg_ac_out_open=enabled)
