@@ -384,10 +384,10 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> dict[str, Any]:
         self._user_id_validated = False
 
-        self._email = user_input.get("login", {}).get(CONF_EMAIL, "")
+        self._email = user_input.get("login", {}).get(CONF_EMAIL, "").strip()
         password = user_input.get("login", {}).get(CONF_PASSWORD, "")
         region = user_input.get("login", {}).get(CONF_REGION, "")
-        user_id = user_input.get(CONF_USER_ID, "")
+        user_id = user_input.get(CONF_USER_ID, "").strip()
         timeout = user_input.get(CONF_CONNECTION_TIMEOUT, DEFAULT_CONNECTION_TIMEOUT)
         packet_version = PacketVersion.from_str(user_input.get(CONF_PACKET_VERSION))
 

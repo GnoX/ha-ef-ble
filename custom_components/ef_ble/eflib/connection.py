@@ -176,6 +176,7 @@ class Connection:
         data_parse: Callable[[Packet], Awaitable[bool]],
         packet_parse: Callable[[bytes], Awaitable[Packet]],
         packet_version: int = 0x03,
+        encryption_type: int = 0x07,
     ) -> None:
         self._ble_dev = ble_dev
         self._address = ble_dev.address
@@ -185,6 +186,7 @@ class Connection:
         self._data_parse = data_parse
         self._packet_parse = packet_parse
         self._packet_version = packet_version
+        self._encryption_type = encryption_type
 
         self._errors = 0
         self._last_errors = deque(maxlen=10)
@@ -347,7 +349,12 @@ class Connection:
         )
         self._logger.info("Init completed, starting auth routine...")
 
-        await self.initBleSessionKey()
+        if self._encryption_type == 0x01:
+            self._session_key = hashlib.md5((self._dev_sn).encode()).digest()
+            self._iv = hashlib.md5((self._dev_sn[::-1]).encode()).digest()
+            await self.getAuthStatus()
+        else:
+            await self.initBleSessionKey()
 
     def disconnected(self, *args, **kwargs) -> None:
         self._logger.warning("Disconnected from device")

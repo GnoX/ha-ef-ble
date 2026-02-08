@@ -46,6 +46,10 @@ class DeviceBase(abc.ABC):
         self._ble_dev = ble_dev
         self._address = ble_dev.address
 
+        if len(adv_data.manufacturer_data[self.MANUFACTURER_KEY]) >= 22:
+            enc_byte = adv_data.manufacturer_data[self.MANUFACTURER_KEY][22]
+            self._encryption_type = (enc_byte >> 3) & 0x07
+
         self._logger = DeviceLogger(self)
         self._logging_options = LogOptions.no_options()
 
@@ -177,6 +181,7 @@ class DeviceBase(abc.ABC):
                     data_parse=self.data_parse,
                     packet_parse=self.packet_parse,
                     packet_version=self.packet_version,
+                    encryption_type=self._encryption_type,
                 )
                 .with_logging_options(self._logger.options)
                 .with_disabled_reconnect(self._reconnect_disabled)
