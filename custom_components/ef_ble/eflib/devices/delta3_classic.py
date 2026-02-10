@@ -4,7 +4,7 @@ from bleak.backends.scanner import AdvertisementData
 from ..commands import TimeCommands
 from ..pb import pd335_sys_pb2
 from ..props import pb_field
-from ._delta3_base import Delta3Base, _out_power, pb
+from ._delta3_base import Delta3Base, _out_power, flow_is_on, pb
 
 
 class Device(Delta3Base):
@@ -16,6 +16,7 @@ class Device(Delta3Base):
     energy_backup = pb_field(pb.energy_backup_en)
     energy_backup_battery_level = pb_field(pb.energy_backup_start_soc)
 
+    dc_12v_port = pb_field(pb.flow_info_12v, flow_is_on)
     dc12v_output_power = pb_field(pb.pow_get_12v, _out_power)
     disable_grid_bypass = pb_field(pb.bypass_out_disable)
 
@@ -70,5 +71,19 @@ class Device(Delta3Base):
         if enabled and self.energy_backup_battery_level is not None:
             config.cfg_energy_backup.energy_backup_start_soc = (
                 self.energy_backup_battery_level
+                if self.energy_backup_battery_level
+                else 50
             )
         await self._send_config_packet(config)
+
+    async def set_energy_backup_battery_level(self, value: int):
+        config = pd335_sys_pb2.ConfigWrite()
+        config.cfg_energy_backup.energy_backup_en = True
+        config.cfg_energy_backup.energy_backup_start_soc = value
+        await self._send_config_packet(config)
+        return True
+
+    async def enable_dc_12v_port(self, enabled: bool):
+        await self._send_config_packet(
+            pd335_sys_pb2.ConfigWrite(cfg_dc_12v_out_open=enabled)
+        )
