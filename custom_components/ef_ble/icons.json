@@ -150,6 +150,9 @@
             },
             "channel3_pv_hv_input": {
                 "default": "mdi:solar-panel-large"
+            },
+            "grid_current": {
+                "default": "mdi:current-ac"
             }
         },
         "switch": {

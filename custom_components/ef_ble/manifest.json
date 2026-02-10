@@ -134,6 +134,18 @@
             "manufacturer_id": 46517,
             "manufacturer_data_start": [19, 82, 54, 48],
             "connectable": true
+        },
+        {
+            "local_name": "EF-BK*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 66, 75, 48],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-BK*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 78, 48, 49],
+            "connectable": true
         }
     ],
 

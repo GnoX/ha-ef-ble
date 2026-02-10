@@ -271,14 +271,18 @@ class Connection:
 
     async def connect(
         self,
-        max_attempts: int = MAX_CONNECT_ATTEMPTS,
+        max_attempts: int | None = None,
         timeout: int = 20,
     ):
         if self._state.is_connecting:
             return
 
+        max_attempts = (
+            max_attempts if max_attempts is not None else MAX_CONNECT_ATTEMPTS
+        )
+
         self._connection_attempt += 1
-        if self._connection_attempt > MAX_CONNECTION_ATTEMPTS:
+        if max_attempts != 0 and self._connection_attempt > max_attempts:
             self._connection_attempt = 0
             err = MaxConnectionAttemptsReached(
                 last_error=self._last_exception,
