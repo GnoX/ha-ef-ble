@@ -14,16 +14,16 @@ class Device(Delta3Base):
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
     ) -> None:
         super().__init__(ble_dev, adv_data, sn)
-        self.max_ac_charging_power = 500
+        self.max_ac_charging_power = 1000 if sn[:4] == "PR21" else 500
 
     @property
     def device(self):
         model = "Air"
         match self._sn[:4]:
-            case b"PR11":
+            case "PR11":
                 model = "1000 Air"
-            case b"PR12":
+            case "PR12":
                 model = "1000 Air (10ms UPS)"
-            case b"PR21":
-                model = "Delta 3 2000 Air"
+            case "PR21":
+                model = "2000 Air"
         return f"Delta 3 {model}"
