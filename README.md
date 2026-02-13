@@ -466,6 +466,12 @@ first charging task</sup>
 
 This integration is available in the default HACS repository.
 
+**Quick Install:** Click the badge below to open this repository directly in HACS:
+
+[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=rabits&repository=ha-ef-ble&category=integration)
+
+**Manual steps:**
+
 1. Open **HACS** in your Home Assistant instance
 2. Go to **Integrations**
 3. Click the **⋮** menu (three dots) in the top right
