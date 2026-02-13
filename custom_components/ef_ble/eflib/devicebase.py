@@ -187,6 +187,7 @@ class DeviceBase(abc.ABC):
 
             self._conn.on_disconnect(self._on_disconnect)
             self._conn.on_packet_data_received(self._on_packet_received)
+            self._conn.on_packet_parsed(self._on_packet_parsed)
             self._conn.on_state_change(self._on_connection_state_change)
 
         elif self._conn._user_id != user_id:
