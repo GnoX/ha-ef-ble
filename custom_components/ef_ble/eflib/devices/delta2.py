@@ -2,6 +2,7 @@ from ..model import (
     Mr330MpptHeart,
     Mr330PdHeartDelta2,
 )
+from ..packet import Packet
 from ..props.raw_data_field import dataclass_attr_mapper, raw_field
 from ._delta2_base import Delta2Base
 
@@ -20,6 +21,9 @@ class Device(Delta2Base):
     energy_backup_battery_level = raw_field(pb_pd.bp_power_soc)
     dc_output_power = raw_field(pb_pd.dc_pv_output_watts)
     ac_charging_speed = raw_field(pb_mppt.cfg_chg_watts)
+
+    async def packet_parse(self, data: bytes):
+        return Packet.fromBytes(data, xor_payload=True)
 
     @property
     def pd_heart_type(self):
