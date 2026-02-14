@@ -1,6 +1,6 @@
+from ..connection.packet import Packet
 from ..devicebase import DeviceBase
 from ..model.kt210_sac import KT210SAC
-from ..packet import Packet
 from ..props import Field
 from ..props.enums import IntFieldValue
 from ..props.raw_data_field import dataclass_attr_mapper, raw_field

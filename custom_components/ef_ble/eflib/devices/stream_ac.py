@@ -1,8 +1,8 @@
 import time
 from collections.abc import Callable, Sequence
 
+from ..connection.packet import Packet
 from ..devicebase import DeviceBase
-from ..packet import Packet
 from ..pb import bk_series_pb2
 from ..props import (
     Field,

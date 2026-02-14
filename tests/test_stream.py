@@ -4,6 +4,7 @@ import pytest
 from google.protobuf import text_format
 from pytest_mock import MockerFixture
 
+from custom_components.ef_ble.eflib.connection.packet import Packet
 from custom_components.ef_ble.eflib.devices import (
     stream_ac,
     stream_ac_pro,
@@ -11,7 +12,6 @@ from custom_components.ef_ble.eflib.devices import (
     stream_pro,
     stream_ultra,
 )
-from custom_components.ef_ble.eflib.packet import Packet
 from custom_components.ef_ble.eflib.pb import bk_series_pb2
 
 if TYPE_CHECKING:

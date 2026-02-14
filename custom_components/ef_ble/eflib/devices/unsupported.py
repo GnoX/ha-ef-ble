@@ -2,9 +2,9 @@ from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
 from ..commands import TimeCommands
+from ..connection.packet import Packet
 from ..devicebase import DeviceBase
 from ..logging_util import LogOptions
-from ..packet import Packet
 
 
 class UnsupportedDevice(DeviceBase):

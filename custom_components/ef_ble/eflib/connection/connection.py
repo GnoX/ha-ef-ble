@@ -23,23 +23,23 @@ from bleak_retry_connector import (
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
-from . import keydata
-from .crc import crc16
-from .encpacket import EncPacket
-from .exceptions import (
+from ..exceptions import (
     AuthFailedError,
     ConnectionTimeout,
-    EncPacketParseError,
     FailedToAuthenticate,
     MaxConnectionAttemptsReached,
     MaxReconnectAttemptsReached,
     PacketParseError,
     PacketReceiveError,
 )
-from .listeners import ListenerGroup, ListenerRegistry
-from .logging_util import ConnectionLogger, LogOptions
+from ..listeners import ListenerGroup, ListenerRegistry
+from ..logging_util import ConnectionLogger, LogOptions
+from ..props.utils import classproperty
+from . import keydata
+from .crc import crc16
+from .encpacket import EncPacket
+from .frame_assembler import SessionReassembler
 from .packet import Packet
-from .props.utils import classproperty
 
 MAX_RECONNECT_ATTEMPTS = 2
 MAX_CONNECTION_ATTEMPTS = 10
@@ -202,7 +202,7 @@ class Connection:
         self._disconnected = asyncio.Event()
         self._retry_on_disconnect = False
         self._retry_on_disconnect_delay = 10
-        self._enc_packet_buffer = b""
+        self._session_reassembler = SessionReassembler()
 
         self._tasks: set[asyncio.Task] = set()
 
@@ -528,15 +528,15 @@ class Connection:
 
     # En/Decrypt functions must create AES object every time, because
     # it saves the internal state after encryption and become useless
-    async def decryptShared(self, encrypted_payload: str):
+    async def decryptShared(self, encrypted_payload: bytes):
         aes_shared = AES.new(self._shared_key, AES.MODE_CBC, self._iv)
         return unpad(aes_shared.decrypt(encrypted_payload), AES.block_size)
 
-    async def decryptSession(self, encrypted_payload: str):
+    async def decryptSession(self, encrypted_payload: bytes):
         aes_session = AES.new(self._session_key, AES.MODE_CBC, self._iv)
         return unpad(aes_session.decrypt(encrypted_payload), AES.block_size)
 
-    async def encryptSession(self, payload: str):
+    async def encryptSession(self, payload: bytes):
         aes_session = AES.new(self._session_key, AES.MODE_CBC, self._iv)
         return aes_session.encrypt(pad(payload, AES.block_size))
 
@@ -597,54 +597,36 @@ class Connection:
 
         return payload_data
 
-    async def parseEncPackets(self, data: str) -> list[Packet]:
-        """Deserializes bytes stream into a list of Packets"""
-        # In case there are leftovers from previous processing - adding them to current
-        # data
-        if self._enc_packet_buffer:
-            data = self._enc_packet_buffer + data
-            self._enc_packet_buffer = b""
+    async def parseEncPackets(self, data: bytes) -> list[Packet]:
+        """
+        Deserializes bytes stream into a list of Packets.
 
+        Uses SessionReassembler for robust frame extraction and buffering.
+        """
         self._logger.log_filtered(
             LogOptions.ENCRYPTED_PAYLOADS,
             "parseEncPackets: Data: %r",
             bytearray(data).hex(),
         )
-        if len(data) < 8:
-            error_msg = (
-                "parseEncPackets: Unable to parse encrypted packet - too small: %r"
-            )
-            self._logger.error(error_msg, bytearray(data).hex())
-            self._last_errors.append(error_msg % bytearray(data).hex())
-            raise EncPacketParseError
 
-        # Data can contain multiple EncPackets and even incomplete ones, so walking
-        # through
+        # Use the reassembler to extract complete frames
+        enc_frames = self._session_reassembler.add(data)
+
+        if not enc_frames:
+            # No complete frames yet, waiting for more data
+            return []
+
+        # Process each complete encrypted frame
         packets = []
-        while data:
-            if not data.startswith(EncPacket.PREFIX):
-                error_msg = (
-                    "parseEncPackets: Unable to parse encrypted packet - prefix is "
-                    "incorrect: %r"
-                )
-                self._logger.error(error_msg, bytearray(data).hex())
-                self._last_errors.append(error_msg % bytearray(data).hex())
-                return packets
-
-            header = data[0:6]
-            data_end = 6 + struct.unpack("<H", header[4:6])[0]
-            if data_end > len(data):
-                self._enc_packet_buffer += data
-                break
-
-            payload_data = data[6 : data_end - 2]
-            payload_crc = data[data_end - 2 : data_end]
-
-            # Move to next data packet
-            data = data[data_end:]
-
+        for enc_frame in enc_frames:
             try:
-                # Check the packet CRC16
+                # Parse the encrypted frame structure
+                header = enc_frame[0:6]
+                data_end = 6 + struct.unpack("<H", header[4:6])[0]
+                payload_data = enc_frame[6 : data_end - 2]
+                payload_crc = enc_frame[data_end - 2 : data_end]
+
+                # Verify CRC16
                 if crc16(header + payload_data) != struct.unpack("<H", payload_crc)[0]:
                     error_msg = "Unable to parse encrypted packet - incorrect CRC16: %r"
                     self._logger.error(error_msg, bytearray(payload_data).hex())

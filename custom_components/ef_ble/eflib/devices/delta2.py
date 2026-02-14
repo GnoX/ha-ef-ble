@@ -1,8 +1,8 @@
+from ..connection.packet import Packet
 from ..model import (
     Mr330MpptHeart,
     Mr330PdHeartDelta2,
 )
-from ..packet import Packet
 from ..props.raw_data_field import dataclass_attr_mapper, raw_field
 from ._delta2_base import Delta2Base
 

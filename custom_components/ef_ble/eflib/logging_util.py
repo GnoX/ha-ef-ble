@@ -13,10 +13,10 @@ from typing import TYPE_CHECKING, Any
 
 import bleak
 
-from .packet import Packet
+from .connection.packet import Packet
 
 if TYPE_CHECKING:
-    from .connection import Connection, ConnectionState
+    from .connection.connection import Connection, ConnectionState
     from .devicebase import DeviceBase
 
 

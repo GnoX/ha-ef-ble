@@ -8,7 +8,7 @@ from typing import Any
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
-from .connection import (
+from .connection.connection import (
     Connection,
     ConnectionState,
     ConnectionStateListener,
@@ -16,6 +16,7 @@ from .connection import (
     PacketParsedListener,
     PacketReceivedListener,
 )
+from .connection.packet import Packet
 from .listeners import ListenerGroup, ListenerRegistry
 from .logging_util import (
     ConnectionLog,
@@ -23,7 +24,6 @@ from .logging_util import (
     DeviceLogger,
     LogOptions,
 )
-from .packet import Packet
 
 
 class _Listeners(ListenerRegistry):

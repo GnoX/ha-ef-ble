@@ -2,8 +2,8 @@ from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
 from ..commands import TimeCommands
+from ..connection.packet import Packet
 from ..devicebase import DeviceBase
-from ..packet import Packet
 from ..pb import ge305_sys_pb2
 from ..props import ProtobufProps, pb_field, proto_attr_mapper
 from ..props.enums import IntFieldValue

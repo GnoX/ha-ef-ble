@@ -1,7 +1,7 @@
 import time
 
+from ..connection.packet import Packet
 from ..devicebase import DeviceBase
-from ..packet import Packet
 from ..pb import bk_series_pb2
 from ..props import ProtobufProps, pb_field, proto_attr_mapper
 
