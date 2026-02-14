@@ -5,7 +5,6 @@ from pytest_mock import MockerFixture
 from custom_components.ef_ble.eflib.devices import alternator_charger
 from custom_components.ef_ble.eflib.packet import Packet
 from custom_components.ef_ble.eflib.pb import dc009_apl_comm_pb2
-from custom_components.ef_ble.eflib.props import Field
 
 _dc009_apl_comm_msg = """
 errcode: 32
@@ -66,7 +65,7 @@ async def test_smart_generator_updates_from_message(device, dc009_apl_comm_msg):
 
     await device.data_parse(to_process)
 
-    expected_updated_fields: list[Field] = [
+    expected_updated_fields: list[str] = [
         alternator_charger.Device.battery_level,
         alternator_charger.Device.battery_temperature,
         alternator_charger.Device.dc_power,
@@ -79,5 +78,5 @@ async def test_smart_generator_updates_from_message(device, dc009_apl_comm_msg):
     ]
 
     for field in expected_updated_fields:
-        assert field.public_name in device.updated_fields
-        assert getattr(device, field.public_name) is not None
+        assert field in device.updated_fields
+        assert getattr(device, field) is not None

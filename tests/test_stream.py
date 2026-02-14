@@ -13,7 +13,6 @@ from custom_components.ef_ble.eflib.devices import (
 )
 from custom_components.ef_ble.eflib.packet import Packet
 from custom_components.ef_ble.eflib.pb import bk_series_pb2
-from custom_components.ef_ble.eflib.props import Field
 
 if TYPE_CHECKING:
     from custom_components.ef_ble.eflib.devices import ModuleWithDevice
@@ -169,7 +168,7 @@ async def test_stream_ac_updates_from_message(device, bk_message):
     device = device(stream_ac)
     await device.data_parse(to_process)
 
-    expected_updated_fields: list[Field] = [
+    expected_updated_fields: list[str] = [
         stream_ac.Device.battery_level,
         stream_ac.Device.cell_temperature,
         stream_ac.Device.battery_charge_limit_max,
@@ -184,11 +183,11 @@ async def test_stream_ac_updates_from_message(device, bk_message):
     ]
 
     for field in expected_updated_fields:
-        assert field.public_name in device.updated_fields
-        assert getattr(device, field.public_name) is not None
+        assert field in device.updated_fields
+        assert getattr(device, field) is not None
 
     assert (
-        getattr(device, stream_ac.Device.energy_strategy.public_name)
+        getattr(device, stream_ac.Device.energy_strategy)
         == stream_ac.EnergyStrategy.SELF_POWERED
     )
 
@@ -205,7 +204,7 @@ async def test_stream_ac_pro_updates_from_message(device, bk_message):
     device = device(stream_ac_pro)
     await device.data_parse(to_process)
 
-    expected_updated_fields: list[Field] = [
+    expected_updated_fields: list[str] = [
         stream_ac_pro.Device.battery_level,
         stream_ac_pro.Device.cell_temperature,
         stream_ac_pro.Device.battery_charge_limit_max,
@@ -220,8 +219,8 @@ async def test_stream_ac_pro_updates_from_message(device, bk_message):
     ]
 
     for field in expected_updated_fields:
-        assert field.public_name in device.updated_fields
-        assert getattr(device, field.public_name) is not None
+        assert field in device.updated_fields
+        assert getattr(device, field) is not None
 
 
 async def test_stream_max_updates_from_message(device, bk_message):
@@ -236,7 +235,7 @@ async def test_stream_max_updates_from_message(device, bk_message):
     device = device(stream_max)
     await device.data_parse(to_process)
 
-    expected_updated_fields: list[Field] = [
+    expected_updated_fields: list[str] = [
         stream_max.Device.battery_level,
         stream_max.Device.cell_temperature,
         stream_max.Device.battery_charge_limit_max,
@@ -253,8 +252,8 @@ async def test_stream_max_updates_from_message(device, bk_message):
     ]
 
     for field in expected_updated_fields:
-        assert field.public_name in device.updated_fields
-        assert getattr(device, field.public_name) is not None
+        assert field in device.updated_fields
+        assert getattr(device, field) is not None
 
 
 async def test_stream_pro_updates_from_message(device, bk_message):
@@ -269,7 +268,7 @@ async def test_stream_pro_updates_from_message(device, bk_message):
     device = device(stream_pro)
     await device.data_parse(to_process)
 
-    expected_updated_fields: list[Field] = [
+    expected_updated_fields: list[str] = [
         stream_pro.Device.battery_level,
         stream_pro.Device.cell_temperature,
         stream_pro.Device.battery_charge_limit_max,
@@ -288,8 +287,8 @@ async def test_stream_pro_updates_from_message(device, bk_message):
     ]
 
     for field in expected_updated_fields:
-        assert field.public_name in device.updated_fields
-        assert getattr(device, field.public_name) is not None
+        assert field in device.updated_fields
+        assert getattr(device, field) is not None
 
 
 async def test_stream_ultra_updates_from_message(device, bk_message):
@@ -304,7 +303,7 @@ async def test_stream_ultra_updates_from_message(device, bk_message):
     device = device(stream_ultra)
     await device.data_parse(to_process)
 
-    expected_updated_fields: list[Field] = [
+    expected_updated_fields: list[str] = [
         stream_ultra.Device.battery_level,
         stream_ultra.Device.cell_temperature,
         stream_ultra.Device.battery_charge_limit_max,
@@ -324,5 +323,5 @@ async def test_stream_ultra_updates_from_message(device, bk_message):
     ]
 
     for field in expected_updated_fields:
-        assert field.public_name in device.updated_fields
-        assert getattr(device, field.public_name) is not None
+        assert field in device.updated_fields
+        assert getattr(device, field) is not None

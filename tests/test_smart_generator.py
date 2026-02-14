@@ -5,7 +5,6 @@ from pytest_mock import MockerFixture
 from custom_components.ef_ble.eflib.devices import smart_generator, smart_generator_4k
 from custom_components.ef_ble.eflib.packet import Packet
 from custom_components.ef_ble.eflib.pb import ge305_sys_pb2
-from custom_components.ef_ble.eflib.props import Field
 
 _ge305_msg = """
 sys_status: 1
@@ -92,7 +91,7 @@ async def test_smart_generator_updates_from_message(device, ge305_msg):
 
     await device.data_parse(to_process)
 
-    expected_updated_fields: list[Field] = [
+    expected_updated_fields: list[str] = [
         smart_generator.Device.output_power,
         smart_generator.Device.ac_output_power,
         smart_generator.Device.sub_battery_power,
@@ -110,8 +109,8 @@ async def test_smart_generator_updates_from_message(device, ge305_msg):
     ]
 
     for field in expected_updated_fields:
-        assert field.public_name in device.updated_fields
-        assert getattr(device, field.public_name) is not None
+        assert field in device.updated_fields
+        assert getattr(device, field) is not None
 
 
 async def test_smart_generator_4k_updates_from_message(device_4k, ge305_msg):
@@ -125,11 +124,11 @@ async def test_smart_generator_4k_updates_from_message(device_4k, ge305_msg):
 
     await device_4k.data_parse(to_process)
 
-    expected_updated_fields: list[Field] = [
+    expected_updated_fields: list[str] = [
         smart_generator_4k.Device.xt150_battery_level,
         smart_generator_4k.Device.xt150_charge_type,
     ]
 
     for field in expected_updated_fields:
-        assert field.public_name in device_4k.updated_fields
-        assert getattr(device_4k, field.public_name) is not None
+        assert field in device_4k.updated_fields
+        assert getattr(device_4k, field) is not None
