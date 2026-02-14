@@ -126,6 +126,9 @@ class Device(DeviceBase, ProtobufProps):
                 model = "UPS (245Wh)"
         return f"River 3 {model}".strip()
 
+    async def packet_parse(self, data: bytes):
+        return Packet.fromBytes(data, xor_payload=True)
+
     async def data_parse(self, packet: Packet):
         processed = False
         self.reset_updated()
