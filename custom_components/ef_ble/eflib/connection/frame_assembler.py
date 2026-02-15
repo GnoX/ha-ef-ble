@@ -48,7 +48,7 @@ class FrameReassembler(abc.ABC):
         while len(self._buffer) >= self.FRAME_HEADER_LEN:
             if not self._buffer.startswith(self.PACKET_PREFIX):
                 _LOGGER.debug(
-                    "Skipping to next frame, current buffer: %r", self._buffer
+                    "Skipping to next frame, current buffer: %r", self._buffer.hex()
                 )
                 self._skip_to_next_frame()
                 continue
@@ -56,7 +56,7 @@ class FrameReassembler(abc.ABC):
             if not self._validate_header_crc(self._buffer):
                 _LOGGER.debug(
                     "Invalid header CRC, skipping: %r",
-                    self._buffer[: self.FRAME_HEADER_LEN],
+                    self._buffer[: self.FRAME_HEADER_LEN].hex(),
                 )
                 self._skip_to_next_frame()
                 continue
@@ -66,7 +66,7 @@ class FrameReassembler(abc.ABC):
             if frame_size is None:
                 _LOGGER.error(
                     "Unable to determine frame size, invalid header: %r",
-                    self._buffer[: self.FRAME_HEADER_LEN],
+                    self._buffer[: self.FRAME_HEADER_LEN].hex(),
                 )
                 self._skip_to_next_frame()
                 continue
