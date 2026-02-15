@@ -1,13 +1,10 @@
 from collections.abc import Callable
 from dataclasses import dataclass, fields
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, overload
+from typing import Any, overload
 
 from ..model.base import RawData
-from .updatable_props import Field
-
-if TYPE_CHECKING:
-    from .raw_data_props import RawDataProps
+from .updatable_props import Field, UpdatableProps
 
 
 class _DataclassAttr:
@@ -61,9 +58,12 @@ class RawDataField[T](Field[T]):
 
         return getattr(value, self.data_attr.attr)
 
-    def __set__(self, instance: "RawDataProps", value: Any):
+    def __set__(self, instance: UpdatableProps, value: Any):
         value = self._get_value(value)
         value = self._transform_value(value)
+        if value is None:
+            return
+
         super().__set__(instance, value)
 
 

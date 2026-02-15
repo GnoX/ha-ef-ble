@@ -1,13 +1,10 @@
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, overload
+from typing import Any, overload
 
 from google.protobuf.message import Message
 
-from .updatable_props import Field
-
-if TYPE_CHECKING:
-    from .protobuf_props import ProtobufProps
+from .updatable_props import Field, UpdatableProps
 
 
 class _ProtoAttr:
@@ -108,7 +105,7 @@ class ProtobufField[T](Field[T]):
             value = getattr(value, attr)
         return value
 
-    def __set__(self, instance: "ProtobufProps", value: Any):
+    def __set__(self, instance: "UpdatableProps", value: Any):
         if (value := self._get_value(value)) is Skip:
             return
 
