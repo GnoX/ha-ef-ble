@@ -73,7 +73,7 @@ class UnsupportedDevice(DeviceBase):
         else:
             self.collecting_data = f"{self._diagnostics.packets_collected}/{self._diagnostics.packet_buffer_size}"
 
-        packet = Packet.fromBytes(data)
+        packet = Packet.fromBytes(data, xor_payload=True)
         if Packet.is_invalid(packet):
             self.collecting_data = "error"
 
