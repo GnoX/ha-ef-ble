@@ -2,8 +2,8 @@ import pytest
 from google.protobuf import text_format
 from pytest_mock import MockerFixture
 
+from custom_components.ef_ble.eflib.connection.packet import Packet
 from custom_components.ef_ble.eflib.devices import alternator_charger
-from custom_components.ef_ble.eflib.packet import Packet
 from custom_components.ef_ble.eflib.pb import dc009_apl_comm_pb2
 
 _dc009_apl_comm_msg = """

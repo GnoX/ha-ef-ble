@@ -5,8 +5,8 @@ from bleak.backends.scanner import AdvertisementData
 from google.protobuf.message import Message
 
 from ..commands import TimeCommands
+from ..connection.packet import Packet
 from ..devicebase import DeviceBase
-from ..packet import Packet
 from ..pb import pd335_bms_bp_pb2, pd335_sys_pb2
 from ..props import (
     Field,

@@ -2,8 +2,8 @@ import pytest
 from google.protobuf import text_format
 from pytest_mock import MockerFixture
 
+from custom_components.ef_ble.eflib.connection.packet import Packet
 from custom_components.ef_ble.eflib.devices import smart_generator, smart_generator_4k
-from custom_components.ef_ble.eflib.packet import Packet
 from custom_components.ef_ble.eflib.pb import ge305_sys_pb2
 
 _ge305_msg = """

@@ -3,8 +3,8 @@ import struct
 import time
 from dataclasses import dataclass
 
+from .connection.packet import Packet
 from .devicebase import DeviceBase
-from .packet import Packet
 from .pb import utc_sys_pb2
 
 _LOGGER = logging.getLogger(__name__)

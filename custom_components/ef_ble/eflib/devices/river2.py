@@ -1,6 +1,7 @@
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
+from ..connection.packet import Packet
 from ..devicebase import DeviceBase
 from ..model import (
     DirectBmsMDeltaHeartbeatPack,
@@ -9,7 +10,6 @@ from ..model import (
     Mr330MpptHeart,
     Mr330PdHeartRiver2,
 )
-from ..packet import Packet
 from ..props import Field
 from ..props.enums import IntFieldValue
 from ..props.raw_data_field import dataclass_attr_mapper, raw_field

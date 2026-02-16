@@ -53,7 +53,7 @@ from .const import (
     DOMAIN,
     LINK_WIKI_SUPPORTING_NEW_DEVICES,
 )
-from .eflib.connection import ConnectionState
+from .eflib.connection.connection import ConnectionState
 from .eflib.logging_util import LogOptions
 
 _LOGGER = logging.getLogger(__name__)

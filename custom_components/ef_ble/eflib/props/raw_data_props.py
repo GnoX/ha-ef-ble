@@ -5,7 +5,7 @@ from functools import cached_property
 from typing import Literal, overload
 
 from .. import devicebase
-from ..connection import LogOptions
+from ..connection.connection import LogOptions
 from ..listeners import ListenerGroup, ListenerRegistry
 from ..model.base import RawData
 from .raw_data_field import RawDataField

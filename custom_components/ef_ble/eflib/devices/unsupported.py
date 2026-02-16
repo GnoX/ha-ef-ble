@@ -2,9 +2,9 @@ from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
 from ..commands import TimeCommands
+from ..connection.packet import Packet
 from ..devicebase import DeviceBase
 from ..logging_util import LogOptions
-from ..packet import Packet
 
 
 class UnsupportedDevice(DeviceBase):
@@ -20,6 +20,7 @@ class UnsupportedDevice(DeviceBase):
         super().__init__(ble_dev, adv_data, sn)
         self._time_commands = TimeCommands(self)
         self._diagnostics.enabled()
+        self.initialized = False
 
     @classmethod
     def check(cls, sn: bytes) -> bool:
@@ -49,6 +50,16 @@ class UnsupportedDevice(DeviceBase):
 
         return version
 
+    @property
+    def auth_header_dst(self):
+        return (
+            0x32
+            if self._sn.startswith("DC")
+            or self._sn.startswith("R511")
+            or self._sn.startswith("Z0")
+            else 0x35
+        )
+
     def with_update_period(self, period: int):
         # NOTE(gnox): as unsupported devices do not have any sensors, we leave update
         # period to default, otherwise collection sensor would lag
@@ -62,18 +73,93 @@ class UnsupportedDevice(DeviceBase):
         else:
             self.collecting_data = f"{self._diagnostics.packets_collected}/{self._diagnostics.packet_buffer_size}"
 
-        packet = Packet.fromBytes(data)
+        packet = Packet.fromBytes(data, xor_payload=True)
         if Packet.is_invalid(packet):
             self.collecting_data = "error"
 
         self.update_callback("collecting_data")
         return packet
 
+    @property
+    def index(self):
+        if not hasattr(self, "_index"):
+            self._index = -1
+        return self._index
+
+    @index.setter
+    def index(self, value):
+        self._index = value
+
+    @property
+    def dormant(self):
+        if not hasattr(self, "_dormant"):
+            self._dormant = True
+        return self._dormant
+
+    @dormant.setter
+    def dormant(self, value):
+        self._dormant = value
+
+    async def request_heartbeat(self):
+        match self.index:
+            case -1:
+                self.index += 1
+                src, dst, cmd_set, cmd_id, payload = 33, 3, 50, 5, b"\x01"
+                await self._conn.sendPacket(
+                    Packet(src, dst, cmd_set, cmd_id, payload, version=0x02)
+                )
+                return
+            case 0:
+                src, dst, cmd_set, cmd_id, payload = 33, 2, 32, 2, b"\x00"
+                self.index += 1
+            case 1:
+                src, dst, cmd_set, cmd_id, payload = 33, 5, 32, 2, b"\x00"
+                self.index += 1
+            case 2:
+                src, dst, cmd_set, cmd_id, payload = 33, 4, 32, 2, b"\x00"
+                self.index += 1
+            case 3:
+                src, dst, cmd_set, cmd_id, payload = 33, 3, 32, 2, b"\x00"
+                self.index += 1
+            case 4:
+                src, dst, cmd_set, cmd_id, payload = 33, 3, 32, 50, b"\x00"
+                self.index += 1
+            case 5:
+                src, dst, cmd_set, cmd_id, payload = 33, 5, 32, 72, b"\x00"
+                self.index = 0
+            case _:
+                return
+
+        if not self.dormant:
+            await self._conn.sendPacket(
+                Packet(src, dst, cmd_set, cmd_id, payload, version=0x02)
+            )
+
+    async def parse_heartbeat(self, packet: Packet):
+        self._logger.info("dormant: %s", self.dormant)
+        if self.dormant:
+            match packet.src, packet.cmdSet, packet.cmdId:
+                case 0x03, 0x32, 0x05:
+                    await self._conn.sendPacket(
+                        Packet(33, 50, 51, 1, b"\x01", version=0x02)
+                    )
+                    self.dormant = False
+                    self._logger.info("Dormancy: %r %s", packet.payload, self.dormant)
+
     async def data_parse(self, packet: Packet) -> bool:
         self._logger.log_filtered(
             LogOptions.DESERIALIZED_MESSAGES, "Device message: %r", packet.payloadHex
         )
         processed = False
+
+        match packet.src, packet.cmdSet, packet.cmdId:
+            case 0x03, 0x03, 0x0E:
+                if not self.initialized:
+                    self.initialized = True
+
+        if self.initialized:
+            await self.request_heartbeat()
+            await self.parse_heartbeat(packet)
 
         if (
             packet.src == 0x35
@@ -92,22 +178,21 @@ ECOFLOW_DEVICE_LIST = {
     # =====================
     # DELTA SERIES
     # =====================
-    "D8":  {"name": "EcoFlow DELTA (1000)", "packets": "v1"},
-    "D5":  {"name": "EcoFlow DELTA (1300)", "packets": "v1"},
-    "D1":  {"name": "EcoFlow DELTA (1300)", "packets": "v1"},
-    "D2":  {"name": "EcoFlow DELTA (1300)", "packets": "v1"},
-    "D3":  {"name": "EcoFlow DELTA (1300)", "packets": "v1"},
-    "D4":  {"name": "EcoFlow DELTA (1300)", "packets": "v1"},
+    "D8":  {"name": "EcoFlow DELTA (1000)", "packets": "v2"},
+    "D5":  {"name": "EcoFlow DELTA (1300)", "packets": "v2"},
+    "D1":  {"name": "EcoFlow DELTA (1300)", "packets": "v2"},
+    "D2":  {"name": "EcoFlow DELTA (1300)", "packets": "v2"},
+    "D3":  {"name": "EcoFlow DELTA (1300)", "packets": "v2"},
+    "D4":  {"name": "EcoFlow DELTA (1300)", "packets": "v2"},
 
-    "DB":  {"name": "EcoFlow DELTA mini", "packets": "v1"},
+    "DB":  {"name": "EcoFlow DELTA mini", "packets": "v2"},
 
-    "DA":  {"name": "EcoFlow DELTA Max (2000)", "packets": "v1"},
-    "DD":  {"name": "EcoFlow DELTA Max (1600)", "packets": "v1"},
+    "DA":  {"name": "EcoFlow DELTA Max (2000)", "packets": "v2"},
+    "DD":  {"name": "EcoFlow DELTA Max (1600)", "packets": "v2"},
 
-    "DCA": {"name": "EcoFlow DELTA Pro", "packets": "v1"},
-    "DCF": {"name": "EcoFlow DELTA Pro", "packets": "v1"},
-    "R511":{"name": "EcoFlow DELTA Pro", "packets": "v1"},
-    "Z0":  {"name": "EcoFlow DELTA Pro DZ500", "packets": "v1"},
+    "DC": {"name": "EcoFlow DELTA Pro", "packets": "v2"},
+    "R511":{"name": "EcoFlow DELTA Pro", "packets": "v2"},
+    "Z0":  {"name": "EcoFlow DELTA Pro DZ500", "packets": "v2"},
 
     # =====================
     # DELTA 2 FAMILY

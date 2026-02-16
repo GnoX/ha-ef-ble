@@ -2,8 +2,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from ..commands import TimeCommands
+from ..connection.packet import Packet
 from ..devicebase import AdvertisementData, BLEDevice, DeviceBase
-from ..packet import Packet
 from ..pb import pd303_pb2
 from ..props import (
     Field,

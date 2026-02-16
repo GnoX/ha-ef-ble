@@ -1,7 +1,7 @@
 import logging
 
+from ..connection.packet import Packet
 from ..devicebase import DeviceBase
-from ..packet import Packet
 from ..pb import ac517_apl_comm_pb2
 from ..props import ProtobufProps, pb_field
 from ..props.enums import IntFieldValue

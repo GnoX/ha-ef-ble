@@ -15,6 +15,7 @@ from .pd_heart import (
     Mr330PdHeartDelta2,
     Mr330PdHeartRiver2,
     Mr350PdHeartbeatDelta2Max,
+    Mr350PdHeartbeatDeltaPro,
 )
 
 __all__ = [
@@ -33,5 +34,6 @@ __all__ = [
     "Mr330PdHeartRiver2",
     "Mr350MpptHeart",
     "Mr350PdHeartbeatDelta2Max",
+    "Mr350PdHeartbeatDeltaPro",
     "RawData",
 ]

@@ -8,7 +8,7 @@ from typing import Any
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
-from .connection import (
+from .connection.connection import (
     Connection,
     ConnectionState,
     ConnectionStateListener,
@@ -16,6 +16,7 @@ from .connection import (
     PacketParsedListener,
     PacketReceivedListener,
 )
+from .connection.packet import Packet
 from .listeners import ListenerGroup, ListenerRegistry
 from .logging_util import (
     ConnectionLog,
@@ -23,7 +24,6 @@ from .logging_util import (
     DeviceLogger,
     LogOptions,
 )
-from .packet import Packet
 
 
 class _Listeners(ListenerRegistry):
@@ -115,6 +115,10 @@ class DeviceBase(abc.ABC):
         return self._packet_version
 
     @property
+    def auth_header_dst(self) -> int:
+        return 0x35
+
+    @property
     def connection_state(self):
         return None if self._conn is None else self._conn._connection_state
 
@@ -183,6 +187,7 @@ class DeviceBase(abc.ABC):
                     data_parse=self.data_parse,
                     packet_parse=self.packet_parse,
                     packet_version=self.packet_version,
+                    auth_header_dst=self.auth_header_dst,
                 )
                 .with_logging_options(self._logger.options)
                 .with_disabled_reconnect(self._reconnect_disabled)

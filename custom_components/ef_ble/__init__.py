@@ -26,7 +26,7 @@ from .const import (
     DOMAIN,
     MANUFACTURER,
 )
-from .eflib.connection import (
+from .eflib.connection.connection import (
     AuthFailedError,
     BleakError,
     ConnectionTimeout,
