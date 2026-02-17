@@ -669,6 +669,9 @@
       },
       "channel_error_count": {
         "name": "Channel {channel} Error Count"
+      },
+      "pv_power_sum": {
+        "name": "PV Power Total"
       }
     },
     "select": {
