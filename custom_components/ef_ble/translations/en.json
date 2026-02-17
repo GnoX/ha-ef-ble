@@ -384,6 +384,9 @@
       "usbc2_output_power": {
         "name": "USB C (2) Output Power"
       },
+      "usbc3_output_power": {
+        "name": "USB C (3) Output Power"
+      },
       "usbc2_output_energy": {
         "name": "USB C (2) Output Energy"
       },
@@ -520,6 +523,9 @@
       },
       "load_from_pv": {
         "name": "Load From PV"
+      },
+      "pv_power_sum": {
+        "name": "PV Power Sum"
       },
       "grid_voltage": {
         "name": "Grid Voltage"
