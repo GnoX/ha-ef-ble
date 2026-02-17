@@ -5,6 +5,7 @@ from ..commands import TimeCommands
 from ..devicebase import DeviceBase
 from ..logging_util import LogOptions
 from ..packet import Packet
+from ..ps_connection import PowerStreamConnection
 
 
 class UnsupportedDevice(DeviceBase):
@@ -48,6 +49,12 @@ class UnsupportedDevice(DeviceBase):
                 break
 
         return version
+
+    def _create_connection(self, **kwargs):
+        if self._sn.startswith("HW51"):
+            return PowerStreamConnection(**kwargs)
+
+        return super()._create_connection(**kwargs)
 
     def with_update_period(self, period: int):
         # NOTE(gnox): as unsupported devices do not have any sensors, we leave update
@@ -188,8 +195,8 @@ ECOFLOW_DEVICE_LIST = {
     # =====================
     # POWERSTREAM / STREAM
     # =====================
-    "HW51":{"name": "EcoFlow PowerStream", "packets": "v2"},
-    "HW52":{"name": "EcoFlow Smart Plug (PowerStream)", "packets": "v2"},
+    "HW51":{"name": "EcoFlow PowerStream", "packets": "v3"},
+    "HW52":{"name": "EcoFlow Smart Plug (PowerStream)", "packets": "v3"},
 
     "BK01":{"name": "EcoFlow STREAM Microinverter", "packets": "v3"},
     "BK02":{"name": "EcoFlow STREAM Microinverter", "packets": "v3"},
