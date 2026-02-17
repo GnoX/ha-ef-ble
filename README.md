@@ -172,7 +172,7 @@ Click on any device below to see available sensors, switches, and controls:
 
 <sup>⁺ Only available on Plus variant</sup><br>
 <sup>¹ Not available on Classic</sup><br>
-<sup>² Not available on Air</sup>
+<sup>² Not available on Air</sup><br>
 <sup>³ Only available on Max Plus</sup>
 
 > **📝 Note:** Delta 3 models do not expose energy sensors. To use with the Energy
