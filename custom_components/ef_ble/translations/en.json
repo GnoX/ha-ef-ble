@@ -3,7 +3,7 @@
     "abort": {
       "already_configured": "Device is already configured",
       "not_supported": "Device is not supported",
-      "no_devices_found": "No supported EcoFlow devices found",
+      "no_devices_found": "No supported EcoFlow devices found. Make sure your device is not connected to the EcoFlow app via Bluetooth.",
       "reconfigure_successful": "Reconfiguration was successful"
     },
     "error": {
@@ -16,7 +16,8 @@
       "bt_timeout": "Could not connect to the device - connection timed out",
       "bt_not_found": "Device was not found - try refreshing the bluetooth integration if this error occurs repeatedly",
       "bt_general_error": "Could not connect to the device - see the logs for more details",
-      "error_try_refresh": "Connection disconnected before it could authenticate - try refreshing before adding the device"
+      "error_try_refresh": "Device disconnected before it could authenticate - try refreshing and reloading the bluetooth adapter",
+      "error_try_refresh_unsupported": "Device disconnected before it could authenticate - try changing packet version. If that does not help and resubmitting after reloading does not work, this device probably uses different auth procedure and has to be reverse engineered."
     },
     "step": {
       "bluetooth_confirm": {
@@ -33,29 +34,41 @@
         },
         "sections": {
           "login": {
-            "name": "EcoFlow Login (skip if you already know your user ID)",
+            "name": "EcoFlow Login (skip if you already have your user ID)",
+            "description": "After you click Submit with your login information filled in, your EcoFlow User ID will be automatically populated and this form will clear itself. Only your user ID is required so you will not be able to proceed to the next page unless this section is empty.",
             "data": {
               "email": "Email",
-              "password": "Password"
+              "password": "Password",
+              "region": "Region"
+            },
+            "data_description": {
+              "region": "If you receive an \"Account does not exist\" message after logging in, or if the connection fails with \"User ID may be incorrect\", try selecting a different region."
             }
           },
           "log_options": {
             "name": "Logging Options",
             "description": "Detailed logging options. Most of these will flood your logs, so avoid leaving them enabled for long periods.",
             "data": {
-                "log_masked": "Mask sensitive information (useful when sharing logs publicly)",
-                "log_connection": "Log device connection requests and responses",
-                "log_messages": "Log deserialized device update messages",
-                "log_packets": "Log packet objects",
-                "log_encrypted_payloads": "Log encrypted payloads",
-                "log_payloads": "Log decrypted payloads",
-                "log_bleak": "Enable bleak debug log level (not masked and not filtered to this device)"
+              "log_masked": "Mask sensitive information (useful when sharing logs publicly)",
+              "log_connection": "Log device connection requests and responses",
+              "log_messages": "Log deserialized device update messages",
+              "log_packets": "Log packet objects",
+              "log_encrypted_payloads": "Log encrypted payloads",
+              "log_payloads": "Log decrypted payloads",
+              "log_bleak": "Enable bleak debug log level (not masked and not filtered to this device)"
             }
           }
         }
       },
       "user": {
         "title": "Add EcoFlow Device",
+        "description": "Devices labeled as **[Unsupported]** do not expose any sensors but can be used to provide data for implementing support. Refer to [this wiki]({wiki_link}) page for additional information.",
+        "data": {
+          "address": "BLE Device"
+        }
+      },
+      "device_confirm": {
+        "title": "{name} config options",
         "data": {
           "user_id": "EcoFlow User ID",
           "address": "BLE Device",
@@ -68,23 +81,70 @@
         },
         "sections": {
           "login": {
-            "name": "EcoFlow Login (skip if you already know your user ID)",
+            "name": "EcoFlow Login (skip if you already have your user ID)",
+            "description": "After you click Submit with your login information filled in, your EcoFlow User ID will be automatically populated and this form will clear itself. Only your user ID is required so you will not be able to proceed to the next page unless this section is empty.",
             "data": {
               "email": "Email",
-              "password": "Password"
+              "password": "Password",
+              "region": "Region"
+            },
+            "data_description": {
+              "region": "If you receive an \"Account does not exist\" message after logging in, or if the connection fails with \"User ID may be incorrect\", try selecting a different region."
             }
           },
           "log_options": {
             "name": "Logging Options",
             "description": "Detailed logging options. Most of these will flood your logs, so avoid leaving them enabled for long periods.",
             "data": {
-                "log_masked": "Mask sensitive information (useful when sharing logs publicly)",
-                "log_connection": "Log device connection requests and responses",
-                "log_messages": "Log deserialized device update messages",
-                "log_packets": "Log packet objects",
-                "log_encrypted_payloads": "Log encrypted payloads",
-                "log_payloads": "Log decrypted payloads",
-                "log_bleak": "Enable bleak debug log level (not masked and not filtered to this device)"
+              "log_masked": "Mask sensitive information (useful when sharing logs publicly)",
+              "log_connection": "Log device connection requests and responses",
+              "log_messages": "Log deserialized device update messages",
+              "log_packets": "Log packet objects",
+              "log_encrypted_payloads": "Log encrypted payloads",
+              "log_payloads": "Log decrypted payloads",
+              "log_bleak": "Enable bleak debug log level (not masked and not filtered to this device)"
+            }
+          }
+        }
+      },
+      "unsupported_device": {
+        "title": "{name} config options",
+        "description": "This device is currently unsupported but can be connected to for the purpose of gathering raw data. Refer to [this wiki]({wiki_link}) page for additional information.",
+        "data": {
+          "user_id": "EcoFlow User ID",
+          "update_period": "Update Period",
+          "packet_version": "Packet Version",
+          "connection_timeout": "Connection Timeout"
+        },
+        "data_description": {
+          "update_period": "Number of seconds to wait before processing the next device update. A default value of 0 means all updates are processed immediately (may result in a high number of DB writes).",
+          "packet_version": "Version of packets to use - depends on the generation and firmware of this device. Try different version if connection/authentication fails.\nNote that some devices may use packet version that is not yet supported by this integration.",
+          "connection_timeout": "Number of seconds to wait for the device to connect and authenticate."
+        },
+        "sections": {
+          "login": {
+            "name": "EcoFlow Login (skip if you already have your user ID)",
+            "description": "After you click Submit with your login information filled in, your EcoFlow User ID will be automatically populated and this form will clear itself. Only your user ID is required so you will not be able to proceed to the next page unless this section is empty.",
+            "data": {
+              "email": "Email",
+              "password": "Password",
+              "region": "Region"
+            },
+            "data_description": {
+              "region": "If you receive an \"Account does not exist\" message after logging in, or if the connection fails with \"User ID may be incorrect\", try selecting a different region."
+            }
+          },
+          "log_options": {
+            "name": "Logging Options",
+            "description": "Advanced logging options. Most of these settings will generate a large volume of log output, so it is recommended not to leave them enabled for extended periods.",
+            "data": {
+              "log_masked": "Mask sensitive information (useful when sharing logs publicly)",
+              "log_connection": "Log device connection requests and responses",
+              "log_messages": "Log deserialized device update messages",
+              "log_packets": "Log packet objects",
+              "log_encrypted_payloads": "Log encrypted payloads",
+              "log_payloads": "Log decrypted payloads",
+              "log_bleak": "Enable bleak debug log level (not masked and not filtered to this device)"
             }
           }
         }
@@ -93,7 +153,15 @@
         "data": {
           "user_id": "EcoFlow User ID"
         }
+      },
+      "connecting": {
+        "title": "Connecting to device"
       }
+    },
+    "progress": {
+      "connecting": "Connecting to device...",
+      "authenticating": "Connection successful, running authentication procedure...",
+      "disconnecting": "Sucess! Disconnecting from device..."
     }
   },
   "options": {
@@ -101,23 +169,26 @@
       "init": {
         "title": "Options for {device_name}",
         "data": {
-          "update_period": "Update Period"
+          "update_period": "Update Period",
+          "collect_packets": "Enable packet collection for diagnostics",
+          "collect_packets_amount": "Number of packets to store for diagnostics"
         },
         "data_description": {
-          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of DB writes)."
+          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of DB writes).",
+          "collect_packets": "Enabling this option will start storing packets for diagnostics info - wait a minute after you enable this option before downloading diagnostics info and don't forget to turn it off.\nSome devices may contain identifying information in their messages such as your exact location so be careful when sharing info with this option enabled."
         },
         "sections": {
           "log_options": {
             "name": "Logging Options",
             "description": "Detailed logging options. Most of these will flood your logs, so avoid leaving them enabled for long periods.",
             "data": {
-                "log_masked": "Mask sensitive information (useful when sharing logs publicly)",
-                "log_connection": "Log device connection requests and responses",
-                "log_messages": "Log deserialized device update messages",
-                "log_packets": "Log packet objects",
-                "log_encrypted_payloads": "Log encrypted payloads",
-                "log_payloads": "Log decrypted payloads",
-                "log_bleak": "Enable bleak debug log level (not masked and not filtered to this device)"
+              "log_masked": "Mask sensitive information (useful when sharing logs publicly)",
+              "log_connection": "Log device connection requests and responses",
+              "log_messages": "Log deserialized device update messages",
+              "log_packets": "Log packet objects",
+              "log_encrypted_payloads": "Log encrypted payloads",
+              "log_payloads": "Log decrypted payloads",
+              "log_bleak": "Enable bleak debug log level (not masked and not filtered to this device)"
             }
           }
         }
@@ -160,12 +231,56 @@
     }
   },
   "entity": {
+    "binary_sensor": {
+      "channel_backup_is_ready": {
+        "name": "Channel {channel} Backup Ready"
+      },
+      "channel_is_enabled": {
+        "name": "Channel {channel} Enabled"
+      },
+      "channel_is_connected": {
+        "name": "Channel {channel} Connected"
+      },
+      "channel_is_ac_open": {
+        "name": "Channel {channel} AC Output"
+      },
+      "channel_is_power_output": {
+        "name": "Channel {channel} Power Output"
+      },
+      "channel_is_grid_charge": {
+        "name": "Channel {channel} Grid Charging"
+      },
+      "channel_is_mppt_charge": {
+        "name": "Channel {channel} Solar Charging"
+      },
+      "channel_ems_charging": {
+        "name": "Channel {channel} EMS Charging"
+      },
+      "channel_hw_connected": {
+        "name": "Channel {channel} Hardware Connected"
+      },
+      "error_happened": {
+        "name": "Error"
+      },
+      "plugged_in_ac": {
+        "name": "AC Plugged In"
+      }
+    },
     "sensor": {
+      "collecting_data": {
+        "name": "Collecting diagnostics data"
+      },
       "battery_level": {
         "name": "Battery Level"
       },
+      "battery_time_remaining": {
+        "name": "Battery Time Remaining"
+      },
       "additional_battery_level": {
         "name": "Battery {index} Level"
+      },
+      "additional_battery_temperature": {
+        "name": "Battery {index} Cell Temperature"
       },
       "battery_level_main": {
         "name": "Main Battery Level"
@@ -191,6 +306,18 @@
       "port_power": {
         "name": "{name} Power"
       },
+      "port_energy_today": {
+        "name": "{name} Energy Today"
+      },
+      "port_energy": {
+        "name": "{name} Energy"
+      },
+      "grid_energy_today": {
+        "name": "Grid Energy Today"
+      },
+      "grid_energy": {
+        "name": "Grid Energy"
+      },
       "circuit_power": {
         "name": "Circuit Power {index}"
       },
@@ -209,6 +336,12 @@
       "ac_input_power": {
         "name": "AC Input Power"
       },
+      "ac_input_voltage": {
+        "name": "AC Input Voltage"
+      },
+      "ac_input_current": {
+        "name": "AC Input Current"
+      },
       "ac_output_power": {
         "name": "AC Output Power"
       },
@@ -221,14 +354,26 @@
       "dc_input_power": {
         "name": "DC Input Power"
       },
+      "car_input_power": {
+        "name": "Car Input Power"
+      },
       "dc_input_energy": {
         "name": "DC Input Energy"
+      },
+      "dc_output_power": {
+        "name": "DC Output Power"
       },
       "dc12v_output_power": {
         "name": "DC 12V Output Power"
       },
       "dc12v_output_energy": {
         "name": "DC 12V Output Energy"
+      },
+      "dc12v_output_current": {
+        "name": "DC 12V Output Current"
+      },
+      "dc12v_output_voltage": {
+        "name": "DC 12V Output Voltage"
       },
       "usbc_output_power": {
         "name": "USB C Output Power"
@@ -245,6 +390,9 @@
       "usbc2_output_power": {
         "name": "USB C (2) Output Power"
       },
+      "usbc3_output_power": {
+        "name": "USB C (3) Output Power"
+      },
       "usbc2_output_energy": {
         "name": "USB C (2) Output Energy"
       },
@@ -253,6 +401,12 @@
       },
       "usba2_output_energy": {
         "name": "USB A (2) Output Energy"
+      },
+      "qc_usb1_output_power": {
+        "name": "USB A QC (1) Power"
+      },
+      "qc_usb2_output_power": {
+        "name": "USB A QC (2) Power"
       },
       "battery_input_power": {
         "name": "Battery Input Power"
@@ -299,11 +453,261 @@
       "dc_hv_input_power": {
         "name": "LV DC Port Input Power"
       },
-      "dc_lv_state": {
+      "dc_lv_input_state": {
         "name": "LV DC Input Port State"
       },
-      "dc_hv_state": {
+      "dc_hv_input_state": {
         "name": "HV DC Input Port State"
+      },
+      "engine_state": {
+        "name": "Engine State",
+        "state": {
+          "closed": "Off",
+          "opened": "Running",
+          "closing": "Stopping"
+        }
+      },
+      "xt150_battery_level": {
+        "name": "XT150 Battery Level"
+      },
+      "xt150_charge_type": {
+        "name": "XT150 Charge Type"
+      },
+      "liquefied_gas_type": {
+        "name": "Liquefied Gas Type"
+      },
+      "liquefied_gas": {
+        "name": "Liquefied Gas"
+      },
+      "liquefied_gas_consumption": {
+        "name": "Liquefied Gas Consumption per Hour"
+      },
+      "generator_total_output": {
+        "name": "Generator Total Output"
+      },
+      "generator_abnormal_state": {
+        "name": "Abnormal State",
+        "state": {
+          "no": "No",
+          "gasoline_low": "Gasoline Low"
+        }
+      },
+      "sub_battery_soc": {
+        "name": "Internal Battery Level"
+      },
+      "sub_battery_power": {
+        "name": "Internal Battery Power"
+      },
+      "sub_battery_state": {
+        "name": "Internal Battery State",
+        "state": {
+          "idle": "Idle",
+          "no_input": "No Input",
+          "discharging": "Discharging",
+          "charging": "Charging",
+          "normal_full": "Full",
+          "normal_low_pressure": "Normal Low Pressure"
+        }
+      },
+      "fuel_type": {
+        "name": "Fuel Type"
+      },
+      "battery_temperature": {
+        "name": "Battery Temperature"
+      },
+      "car_battery_voltage": {
+        "name": "Battery Voltage"
+      },
+      "dc_power": {
+        "name": "DC Power"
+      },
+      "load_from_battery": {
+        "name": "Load From Battery"
+      },
+      "load_from_grid": {
+        "name": "Load From Grid"
+      },
+      "load_from_pv": {
+        "name": "Load From PV"
+      },
+      "grid_voltage": {
+        "name": "Grid Voltage"
+      },
+      "grid_frequency": {
+        "name": "Grid Frequency"
+      },
+      "backup_is_ready": {
+        "name": "Channel {channel} Backup Ready"
+      },
+      "backup_ctrl_status": {
+        "name": "Channel {channel} Control Status",
+        "state": {
+          "off": "Off",
+          "discharge": "Discharging",
+          "charge": "Charging",
+          "emergency_stop": "Emergency Stop",
+          "standby": "Standby"
+        }
+      },
+      "backup_force_charge": {
+        "name": "Channel {channel} Force Charge",
+        "state": {
+          "off": "Off",
+          "on": "On"
+        }
+      },
+      "backup_relay1_count": {
+        "name": "Channel {channel} Relay 1 Count"
+      },
+      "backup_relay2_count": {
+        "name": "Channel {channel} Relay 2 Count"
+      },
+      "backup_wakeup_charge": {
+        "name": "Channel {channel} Wakeup Charge Level"
+      },
+      "backup_connector_type": {
+        "name": "Channel {channel} Connector Type"
+      },
+      "channel_serial_number": {
+        "name": "Channel {channel} Serial Number"
+      },
+      "channel_device_type": {
+        "name": "Channel {channel} Device Type"
+      },
+      "channel_full_capacity": {
+        "name": "Channel {channel} Full Capacity"
+      },
+      "channel_rated_power": {
+        "name": "Channel {channel} Rated Power"
+      },
+      "channel_battery_level": {
+        "name": "Channel {channel} Battery Level"
+      },
+      "channel_output_power": {
+        "name": "Channel {channel} Output Power"
+      },
+      "channel_battery_temperature": {
+        "name": "Channel {channel} Battery Temperature"
+      },
+      "channel_lcd_input_power": {
+        "name": "Channel {channel} LCD Input Power"
+      },
+      "channel_pv_status": {
+        "name": "Channel {channel} PV Status",
+        "state": {
+          "none": "None",
+          "lv": "LV",
+          "hv": "HV",
+          "lv_and_hv": "LV&HV"
+        }
+      },
+      "channel_pv_lv_input_power": {
+        "name": "Channel {channel} PV LV Input Power"
+      },
+      "channel_pv_hv_input_power": {
+        "name": "Channel {channel} PV HV Input Power"
+      },
+      "channel_error_count": {
+        "name": "Channel {channel} Error Count"
+      },
+      "ambient_temperature": {
+        "name": "Ambient Temperature"
+      },
+      "ambient_humidity": {
+        "name": "Humidity"
+      },
+      "operating_mode": {
+        "name": "Operating Mode"
+      },
+      "condensate_water_level": {
+        "name": "Water Level"
+      },
+      "pcs_fan_level": {
+        "name": "Fan Level"
+      },
+      "in_drainage": {
+        "name": "In Drainage"
+      },
+      "drainage_mode": {
+        "name": "Drainage Mode"
+      },
+      "lcd_show_temp_type": {
+        "name": "Display Temperature Type"
+      },
+      "temp_indoor_supply_air": {
+        "name": "Indoor Supply Air Temp"
+      },
+      "temp_indoor_return_air": {
+        "name": "Indoor Return Air Temp"
+      },
+      "temp_outdoor_ambient": {
+        "name": "Outdoor Ambient Temp"
+      },
+      "temp_condenser": {
+        "name": "Condenser Temperature"
+      },
+      "temp_evaporator": {
+        "name": "Evaporator Temperature"
+      },
+      "temp_compressor_discharge": {
+        "name": "Compressor Discharge Temp"
+      },
+      "battery_charge_limit_min": {
+        "name": "Discharge Limit"
+      },
+      "battery_charge_limit_max": {
+        "name": "Charge Limit"
+      },
+      "sleep_state": {
+        "name": "Sleep State"
+      },
+      "power": {
+        "name": "Power"
+      },
+      "power_battery": {
+        "name": "Battery Power"
+      },
+      "power_psdr": {
+        "name": "PSDR Power"
+      },
+      "power_mppt": {
+        "name": "MPPT Power"
+      },
+      "water_level": {
+        "name": "Water Level"
+      },
+      "outlet_temperature": {
+        "name": "Outlet Temperature"
+      }
+    },
+    "select": {
+      "led_mode": {
+        "name": "LED"
+      },
+      "dc_charging_type": {
+        "name": "DC Charging Type"
+      },
+      "performance_mode": {
+        "name": "Performance Mode"
+      },
+      "liquefied_gas_unit": {
+        "name": "Gas Unit"
+      },
+      "charger_mode": {
+        "name": "Charger Mode",
+        "state": {
+          "idle": "Idle",
+          "charge": "Charge",
+          "reverse_charge": "Reverse Charge",
+          "battery_maintenance": "Battery Maintenance"
+        }
+      },
+      "drain_mode": {
+        "name": "Drain Mode",
+        "state": {
+          "drain_free": "Drain Free",
+          "external": "External"
+        }
       }
     }
   }

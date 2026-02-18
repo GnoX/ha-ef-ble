@@ -102,6 +102,57 @@
             },
             "hv_solar_power": {
                 "default": "mdi:solar-panel-large"
+            },
+            "generator_abnormal_state": {
+                "default": "mdi:alert-circle"
+            },
+            "fuel_type": {
+                "default": "mdi:barrel"
+            },
+            "liquefied_gas_type": {
+                "default": "mdi:gas-cylinder"
+            },
+            "load_from_battery": {
+                "default": "mdi:battery-arrow-up"
+            },
+            "load_from_grid": {
+                "default": "mdi:transmission-tower"
+            },
+            "load_from_pv": {
+                "default": "mdi:solar-power-variant"
+            },
+            "grid_frequency": {
+                "default": "mdi:cosine-wave"
+            },
+            "channel1_pv_status": {
+                "default": "mdi:solar-power"
+            },
+            "channel2_pv_status": {
+                "default": "mdi:solar-power"
+            },
+            "channel3_pv_status": {
+                "default": "mdi:solar-power"
+            },
+            "channel1_pv_lv_input": {
+                "default": "mdi:solar-panel"
+            },
+            "channel2_pv_lv_input": {
+                "default": "mdi:solar-panel"
+            },
+            "channel3_pv_lv_input": {
+                "default": "mdi:solar-panel"
+            },
+            "channel1_pv_hv_input": {
+                "default": "mdi:solar-panel-large"
+            },
+            "channel2_pv_hv_input": {
+                "default": "mdi:solar-panel-large"
+            },
+            "channel3_pv_hv_input": {
+                "default": "mdi:solar-panel-large"
+            },
+            "grid_current": {
+                "default": "mdi:current-ac"
             }
         },
         "switch": {
@@ -110,6 +161,22 @@
                 "state": {
                     "off": "mdi:battery-sync-outline"
                 }
+            },
+            "lpg_level_monitoring": {
+                "default": "mdi:meter-gas",
+                "state": {
+                    "off": "mdi:meter-gas-outline"
+                }
+            }
+        },
+        "select": {
+            "liquefied_gas_unit": {
+                "default": "mdi:storage-tank-outline"
+            }
+        },
+        "number": {
+            "liquefied_gas_value": {
+                "default": "mdi:storage-tank"
             }
         }
     }

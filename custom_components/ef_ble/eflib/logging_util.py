@@ -1,14 +1,22 @@
+import dataclasses
+import json
 import logging
 import re
+import time
+from collections import deque
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from enum import Flag, auto
 from functools import cached_property
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import bleak
 
+from .packet import Packet
+
 if TYPE_CHECKING:
-    from .connection import Connection
+    from .connection import Connection, ConnectionState
     from .devicebase import DeviceBase
 
 
@@ -186,3 +194,206 @@ class ConnectionLogger(MaskingLogger):
                 _mask_user_id(connection._user_id),
             ],
         )
+
+
+@dataclass
+class ConnectionLog:
+    name: str
+    maxlen: int = 20
+    cache_to_file: bool = False
+
+    def __post_init__(self):
+        self._history_start = time.time()
+
+    @property
+    def history(self) -> deque[dict[str, float | str]]:
+        history = getattr(self, "_history", None)
+        if history is None:
+            self._history = deque(maxlen=self.maxlen)
+        return self._history
+
+    @staticmethod
+    def cache_file_for(address: str):
+        path = (
+            Path(__file__).parent / ".cache" / f"{address.replace(':', '_')}_setup.log"
+        )
+        path.parent.mkdir(exist_ok=True)
+        return path
+
+    @property
+    def _cache_path(self):
+        return self.cache_file_for(self.name)
+
+    def append(self, state: "ConnectionState", reason: str | None = None):
+        entry: dict[str, float | str] = {
+            "time": time.time() - self._history_start,
+            "state": f"{state.name}",
+        }
+
+        if reason:
+            entry["reason"] = reason
+
+        self.history.append(entry)
+        if self.cache_to_file:
+            with self._cache_path.open("a") as f:
+                f.write(f"{json.dumps(entry)}\n")
+
+    def load_from_cache(self):
+        if self._cache_path.exists():
+            try:
+                return [
+                    json.loads(line)
+                    for line in self._cache_path.read_text().splitlines()
+                ]
+            except:  # noqa: E722
+                return []
+        return []
+
+    @staticmethod
+    def clean_cache_for(address: str):
+        ConnectionLog.cache_file_for(address).unlink(missing_ok=True)
+
+
+@dataclass
+class DeviceDiagnostics:
+    """Diagnostics data collected from the device connection and packets"""
+
+    last_packets: list[tuple[float, str]]
+    last_errors: list[tuple[float, str]]
+    connect_times: list[float]
+    disconnect_times: list[float]
+
+    def as_dict(self):
+        """Get diagnostics data as dictionary"""
+        return dataclasses.asdict(self)
+
+
+class DeviceDiagnosticsCollector:
+    """Class for collecting diagnostics data from connected device"""
+
+    def __init__(self, device: "DeviceBase", buffer_size: int = 100):
+        self._device = device
+        self._enabled = False
+        self._buffer_size = buffer_size
+
+        self._last_packets: deque[tuple[float, str]] = deque(maxlen=buffer_size)
+        self._last_errors: deque[tuple[float, str]] = deque(maxlen=buffer_size)
+        self._connect_times: deque[float] = deque(maxlen=buffer_size)
+
+        self._disconnect_times: deque[float] = deque(maxlen=buffer_size)
+        self._skip_first_messages: int = 8
+        self._unlisten_callbacks: list[Callable[[], None]] = []
+
+        self._start_time = time.time()
+
+    def as_dict(self):
+        """Get diagnostics data as dictionary"""
+        return self.diagnostics.as_dict()
+
+    @property
+    def diagnostics(self):
+        """Get diagnostics data"""
+        return DeviceDiagnostics(
+            last_packets=list(self._last_packets),
+            last_errors=list(self._last_errors),
+            connect_times=list(self._connect_times),
+            disconnect_times=list(self._disconnect_times),
+        )
+
+    @property
+    def is_enabled(self):
+        """Return True if diagnostics collection is enabled"""
+        return self._enabled
+
+    def enabled(self, enabled: bool = True):
+        """
+        Enable or disable diagnostics collection
+
+        This method will enable/disable the collection of diagnostics data by
+        registering to the device connection events.
+
+        Parameters
+        ----------
+        enabled
+            If True, enable diagnostics collection, otherwise disable it
+        """
+        if enabled == self._enabled:
+            return self
+
+        self._enabled = enabled
+        self._clear_buffers()
+        self.clear_callbacks()
+
+        if enabled:
+            self._start_time = time.time()
+            self._unlisten_callbacks.append(
+                self._device.on_disconnect(self._on_disconnect)
+            )
+            self._unlisten_callbacks.append(
+                self._device.on_packet_received(self._on_packet_received)
+            )
+            self._unlisten_callbacks.append(
+                self._device.on_packet_parsed(self._on_packet_parsed)
+            )
+            return self
+
+        return self
+
+    def add_error(self, error_message: str):
+        """Add an error message to the diagnostics"""
+        self._last_errors.append((time.time() - self._start_time, error_message))
+
+    @property
+    def packets_collected(self):
+        """Get number of packets collected"""
+        return len(self._last_packets)
+
+    @property
+    def packet_buffer_size(self):
+        """
+        Get the packet buffer size
+
+        Returns
+        -------
+        The maximum number of packets stored in the diagnostics buffer
+        """
+        return self._last_packets.maxlen or self._buffer_size
+
+    @property
+    def packet_target_reached(self):
+        """
+        Check if number of packets collected reached the buffer size
+
+        Returns
+        -------
+        True if number of packets collected reached the buffer size
+        """
+        return self.packets_collected >= self.packet_buffer_size
+
+    def clear_callbacks(self):
+        """Remove all registered listeners from device events"""
+        for unlisten in self._unlisten_callbacks:
+            unlisten()
+
+        self._unlisten_callbacks.clear()
+
+    def _on_disconnect(self, exc: Exception | type[Exception] | None = None):
+        self._disconnect_times.append(time.time() - self._start_time)
+
+    def _on_packet_received(self, data: bytes):
+        self._last_packets.append(
+            (time.time() - self._start_time, bytearray(data).hex())
+        )
+
+    def _on_packet_parsed(self, packet: "Packet"):
+        if Packet.is_invalid(packet):
+            self._last_errors.append(
+                (time.time() - self._start_time, packet.error_message)
+            )
+            return
+
+    def _clear_buffers(self):
+        self._last_packets.clear()
+        self._last_errors.clear()
+        self._connect_times.clear()
+        self._disconnect_times.clear()

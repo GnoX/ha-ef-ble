@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+custom_components/ef_ble/eflib/pb/*.pyi

@@ -19,6 +19,7 @@ pb = proto_attr_mapper(pr705_pb2.DisplayPropertyUpload)
 
 class DcChargingType(IntFieldValue):
     UNKNOWN = -1
+
     AUTO = 0
     CAR = 1
     SOLAR = 2
@@ -55,7 +56,7 @@ class Device(DeviceBase, ProtobufProps):
 
     battery_level = pb_field(pb.cms_batt_soc)
 
-    ac_input_power = pb_field(pb.pow_get_ac_in)
+    ac_input_power = pb_field(pb.pow_get_ac_in, lambda x: round(x, 2))
     ac_input_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_AC_IN_ENERGY)
 
     ac_output_power = pb_field(pb.pow_get_ac_out, _out_power)
@@ -96,7 +97,7 @@ class Device(DeviceBase, ProtobufProps):
     dc_12v_port = pb_field(pb.flow_info_12v, _flow_is_on)
     ac_ports = pb_field(pb.flow_info_ac_out, _flow_is_on)
 
-    dc_charging_type = pb_field(pb.pv_chg_type, lambda x: DcChargingType.from_value(x))
+    dc_charging_type = pb_field(pb.pv_chg_type, DcChargingType.from_value)
     dc_charging_max_amps = pb_field(pb.plug_in_info_pv_dc_amp_max)
     dc_charging_current_max = Field[int]()
 
@@ -125,8 +126,8 @@ class Device(DeviceBase, ProtobufProps):
                 model = "UPS (245Wh)"
         return f"River 3 {model}".strip()
 
-    async def packet_parse(self, data: bytes) -> Packet:
-        return Packet.fromBytes(data, is_xor=True)
+    async def packet_parse(self, data: bytes):
+        return Packet.fromBytes(data, xor_payload=True)
 
     async def data_parse(self, packet: Packet):
         processed = False

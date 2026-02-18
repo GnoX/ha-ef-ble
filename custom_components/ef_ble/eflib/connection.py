@@ -1,11 +1,14 @@
 import asyncio
 import contextlib
+import functools
 import hashlib
 import logging
 import struct
 import traceback
-from collections.abc import Awaitable, Callable, Coroutine
+from collections import deque
+from collections.abc import Awaitable, Callable, Collection, Coroutine, MutableSequence
 from enum import StrEnum, auto
+from functools import cached_property
 
 import ecdsa
 from bleak import BleakClient
@@ -33,13 +36,25 @@ from .exceptions import (
     PacketParseError,
     PacketReceiveError,
 )
+from .listeners import ListenerGroup, ListenerRegistry
 from .logging_util import ConnectionLogger, LogOptions
 from .packet import Packet
+from .props.utils import classproperty
 
 MAX_RECONNECT_ATTEMPTS = 2
 MAX_CONNECTION_ATTEMPTS = 10
 
 type DisconnectListener = Callable[[Exception | type[Exception] | None], None]
+
+
+def _state_in(states: "Collection[ConnectionState | str]"):
+    return cached_property(lambda self: self in states)
+
+
+def _combine_state(
+    prop: cached_property[bool], states: "Collection[ConnectionState | str]"
+):
+    return cached_property(lambda self: prop.__get__(self) or self in states)
 
 
 class ConnectionState(StrEnum):
@@ -72,50 +87,83 @@ class ConnectionState(StrEnum):
     DISCONNECTING = auto()
     DISCONNECTED = auto()
 
-    def connection_error(self):
-        return self in [
-            ConnectionState.ERROR_TIMEOUT,
-            ConnectionState.ERROR_NOT_FOUND,
-            ConnectionState.ERROR_BLEAK,
+    # helper state descriptor flags
+    connection_error = _state_in(
+        [
+            ERROR_TIMEOUT,
+            ERROR_NOT_FOUND,
+            ERROR_BLEAK,
         ]
+    )
 
-    def is_connecting(self):
-        return self in [
-            ConnectionState.ESTABLISHING_CONNECTION,
+    is_error = _combine_state(
+        connection_error,
+        [
+            ERROR_MAX_RECONNECT_ATTEMPTS_REACHED,
+            ERROR_AUTH_FAILED,
+            ERROR_TOO_MANY_ERRORS,
+            ERROR_UNKNOWN,
+        ],
+    )
+
+    is_connected = _state_in(
+        [
+            CONNECTED,
+            PUBLIC_KEY_EXCHANGE,
+            PUBLIC_KEY_RECEIVED,
+            SESSION_KEY_RECEIVED,
+            REQUESTING_AUTH_STATUS,
+            AUTH_STATUS_RECEIVED,
+            AUTHENTICATING,
+        ]
+    )
+
+    is_connecting = _combine_state(
+        is_connected,
+        [ESTABLISHING_CONNECTION, RECONNECTING],
+    )
+    authenticated = _state_in([AUTHENTICATED])
+    is_terminal = _combine_state(
+        is_error,
+        [
+            AUTHENTICATED,
+            DISCONNECTED,
+            NOT_CONNECTED,
+        ],
+    )
+
+    @classproperty
+    @functools.cache
+    def step_order(self):
+        return [
             ConnectionState.CONNECTED,
             ConnectionState.PUBLIC_KEY_EXCHANGE,
             ConnectionState.PUBLIC_KEY_RECEIVED,
+            ConnectionState.REQUESTING_SESSION_KEY,
             ConnectionState.SESSION_KEY_RECEIVED,
             ConnectionState.REQUESTING_AUTH_STATUS,
             ConnectionState.AUTH_STATUS_RECEIVED,
             ConnectionState.AUTHENTICATING,
+            ConnectionState.AUTHENTICATED,
         ]
 
-    def is_error(self):
-        return (
-            self
-            in [
-                ConnectionState.ERROR_MAX_RECONNECT_ATTEMPTS_REACHED,
-                ConnectionState.ERROR_AUTH_FAILED,
-                ConnectionState.ERROR_TOO_MANY_ERRORS,
-                ConnectionState.ERROR_UNKNOWN,
-            ]
-            or self.connection_error()
-        )
+    @cached_property
+    def step_index(self):
+        if self in self.step_order:
+            return self.step_order.index(self)
+        return None
 
-    def authenticated(self):
-        return self is ConnectionState.AUTHENTICATED
 
-    def is_terminal(self):
-        return (
-            self
-            in [
-                ConnectionState.AUTHENTICATED,
-                ConnectionState.DISCONNECTED,
-                ConnectionState.NOT_CONNECTED,
-            ]
-            or self.is_error()
-        )
+type ConnectionStateListener = Callable[[ConnectionState], None]
+type PacketReceivedListener = Callable[[bytes], None]
+type PacketParsedListener = Callable[[Packet], None]
+
+
+class _ConnectionListeners(ListenerRegistry):
+    on_packet_received: ListenerGroup[PacketReceivedListener]
+    on_disconnect: ListenerGroup[DisconnectListener]
+    on_connection_state_change: ListenerGroup[ConnectionStateListener]
+    on_packet_parsed: ListenerGroup[PacketParsedListener]
 
 
 class Connection:
@@ -127,6 +175,8 @@ class Connection:
     NOTIFY_CHARACTERISTIC = "00000003-0000-1000-8000-00805f9b34fb"
     WRITE_CHARACTERISTIC = "00000002-0000-1000-8000-00805f9b34fb"
 
+    _listeners = _ConnectionListeners.create()
+
     def __init__(
         self,
         ble_dev: BLEDevice,
@@ -134,17 +184,19 @@ class Connection:
         user_id: str,
         data_parse: Callable[[Packet], Awaitable[bool]],
         packet_parse: Callable[[bytes], Awaitable[Packet]],
-        on_state_change: Callable[[ConnectionState], None] = lambda _: None,
+        packet_version: int = 0x03,
     ) -> None:
         self._ble_dev = ble_dev
         self._address = ble_dev.address
         self._dev_sn = dev_sn
         self._user_id = user_id
+
         self._data_parse = data_parse
         self._packet_parse = packet_parse
-        self._authenticated = False
+        self._packet_version = packet_version
 
         self._errors = 0
+        self._last_errors = deque(maxlen=10)
         self._client = None
         self._connected = asyncio.Event()
         self._disconnected = asyncio.Event()
@@ -153,26 +205,31 @@ class Connection:
         self._enc_packet_buffer = b""
 
         self._tasks: set[asyncio.Task] = set()
-        self._debug_mode = False
 
         self._logger = ConnectionLogger(self)
+        self._state_changed = asyncio.Event()
 
         self._state_exception: Exception | type[Exception] | None = None
         self._last_exception: Exception | type[Exception] | None = None
-        self._on_state_change = on_state_change
-        self._state_changed = asyncio.Event()
         self._reconnect_task: asyncio.Task | None = None
         self._connection_attempt: int = 0
         self._reconnect_attempt: int = 0
         self._reconnect = True
 
-        self._disconnect_listeners: list[DisconnectListener] = []
-        self._connection_state = None
+        self._connection_state: ConnectionState = None  # pyright: ignore[reportAttributeAccessIssue]
         self._set_state(ConnectionState.CREATED)
 
     @property
     def is_connected(self) -> bool:
         return self._client is not None and self._client.is_connected
+
+    def _add_listener(self, collection: MutableSequence[Callable], listener: Callable):
+        collection.append(listener)
+
+        def _unlisten():
+            collection.remove(value=listener)
+
+        return _unlisten
 
     def on_disconnect(self, listener: DisconnectListener):
         """
@@ -188,19 +245,22 @@ class Connection:
         -------
         Function to remove this listener
         """
-        self._disconnect_listeners.append(listener)
+        return self._listeners.on_disconnect.add(listener)
 
-        def _unlisten():
-            self._disconnect_listeners.remove(listener)
+    def on_state_change(self, listener: ConnectionStateListener):
+        return self._listeners.on_connection_state_change.add(listener)
 
-        return _unlisten
+    def on_packet_data_received(self, listener: PacketReceivedListener):
+        return self._listeners.on_packet_received.add(listener)
+
+    def on_packet_parsed(self, listener: PacketParsedListener):
+        return self._listeners.on_packet_parsed.add(listener)
 
     def _notify_disconnect(self, exception: Exception | type[Exception] | None = None):
         if exception is None:
             exception = self._last_exception
 
-        for listener in self._disconnect_listeners:
-            listener(exception)
+        self._listeners.on_disconnect(exception)
 
     def ble_dev(self) -> BLEDevice:
         return self._ble_dev
@@ -215,20 +275,26 @@ class Connection:
 
     async def connect(
         self,
-        max_attempts: int = MAX_CONNECT_ATTEMPTS,
+        max_attempts: int | None = None,
         timeout: int = 20,
     ):
-        if self._state.is_connecting():
+        if self._state.is_connecting:
             return
 
+        max_attempts = (
+            max_attempts if max_attempts is not None else MAX_CONNECT_ATTEMPTS
+        )
+
         self._connection_attempt += 1
-        if self._connection_attempt > MAX_CONNECTION_ATTEMPTS:
+        if max_attempts != 0 and self._connection_attempt > max_attempts:
             self._connection_attempt = 0
-            self._notify_disconnect(self._last_exception)
-            raise MaxConnectionAttemptsReached(
+            err = MaxConnectionAttemptsReached(
                 last_error=self._last_exception,
                 attempts=MAX_CONNECTION_ATTEMPTS,
             )
+            self._set_state(ConnectionState.ERROR_MAX_RECONNECT_ATTEMPTS_REACHED, err)
+            self._notify_disconnect(self._last_exception)
+            raise err
 
         self._connected.clear()
         self._disconnected.clear()
@@ -268,9 +334,11 @@ class Connection:
                 await self._client.disconnect()
 
             self._logger.error("Failed to connect to the device: %s", error)
+            self._last_errors.append(f"Failed to connect to the device: {error}")
             self.disconnected()
             return
 
+        self._set_state(ConnectionState.CONNECTED)
         self._logger.info("Connected")
         self._errors = 0
         self._retry_on_disconnect = self._reconnect
@@ -363,10 +431,15 @@ class Connection:
             await self._client.disconnect()
 
         self._client = None
+        if self._state == ConnectionState.DISCONNECTING:
+            self._set_state(ConnectionState.DISCONNECTED)
 
     async def wait_connected(self, timeout: int = 20):
         """Will release when connection is happened and authenticated"""
         last_state = self._state
+        if self.is_connected:
+            return
+
         try:
             await asyncio.wait_for(self._connected.wait(), timeout=timeout)
         except TimeoutError as e:
@@ -382,7 +455,7 @@ class Connection:
             )
 
     async def wait_until_authenticated_or_error(self, raise_on_error: bool = False):
-        while not self._state.is_terminal():
+        while not self._state.is_terminal:
             await self._state_changed.wait()
 
             if (
@@ -404,8 +477,16 @@ class Connection:
 
         return self._state
 
+    async def observe_connection(self):
+        while True:
+            yield self._state
+            await self._state_changed.wait()
+
     async def wait_disconnected(self):
         """Will release when client got disconnected from the device"""
+        if not self.is_connected:
+            return
+
         await self._disconnected.wait()
 
     async def add_error(self, exception: Exception):
@@ -414,7 +495,7 @@ class Connection:
         self._errors += 1
         self._last_exception = exception
         if self._errors > 5:
-            # Too many errors happened - let's reconnect
+            # Too much errors happened - let's reconnect
             self._errors = 0
             self._set_state(ConnectionState.ERROR_TOO_MANY_ERRORS, exception)
             if self._client is not None and self._client.is_connected:
@@ -427,10 +508,11 @@ class Connection:
 
     @_state.setter
     def _state(self, value: ConnectionState):
+        self._last_state = self._connection_state
         self._connection_state = value
         self._state_changed.set()
         self._state_changed.clear()
-        self._on_state_change(value)
+        self._listeners.on_connection_state_change(value)
 
     def _set_state(
         self, state: ConnectionState, exc: Exception | type[Exception] | None = None
@@ -439,10 +521,9 @@ class Connection:
         if exc is not None:
             self._last_exception = exc
 
-        self._last_state = self._state
         self._state = state
 
-        if state.is_error():
+        if state.is_error:
             self._notify_disconnect(exc)
 
     # En/Decrypt functions must create AES object every time, because
@@ -471,11 +552,11 @@ class Connection:
 
         # Getting the last 2 numbers from srand
         srand_len = len(srand)
-        lower_srand_len = srand_len & 0xFFFFFFFF
+        # lower_srand_len = srand_len & 0xFFFFFFFF
         if srand_len < 0x20:
             srand_len = 0
         else:
-            raise Exception("Not implemented")
+            raise NotImplementedError
 
         # Just putting srand in there byte-by-byte
         data_num[2] = struct.unpack("<Q", srand[0:8])[0]
@@ -489,9 +570,7 @@ class Connection:
         data += struct.pack("<Q", data_num[3])
 
         # Hashing data to get the session key
-        session_key = hashlib.md5(data).digest()
-
-        return session_key
+        return hashlib.md5(data).digest()
 
     async def parseSimple(self, data: str):
         """Deserializes bytes stream into the simple bytes"""
@@ -513,13 +592,15 @@ class Connection:
             )
             payload_hex = bytearray(payload_data).hex()
             self._logger.error(error_msg, payload_hex)
+            self._last_errors.append(error_msg % bytearray(payload_data).hex())
             raise PacketParseError
 
         return payload_data
 
     async def parseEncPackets(self, data: str) -> list[Packet]:
         """Deserializes bytes stream into a list of Packets"""
-        # In case there are leftovers from previous processing - adding them to current data
+        # In case there are leftovers from previous processing - adding them to current
+        # data
         if self._enc_packet_buffer:
             data = self._enc_packet_buffer + data
             self._enc_packet_buffer = b""
@@ -534,9 +615,11 @@ class Connection:
                 "parseEncPackets: Unable to parse encrypted packet - too small: %r"
             )
             self._logger.error(error_msg, bytearray(data).hex())
+            self._last_errors.append(error_msg % bytearray(data).hex())
             raise EncPacketParseError
 
-        # Data can contain multiple EncPackets and even incomplete ones, so walking through
+        # Data can contain multiple EncPackets and even incomplete ones, so walking
+        # through
         packets = []
         while data:
             if not data.startswith(EncPacket.PREFIX):
@@ -545,6 +628,7 @@ class Connection:
                     "incorrect: %r"
                 )
                 self._logger.error(error_msg, bytearray(data).hex())
+                self._last_errors.append(error_msg % bytearray(data).hex())
                 return packets
 
             header = data[0:6]
@@ -564,6 +648,7 @@ class Connection:
                 if crc16(header + payload_data) != struct.unpack("<H", payload_crc)[0]:
                     error_msg = "Unable to parse encrypted packet - incorrect CRC16: %r"
                     self._logger.error(error_msg, bytearray(payload_data).hex())
+                    self._last_errors.append(error_msg % bytearray(payload_data).hex())
                     raise PacketParseError  # noqa: TRY301
 
                 # Decrypt the payload packet
@@ -575,13 +660,15 @@ class Connection:
                 )
 
                 # Parse packet
+                self._listeners.on_packet_received(payload)
                 packet = await self._packet_parse(payload)
+                self._listeners.on_packet_parsed(packet)
                 self._logger.log_filtered(
                     LogOptions.PACKETS,
                     "Parsed packet: %s",
                     packet,
                 )
-                if packet is not None:
+                if not Packet.is_invalid(packet):
                     packets.append(packet)
             except Exception as e:  # noqa: BLE001
                 await self.add_error(e)
@@ -597,7 +684,7 @@ class Connection:
         for retry in range(4):
             try:
                 await self._sendRequest(send_data, response_handler)
-            except Exception as e:  # noqa: BLE001, PERF203
+            except Exception as e:  # noqa: BLE001
                 self._logger.log_filtered(
                     LogOptions.CONNECTION_DEBUG,
                     (
@@ -654,9 +741,10 @@ class Connection:
         await self.sendRequest(to_send, response_handler)
 
     async def replyPacket(self, packet: Packet):
-        """Copies and changes the packet to be reply packet and sends it back to device"""
-        # Found it's necesary to send back the packets, otherwise device will not send moar info
-        # then strict minimum - which just about power params, but not configs & advanced params
+        """Copy and change the packet to be reply packet and sends it back to device"""
+        # Found it's necesary to send back the packets, otherwise device will not send
+        # moar info then strict minimum - which just about power params, but not configs
+        # & advanced params
         reply_packet = Packet(
             packet.dst,  # Switching src to dst
             packet.src,  # Switching dst to src
@@ -687,7 +775,8 @@ class Connection:
             b"\x01\x00" + self._public_key.to_string(),
         ).toBytes()
 
-        # Device public key is sent as response, process will continue on device response in handler
+        # Device public key is sent as response, process will continue on device
+        # response in handler
         await self.sendRequest(to_send, self.initBleSessionKeyHandler)
 
     async def initBleSessionKeyHandler(
@@ -701,18 +790,19 @@ class Connection:
 
         data = await self.parseSimple(bytes(recv_data))
         if len(data) < 3:
-            raise Exception(
+            raise PacketParseError(
                 "Incorrect size of the returned pub key data: " + data.hex()
             )
-        status = data[1]
+        # status = data[1]
         ecdh_type_size = getEcdhTypeSize(data[2])
         self._dev_pub_key = ecdsa.VerifyingKey.from_string(
             data[3 : ecdh_type_size + 3], curve=ecdsa.SECP160r1
         )
 
         # Generating shared key from our private key and received device public key
-        # NOTE: The device will do the same with it's private key and our public key to generate the
-        # same shared key value and use it to encrypt/decrypt using symmetric encryption algorithm
+        # NOTE: The device will do the same with it's private key and our public key to
+        # generate the # same shared key value and use it to encrypt/decrypt using
+        # symmetric encryption algorithm
         self._shared_key = ecdsa.ECDH(
             ecdsa.SECP160r1, self._private_key, self._dev_pub_key
         ).generate_sharedsecret_bytes()
@@ -748,7 +838,7 @@ class Connection:
         encrypted_data = await self.parseSimple(bytes(recv_data))
 
         if encrypted_data[0] != 0x02:
-            raise Exception(
+            raise AuthFailedError(
                 "Received type of KeyInfo is != 0x02, need to dig into: "
                 + encrypted_data.hex()
             )
@@ -767,8 +857,7 @@ class Connection:
             LogOptions.CONNECTION_DEBUG, "getKeyInfoReq: Receiving auth status"
         )
 
-        # Preparing packet with empty payload
-        packet = Packet(0x21, 0x35, 0x35, 0x89, b"", 0x01, 0x01, 0x03)
+        packet = Packet(0x21, 0x35, 0x35, 0x89, b"", 0x01, 0x01, self._packet_version)
 
         await self.sendPacket(packet, self.getAuthStatusHandler)
 
@@ -802,10 +891,12 @@ class Connection:
         # Building payload for auth
         md5_data = hashlib.md5((self._user_id + self._dev_sn).encode("ASCII")).digest()
         # We need upper case in MD5 data here
-        payload = ("".join("{:02X}".format(c) for c in md5_data)).encode("ASCII")
+        payload = ("".join(f"{c:02X}" for c in md5_data)).encode("ASCII")
 
-        # Forming packet
-        packet = Packet(0x21, 0x35, 0x35, 0x86, payload, 0x01, 0x01, 0x03)
+        # Forming packet - use detected protocol version (V2 or V3)
+        packet = Packet(
+            0x21, 0x35, 0x35, 0x86, payload, 0x01, 0x01, self._packet_version
+        )
 
         # Sending request and starting the common listener
         await self.sendPacket(packet, self.listenForDataHandler)
@@ -831,6 +922,7 @@ class Connection:
                     self._logger.error(error_msg, packet)
                     exc = AuthFailedError(error_msg % packet)
                     self._set_state(ConnectionState.ERROR_AUTH_FAILED, exc)
+                    self._last_errors.append(f"Auth failed with response: {packet!r}")
 
                     if self._client is not None and self._client.is_connected:
                         await self._client.disconnect()

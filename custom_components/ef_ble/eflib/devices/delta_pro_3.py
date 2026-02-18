@@ -1,6 +1,3 @@
-import logging
-from enum import IntEnum
-
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from google.protobuf.message import Message
@@ -15,6 +12,7 @@ from ..props import (
     pb_field,
     proto_attr_mapper,
 )
+from ..props.enums import IntFieldValue
 
 
 def _out_power(x) -> float:
@@ -30,24 +28,13 @@ def _flow_is_on(x):
 pb = proto_attr_mapper(mr521_pb2.DisplayPropertyUpload)
 
 
-class DCPortState(IntEnum):
+class DCPortState(IntFieldValue):
     UNKNOWN = -1
+
     OFF = 0
     CAR = 1
     SOLAR = 2
     DC_CHARGING = 3
-
-    @classmethod
-    def from_value(cls, value: int):
-        try:
-            return cls(value)
-        except ValueError:
-            logging.debug("Encountered invalid value %s for DCPortState", value)
-            return cls.UNKNOWN
-
-    @property
-    def state_name(self):
-        return self.name.lower()
 
 
 class Device(DeviceBase, ProtobufProps):
@@ -70,12 +57,9 @@ class Device(DeviceBase, ProtobufProps):
 
     dc_lv_input_power = pb_field(pb.pow_get_pv_l)
     dc_hv_input_power = pb_field(pb.pow_get_pv_h)
-    dc_lv_input_state = pb_field(
-        pb.plug_in_info_pv_l_type, lambda v: DCPortState.from_value(v).state_name
-    )
-    dc_hv_input_state = pb_field(
-        pb.plug_in_info_pv_h_type, lambda v: DCPortState.from_value(v).state_name
-    )
+
+    dc_lv_input_state = pb_field(pb.plug_in_info_pv_l_type, DCPortState.from_value)
+    dc_hv_input_state = pb_field(pb.plug_in_info_pv_h_type, DCPortState.from_value)
 
     usbc_output_power = pb_field(pb.pow_get_typec1, _out_power)
     usbc2_output_power = pb_field(pb.pow_get_typec2, _out_power)
@@ -111,11 +95,12 @@ class Device(DeviceBase, ProtobufProps):
     def check(cls, sn):
         return sn[:4] in cls.SN_PREFIX
 
-    async def packet_parse(self, data: bytes) -> Packet:
-        return Packet.fromBytes(data, is_xor=True)
+    async def packet_parse(self, data: bytes):
+        return Packet.fromBytes(data, xor_payload=True)
 
     async def data_parse(self, packet: Packet):
         processed = False
+        self.reset_updated()
 
         if packet.src == 0x02 and packet.cmdSet == 0xFE and packet.cmdId == 0x15:
             self.update_from_bytes(mr521_pb2.DisplayPropertyUpload, packet.payload)
@@ -145,11 +130,9 @@ class Device(DeviceBase, ProtobufProps):
 
         return processed
 
-    def _get_solar_power(self, power: float | None, state: str | None):
+    def _get_solar_power(self, power: float | None, state: DCPortState | None):
         return (
-            round(power, 2)
-            if state == DCPortState.SOLAR.state_name and power is not None
-            else 0
+            round(power, 2) if state == DCPortState.SOLAR and power is not None else 0
         )
 
     async def _send_config_packet(self, message: Message):

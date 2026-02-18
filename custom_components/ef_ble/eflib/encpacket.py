@@ -37,7 +37,7 @@ class EncPacket:
         self._iv = iv
 
     def encryptPayload(self):
-        if self._enc_key == None and self._iv == None:
+        if self._enc_key is None and self._iv is None:
             return self._payload  # Not encrypted
 
         engine = AES.new(self._enc_key, AES.MODE_CBC, self._iv)

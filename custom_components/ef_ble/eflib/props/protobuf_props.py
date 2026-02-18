@@ -1,14 +1,21 @@
 from collections import defaultdict
+from collections.abc import Callable
 from functools import cached_property
-from typing import Callable
 
 from google.protobuf.message import Message
 
 from .. import devicebase
+from ..listeners import ListenerGroup, ListenerRegistry
 from ..logging_util import LogOptions
 from .protobuf_field import ProtobufField
 from .repeated_protobuf_field import ProtobufRepeatedField
 from .updatable_props import UpdatableProps
+
+type MessageProcessedListener = Callable[[Message], None]
+
+
+class _Listeners(ListenerRegistry):
+    on_message_processed: ListenerGroup[MessageProcessedListener]
 
 
 class ProtobufProps(UpdatableProps):
@@ -41,6 +48,7 @@ class ProtobufProps(UpdatableProps):
     _repeated_field_map: dict[type[Message], dict[str, list[ProtobufRepeatedField]]] = (
         defaultdict(lambda: defaultdict(list))
     )
+    _proto_listeners = _Listeners.create()
 
     @classmethod
     def add_repeated_field(cls, repeated_field: ProtobufRepeatedField):
@@ -67,6 +75,9 @@ class ProtobufProps(UpdatableProps):
         self._processed_fields = []
         return super().reset_updated()
 
+    def on_message_processed(self, listener: MessageProcessedListener):
+        return self._proto_listeners.on_message_processed.add(listener)
+
     def update_from_message(self, message: Message, reset: bool = False):
         """
         Update defined fields values from provided message
@@ -89,6 +100,8 @@ class ProtobufProps(UpdatableProps):
 
             for field in repeated_fields:
                 setattr(self, field.public_name, field_list)
+
+        self._proto_listeners.on_message_processed(message)
 
     @cached_property
     def _log_message(self) -> Callable[[Message], None]:
@@ -117,3 +130,13 @@ class ProtobufProps(UpdatableProps):
         self.update_from_message(msg, reset=reset)
         self._log_message(msg)
         return msg
+
+    def __str__(self):
+        field_values = []
+        for field in self._fields:
+            if hasattr(self, field.public_name):
+                value = getattr(self, field.public_name)
+                field_values.append(f"{field.public_name}={value}")
+
+        class_name = self.__class__.__name__
+        return f"{class_name}(\n  {',\n  '.join(field_values)}\n)"

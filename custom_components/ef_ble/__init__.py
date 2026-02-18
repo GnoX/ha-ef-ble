@@ -15,9 +15,10 @@ from homeassistant.exceptions import (
 from homeassistant.helpers.device_registry import DeviceInfo
 
 from . import eflib
-from .config_flow import ConfLogOptions, LogOptions
+from .config_flow import CONF_COLLECT_PACKETS, ConfLogOptions, LogOptions, PacketVersion
 from .const import (
     CONF_CONNECTION_TIMEOUT,
+    CONF_PACKET_VERSION,
     CONF_UPDATE_PERIOD,
     CONF_USER_ID,
     DEFAULT_CONNECTION_TIMEOUT,
@@ -31,6 +32,7 @@ from .eflib.connection import (
     ConnectionTimeout,
     MaxConnectionAttemptsReached,
 )
+from .eflib.logging_util import ConnectionLog
 
 PLATFORMS: list[Platform] = [
     Platform.SENSOR,
@@ -50,7 +52,6 @@ ConfigEntryError = partial(ConfigEntryError, translation_domain=DOMAIN)
 
 async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bool:
     """Set up EF BLE device from a config entry."""
-
     _LOGGER.debug("Init EcoFlow BLE Integration")
 
     address = entry.data.get(CONF_ADDRESS)
@@ -58,6 +59,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
     merged_options = entry.data | entry.options
     update_period = merged_options.get(CONF_UPDATE_PERIOD, DEFAULT_UPDATE_PERIOD)
     timeout = merged_options.get(CONF_CONNECTION_TIMEOUT, DEFAULT_CONNECTION_TIMEOUT)
+    packet_version = PacketVersion.from_str(
+        entry.data.get(CONF_PACKET_VERSION, PacketVersion.V3)
+    )
 
     if address is None or user_id is None:
         return False
@@ -77,6 +81,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
 
         entry.runtime_data = device
 
+    packet_collection_enabled = merged_options.get(
+        CONF_COLLECT_PACKETS, eflib.is_unsupported(device)
+    )
     issue_id = f"{entry.entry_id}_max_connection_attempts"
 
     try:
@@ -84,7 +91,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
             device.with_update_period(update_period)
             .with_logging_options(ConfLogOptions.from_config(merged_options))
             .with_disabled_reconnect()
-            .connect(user_id, timeout=timeout)
+            .with_packet_version(packet_version.to_num())
+            .with_enabled_packet_diagnostics(packet_collection_enabled)
+            .connect(
+                user_id=user_id,
+                timeout=timeout,
+                max_attempts=0 if eflib.is_solar_only(device) else None,
+            )
         )
         state = await device.wait_until_authenticated_or_error(raise_on_error=True)
     except (ConnectionTimeout, BleakError, TimeoutError) as e:
@@ -119,7 +132,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
             translation_key="unknown_error", translation_placeholders={"error": str(e)}
         ) from e
     else:
-        if not state.authenticated():
+        if not state.authenticated:
             await device.disconnect()
             raise ConfigEntryNotReady(
                 translation_key="failed_after_successful_connection",
@@ -152,10 +165,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> b
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
+async def async_remove_entry(hass: HomeAssistant, entry: DeviceConfigEntry):
+    ConnectionLog.clean_cache_for(entry.data[CONF_ADDRESS])
+
+
 def device_info(entry: ConfigEntry) -> DeviceInfo:
     """Device info."""
     return DeviceInfo(
-        identifiers={(DOMAIN, entry.data.get(CONF_ADDRESS))},
+        identifiers={(DOMAIN, entry.data[CONF_ADDRESS])},
         name=entry.title,
         manufacturer=MANUFACTURER,
         model=entry.data.get(CONF_TYPE),
@@ -166,6 +183,12 @@ async def _update_listener(hass: HomeAssistant, entry: DeviceConfigEntry):
     device = entry.runtime_data
     merged_options = entry.data | entry.options
     update_period = merged_options.get(CONF_UPDATE_PERIOD, DEFAULT_UPDATE_PERIOD)
-    device.with_update_period(period=update_period).with_logging_options(
-        ConfLogOptions.from_config(merged_options)
+    packet_collection = merged_options.get(
+        CONF_COLLECT_PACKETS, eflib.is_unsupported(device)
+    )
+
+    (
+        device.with_update_period(period=update_period)
+        .with_logging_options(ConfLogOptions.from_config(merged_options))
+        .with_enabled_packet_diagnostics(packet_collection)
     )

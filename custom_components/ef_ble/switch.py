@@ -34,6 +34,25 @@ SWITCH_TYPES = [
         device_class=SwitchDeviceClass.OUTLET,
     ),
     SwitchEntityDescription(
+        key="ac_ports_2",
+        name="AC Ports (2)",
+        device_class=SwitchDeviceClass.OUTLET,
+    ),
+    SwitchEntityDescription(
+        key="ac_port",
+        name="AC Port",
+        device_class=SwitchDeviceClass.OUTLET,
+    ),
+    SwitchEntityDescription(
+        key="disable_grid_bypass",
+        name="Disable Grid Bypass",
+        entity_registry_enabled_default=False,
+    ),
+    SwitchEntityDescription(
+        key="self_start",
+        name="Self Start",
+    ),
+    SwitchEntityDescription(
         key="ac_lv_port",
         name="LV AC",
         device_class=SwitchDeviceClass.OUTLET,
@@ -54,6 +73,67 @@ SWITCH_TYPES = [
         name="USB Ports",
         icon="mdi:usb",
     ),
+    SwitchEntityDescription(
+        key="engine_on",
+        name="Engine",
+    ),
+    SwitchEntityDescription(
+        key="charger_open",
+        name="Charger",
+    ),
+    SwitchEntityDescription(
+        key="lpg_level_monitoring",
+        name="LPG Level Monitoring",
+    ),
+    SwitchEntityDescription(
+        key="ac_1",
+        name="AC (1)",
+        device_class=SwitchDeviceClass.OUTLET,
+    ),
+    SwitchEntityDescription(
+        key="ac_2",
+        name="AC (2)",
+        device_class=SwitchDeviceClass.OUTLET,
+    ),
+    SwitchEntityDescription(
+        key="feed_grid",
+        name="Feed Grid",
+    ),
+    SwitchEntityDescription(
+        key="power",
+        name="Power",
+        device_class=SwitchDeviceClass.SWITCH,
+    ),
+    SwitchEntityDescription(
+        key="energy_strategy_self_powered",
+        name="Self-Powered Mode",
+        device_class=SwitchDeviceClass.SWITCH,
+        icon="mdi:solar-power",
+    ),
+    SwitchEntityDescription(
+        key="energy_strategy_scheduled",
+        name="Scheduled Mode",
+        device_class=SwitchDeviceClass.SWITCH,
+        icon="mdi:calendar-clock",
+    ),
+    SwitchEntityDescription(
+        key="energy_strategy_tou",
+        name="Time-of-Use Mode",
+        device_class=SwitchDeviceClass.SWITCH,
+        icon="mdi:clock-time-eight",
+    ),
+    SwitchEntityDescription(
+        key="automatic_drain",
+        name="Automatic Drain",
+    ),
+    SwitchEntityDescription(
+        key="ambient_light",
+        name="Ambient Light",
+    ),
+    SwitchEntityDescription(
+        key="emergency_reverse_charging",
+        name="Emergency Reverse Charging",
+    ),
     # SHP2 Circuit switches
     *[
         EcoflowSwitchEntityDescription[shp2.Device](
@@ -61,7 +141,7 @@ SWITCH_TYPES = [
             name=f"Circuit {i:02}",
             device_class=SwitchDeviceClass.OUTLET,
             icon="mdi:power-socket-us",
-            enable=lambda device, enabled, i=i: device.set_circuit_power(i, enabled),
+            enable=lambda device, enabled, i=i: device.set_circuit_power(i-1, enabled),
         )
         for i in range(1, shp2.Device.NUM_OF_CIRCUITS + 1)
     ],
