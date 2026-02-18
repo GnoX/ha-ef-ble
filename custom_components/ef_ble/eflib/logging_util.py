@@ -283,7 +283,9 @@ class DeviceDiagnostics:
             ],
             iv=session.encrypt(self.iv).hex(),
             session_key=session.encrypt(self.session_key).hex(),
-            shared_key=session.encrypt(self.shared_key).hex(),
+            shared_key=(
+                session.encrypt(self.shared_key).hex() if self.shared_key else ""
+            ),
         )
 
     def as_dict(self):
@@ -327,7 +329,7 @@ class DeviceDiagnosticsCollector:
             raw_data_messages=self._raw_data_messages,
             iv=self._device._conn._iv,
             session_key=self._device._conn._session_key,
-            shared_key=self._device._conn._shared_key,
+            shared_key=getattr(self._device._conn, "_shared_key", b""),
         )
 
     @property
