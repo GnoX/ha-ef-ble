@@ -11,13 +11,15 @@ if TYPE_CHECKING:
 
 
 class _ProtoAttr:
-    def __init__(self, message_type: type[Message], name: str):
-        self.attrs = [name]
+    def __init__(self, message_type: type[Message], names: str | list[str]):
+        if isinstance(names, list):
+            self.attrs = names.copy()
+        else:
+            self.attrs = [names]
         self.message_type = message_type
 
     def __getattr__(self, name: str):
-        self.attrs.append(name)
-        return self
+        return _ProtoAttr(self.message_type, [*self.attrs, name])
 
     def __repr__(self):
         return f"proto_attr({self.attrs})"

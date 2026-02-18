@@ -1,4 +1,7 @@
-from typing import Any
+from collections.abc import Awaitable
+from dataclasses import dataclass
+from functools import partial
+from typing import Any, Callable
 
 from homeassistant.components.switch import (
     SwitchDeviceClass,
@@ -10,7 +13,14 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import DeviceConfigEntry
 from .eflib import DeviceBase
+from .eflib.devices import shp2
 from .entity import EcoflowEntity
+
+
+@dataclass(frozen=True, kw_only=True)
+class EcoflowSwitchEntityDescription[Device: DeviceBase](SwitchEntityDescription):
+    enable: Callable[[Device, bool], Awaitable[None]] | None = None
+
 
 SWITCH_TYPES = [
     SwitchEntityDescription(
@@ -124,6 +134,17 @@ SWITCH_TYPES = [
         key="emergency_reverse_charging",
         name="Emergency Reverse Charging",
     ),
+    # SHP2 Circuit switches
+    *[
+        EcoflowSwitchEntityDescription[shp2.Device](
+            key=f"circuit_{i}",
+            name=f"Circuit {i:02}",
+            device_class=SwitchDeviceClass.OUTLET,
+            icon="mdi:power-socket-us",
+            enable=lambda device, enabled, i=i: device.set_circuit_power(i, enabled),
+        )
+        for i in range(1, shp2.Device.NUM_OF_CIRCUITS + 1)
+    ],
 ]
 
 
@@ -138,7 +159,10 @@ async def async_setup_entry(
         EcoflowSwitchEntity(device, switch_desc)
         for switch_desc in SWITCH_TYPES
         if hasattr(device, switch_desc.key)
-        and hasattr(device, f"enable_{switch_desc.key}")
+        and (
+            hasattr(device, f"enable_{switch_desc.key}")
+            or isinstance(switch_desc, EcoflowSwitchEntityDescription)
+        )
     ]
 
     if switches:
@@ -153,18 +177,25 @@ class EcoflowSwitchEntity(EcoflowEntity, SwitchEntity):
 
         self._attr_unique_id = f"{device.name}_{entity_description.key}"
         self._prop_name = entity_description.key
-        self._method_name = f"enable_{self._prop_name}"
         self.entity_description = entity_description
         self._on_off_state = False
+
+        if (
+            isinstance(entity_description, EcoflowSwitchEntityDescription)
+            and entity_description.enable is not None
+        ):
+            self._update_state_func = partial(entity_description.enable, device)
+        else:
+            self._update_state_func = getattr(self._device, f"enable_{self._prop_name}")
 
         if entity_description.translation_key is None:
             self._attr_translation_key = self.entity_description.key
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        await getattr(self._device, self._method_name)(True)
+        await self._update_state_func(True)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await getattr(self._device, self._method_name)(False)
+        await self._update_state_func(False)
 
     async def async_added_to_hass(self) -> None:
         self._device.register_state_update_callback(self.state_updated, self._prop_name)
