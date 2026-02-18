@@ -123,7 +123,9 @@ SWITCH_TYPES = [
             name=f"Circuit {i:02}",
             device_class=SwitchDeviceClass.OUTLET,
             icon="mdi:power-socket-us",
-            enable=lambda device, enabled, i=i: device.set_circuit_power(i, enabled),
+            enable=lambda device, enabled, i=i: device.set_circuit_power(
+                i - 1, enabled
+            ),
         )
         for i in range(1, shp2.Device.NUM_OF_CIRCUITS + 1)
     ],
