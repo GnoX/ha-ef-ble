@@ -49,6 +49,16 @@ class UnsupportedDevice(DeviceBase):
 
         return version
 
+    @property
+    def auth_header_dst(self):
+        return (
+            0x32
+            if self._sn.startswith("DC")
+            or self._sn.startswith("R511")
+            or self._sn.startswith("Z0")
+            else 0x35
+        )
+
     def with_update_period(self, period: int):
         # NOTE(gnox): as unsupported devices do not have any sensors, we leave update
         # period to default, otherwise collection sensor would lag
@@ -92,22 +102,21 @@ ECOFLOW_DEVICE_LIST = {
     # =====================
     # DELTA SERIES
     # =====================
-    "D8":  {"name": "EcoFlow DELTA (1000)", "packets": "v1"},
-    "D5":  {"name": "EcoFlow DELTA (1300)", "packets": "v1"},
-    "D1":  {"name": "EcoFlow DELTA (1300)", "packets": "v1"},
-    "D2":  {"name": "EcoFlow DELTA (1300)", "packets": "v1"},
-    "D3":  {"name": "EcoFlow DELTA (1300)", "packets": "v1"},
-    "D4":  {"name": "EcoFlow DELTA (1300)", "packets": "v1"},
+    "D8":  {"name": "EcoFlow DELTA (1000)", "packets": "v2"},
+    "D5":  {"name": "EcoFlow DELTA (1300)", "packets": "v2"},
+    "D1":  {"name": "EcoFlow DELTA (1300)", "packets": "v2"},
+    "D2":  {"name": "EcoFlow DELTA (1300)", "packets": "v2"},
+    "D3":  {"name": "EcoFlow DELTA (1300)", "packets": "v2"},
+    "D4":  {"name": "EcoFlow DELTA (1300)", "packets": "v2"},
 
-    "DB":  {"name": "EcoFlow DELTA mini", "packets": "v1"},
+    "DB":  {"name": "EcoFlow DELTA mini", "packets": "v2"},
 
-    "DA":  {"name": "EcoFlow DELTA Max (2000)", "packets": "v1"},
-    "DD":  {"name": "EcoFlow DELTA Max (1600)", "packets": "v1"},
+    "DA":  {"name": "EcoFlow DELTA Max (2000)", "packets": "v2"},
+    "DD":  {"name": "EcoFlow DELTA Max (1600)", "packets": "v2"},
 
-    "DCA": {"name": "EcoFlow DELTA Pro", "packets": "v1"},
-    "DCF": {"name": "EcoFlow DELTA Pro", "packets": "v1"},
-    "R511":{"name": "EcoFlow DELTA Pro", "packets": "v1"},
-    "Z0":  {"name": "EcoFlow DELTA Pro DZ500", "packets": "v1"},
+    "DC": {"name": "EcoFlow DELTA Pro", "packets": "v2"},
+    "R511":{"name": "EcoFlow DELTA Pro", "packets": "v2"},
+    "Z0":  {"name": "EcoFlow DELTA Pro DZ500", "packets": "v2"},
 
     # =====================
     # DELTA 2 FAMILY
