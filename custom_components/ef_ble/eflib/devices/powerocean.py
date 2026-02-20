@@ -4,7 +4,7 @@ from ..pb import (
     iot_comm_pb2,
     jt_s1_ecology_dev_pb2,
     jt_s1_sys_pb2,
-    platform_comm_pb2, jt_s1_parallel_pb2, jt_s1_edev_convert_pb2, jt_s1_ev_pb2,
+    platform_comm_pb2, jt_s1_parallel_pb2, jt_s1_edev_convert_pb2, jt_s1_ev_pb2, jt_s1_heatpump_pb2,
 )
 from ..props import (
     ProtobufProps,
@@ -61,27 +61,39 @@ class Device(DeviceBase, ProtobufProps):
                 self.update_from_message(jt_s1_sys_pb2.EnergyStreamReport())
 
             # 96,209,x -
-            case 0x60, 0xD1, 0x0A: # 2
+            case 0x60, 0xD1, 0x02: # 2
                 self.update_from_message(jt_s1_ev_pb2.EVChargingTimerTaskReport())
-            case 0x60, 0xD1, 0x0A: # 8
-                self.update_from_message(jt_s1_sys_pb2.EmsAllTimerTaskReport())
-            case 0x60, 0xD1, 0x0A: # 33
-                self.update_from_message(jt_s1_sys_pb2.EmsAllTimerTaskReport())
-            case 0x60, 0xD1, 0x0A: # 97
-                self.update_from_message(jt_s1_sys_pb2.EmsAllTimerTaskReport())
-            case 0x60, 0xD1, 0x0A: # 98
-                self.update_from_message(jt_s1_sys_pb2.EmsAllTimerTaskReport())
-            case 0x60, 0xD1, 0x0A: # 99
-                self.update_from_message(jt_s1_sys_pb2.EmsAllTimerTaskReport())
-            case 0x60, 0xD1, 0x0A: # 100
-                self.update_from_message(jt_s1_sys_pb2.EmsAllTimerTaskReport())
-            case 0x60, 0xD1, 0x0A: # 101
-                self.update_from_message(jt_s1_sys_pb2.EmsAllTimerTaskReport())
-            case 0x60, 0xD1, 0x0A: # 103
-                self.update_from_message(jt_s1_sys_pb2.EmsAllTimerTaskReport())
+            case 0x60, 0xD1, 0x08: # 8
+                self.update_from_message(jt_s1_ev_pb2.EVChargingParamReport())
+            case 0x60, 0xD1, 0x21: # 33
+                self.update_from_message(jt_s1_ev_pb2.EVChargingEnergyStreamReport())
+            case 0x60, 0xD1, 0x61: # 97
+                self.update_from_message(jt_s1_ev_pb2.EVChargingListAck())
+            case 0x60, 0xD1, 0x62: # 98
+                self.update_from_message(jt_s1_ev_pb2.EVChargingBindAck())
+            case 0x60, 0xD1, 0x63: # 99
+                self.update_from_message(jt_s1_ev_pb2.EVChargingParamSetAck())
+            case 0x60, 0xD1, 0x64: # 100
+                self.update_from_message(jt_s1_ev_pb2.EVChargingAppCtrlAck())
+            case 0x60, 0xD1, 0x65: # 101
+                self.update_from_message(jt_s1_ev_pb2.EVChargingTimerTaskCfgAck())
+            case 0x60, 0xD1, 0x67: # 103
+                self.update_from_message(jt_s1_ev_pb2.EVChargingVehicleSetAck())
 
 
             # 96,211,x
+            case 0x60, 0xD3, 0x01: # 1
+                self.update_from_message(jt_s1_heatpump_pb2.HPUIReport())
+            case 0x60, 0xD3, 0x02: # 2
+                self.update_from_message(jt_s1_heatpump_pb2.HPTimerTaskReport())
+            case 0x60, 0xD3, 0x63: # 99
+                self.update_from_message(jt_s1_heatpump_pb2.HPParamSetAck())
+            case 0x60, 0xD3, 0x64: # 100
+                self.update_from_message(jt_s1_heatpump_pb2.HPParamGetAck())
+            case 0x60, 0xD3, 0x66: # 102
+                self.update_from_message(jt_s1_heatpump_pb2.HPTimerTaskCfgAck())
+
+
             # 96,212,x
             # 96,224,x
             case 0x60, 0xE0, 0x01:
@@ -92,10 +104,10 @@ class Device(DeviceBase, ProtobufProps):
                 self.update_from_message(jt_s1_ecology_dev_pb2.EcologyDevGetAck())
 
             # 96,225,x
-            case 0x60, 0xE1, 0x61:
-                self.update_from_message(jt_s1_parallel_pb2.ParallelDevList()) # TODO(andy) Not sure if right one
-            case 0x60, 0xE1, 0x62:
-                self.update_from_message(jt_s1_parallel_pb2.DevInfo()) # TODO(andy) Not sure
+            # case 0x60, 0xE1, 0x61:
+            #     self.update_from_message(jt_s1_parallel_pb2.ParallelDevList()) # TODO(andy) Not sure if right one
+            # case 0x60, 0xE1, 0x62:
+            #     self.update_from_message(jt_s1_parallel_pb2.DevInfo()) # TODO(andy) Not sure
 
             # 96,240,x
             case 0x60, 0xF0, 0x6B:
