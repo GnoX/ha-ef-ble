@@ -10,7 +10,7 @@ from ..pb import (
     jt_s1_edev_convert_pb2,
     jt_s1_ev_pb2,
     jt_s1_heatpump_pb2,
-    jt_s1_heatingrod_pb2,
+    jt_s1_heatingrod_pb2, jt_parallel_lan_pb2, re307_sys_pb2,
 )
 from ..props import (
     ProtobufProps,
@@ -46,21 +46,16 @@ class Device(DeviceBase, ProtobufProps):
             case _, 0xFE, 0x10:
                 self.update_from_message(platform_comm_pb2.EventRecordReport())
                 # TODO(gnox): should respond with platform_comm_pb2.EventInfoReportAck
-            case 0x35, 0x35, 0x71:
-                self.update_from_message(iot_comm_pb2.ModuleClusterInfo())
-            # 96,96,x  - (47)
-            case 0x60, 0x60, 0x0D:  #
-                # NOTE(gnox): network config data - even though it is parsable as
-                # protocol buffers, in the app, it's parsed manually into NetConfig
-                # beans
-                pass
-            case 0x60, 0x60, 0x0A:  #
-                self.update_from_message(jt_s1_sys_pb2.EmsAllTimerTaskReport())
-            case 0x60, 0x60, 0x0B: #
-                self.update_from_message(jt_s1_sys_pb2.EmsEcologyDevReport())
-            case 0x60, 0x60, 0x21: #
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReport())
 
+            # 53,53
+            case 0x35, 0x35, 0x71: # 113
+                pass   # TODO (Andy) not sure about this
+            case 0x35, 0x35, 0x71: # 113
+                self.update_from_message(iot_comm_pb2.ModuleClusterInfo())
+            case 0x35, 0x35, 0xaa: # 170
+                self.update_from_message(iot_comm_pb2.RefreshTokenAck())  # TODO (Andy) not sure
+
+            # 96,96,x  - (47)
             case 0x60, 0x60, 0x01: # 1
                 self.update_from_message(jt_s1_sys_pb2.HeartbeatReport())
             case 0x60, 0x60, 0x03: # 3
@@ -71,113 +66,112 @@ class Device(DeviceBase, ProtobufProps):
                 if not self.isPowerOceanPlus():
                     self.update_from_message(jt_s1_sys_pb2.EmsChangeReport())
                 else:
-                    self.update_from_message(jt_s1_sys_pb2.EmsChangeReport()) # TODO(andy) fix wrong proto
+                    self.update_from_message(re307_sys_pb2.EmsChangeReport())
+            case 0x60, 0x60, 0x0a: # 10
+                self.update_from_message(jt_s1_sys_pb2.EmsAllTimerTaskReport())
+            case 0x60, 0x60, 0x0b: # 11
+                self.update_from_message(jt_s1_sys_pb2.EmsEcologyDevReport())
+            case 0x60, 0x60, 0x0c: # 12
+                self.update_from_message(jt_s1_parallel_pb2.ParallelDevListReport())
+            case 0x60, 0x60, 0x0D: # 13
+                # NOTE(gnox): network config data - even though it is parsable as
+                # protocol buffers, in the app, it's parsed manually into NetConfig
+                # beans
+                pass
+            case 0x60, 0x60, 0x0e: # 14
+                self.update_from_message(jt_s1_sys_pb2.EmsAllTouTaskReport())
 
-            case 0x60, 0x60, 0x21: # 10
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 11
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 12
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 13
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 14
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-
-            case 0x60, 0x60, 0x21: # 17
-                self.update_from_message(jt_s1_sys_pb2.EnergyStremReport())
-
-            case 0x60, 0x60, 0x21: # 24
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 25
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 26
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
+            case 0x60, 0x60, 0x11: # 17
+                if not self.isPowerOceanPlus():
+                    self.update_from_message(jt_s1_sys_pb2.EmsChangeReport())
+                else:
+                    self.update_from_message(re307_sys_pb2.EmsChangeReport()) # andy - has some code see 8 too
+            case 0x60, 0x60, 0x18: # 24
+                self.update_from_message(jt_s1_sys_pb2.OilEngineBindAck())
+            case 0x60, 0x60, 0x19: # 25
+                self.update_from_message(jt_s1_sys_pb2.OilEngineParaSetAck())
+            case 0x60, 0x60, 0x1a: # 26
+                self.update_from_message(jt_s1_sys_pb2.OilEngineParaReport())
 
             case 0x60, 0x60, 0x21: # 33
-                self.update_from_message(jt_s1_sys_pb2.EnergyStremReport())
-            case 0x60, 0x60, 0x21: # 34
-                self.update_from_message(jt_s1_sys_pb2.EnergyStremReport())
-            case 0x60, 0x60, 0x21: # 35
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 36
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 37
-                self.update_from_message(jt_s1_sys_pb2.EnergyStremReport())
-
-
-            case 0x60, 0x60, 0x21: # 41
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
+                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReport())
+            case 0x60, 0x60, 0x22: # 34
+                pass  # ignored in java
+            case 0x60, 0x60, 0x23: # 35
+                self.update_from_message(jt_s1_sys_pb2.SysRTCSync())
+            case 0x60, 0x60, 0x24: # 36
+                self.update_from_message(jt_s1_sys_pb2.SysEventRecordReport())
+            case 0x60, 0x60, 0x25: # 37
+                self.update_from_message(jt_s1_sys_pb2.EmsChangeReport())
             case 0x60, 0x60, 0x21: # 39
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-
-            case 0x60, 0x60, 0x21: # 50
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-
-            case 0x60, 0x60, 0x21: # 98
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 99
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 100
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 101
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 102
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 103
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 105
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 106
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 107
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 109
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-
-            case 0x60, 0x60, 0x21: # 112
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-
-            case 0x60, 0x60, 0x21: # 121
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 124
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 125
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 126
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 127
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 132
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 133
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 137
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 138
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-
-            case 0x60, 0x60, 0x21: # 143
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 144
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 145
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 147
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 148
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 151
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 152
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
-            case 0x60, 0x60, 0x21: # 153
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReort())
+                self.update_from_message(jt_s1_sys_pb2.EmsPVInvEnergyStreamReport())
 
 
+            case 0x60, 0x60, 0x29: # 41
+                self.update_from_message(jt_s1_sys_pb2.EmsEcologyDevEnergyStreamReport())
 
+            case 0x60, 0x60, 0x32: # 50
+                self.update_from_message(jt_s1_parallel_pb2.ParallelEnergyStreamReport())
 
+            case 0x60, 0x60, 0x62: # 98
+                self.update_from_message(jt_s1_sys_pb2.SysWorkModeSetAck())
+            case 0x60, 0x60, 0x63: # 99
+                self.update_from_message(jt_s1_sys_pb2.SysBackupEventSetAck())
+            case 0x60, 0x60, 0x64: # 100
+                self.update_from_message(jt_s1_sys_pb2.SysKeepSocSetAck())
+            case 0x60, 0x60, 0x65: # 101
+                self.update_from_message(jt_s1_sys_pb2.SysFeedPowerSetAck())
+            case 0x60, 0x60, 0x66: # 102
+                self.update_from_message(jt_s1_sys_pb2.SysOffGridSetAck())
+            case 0x60, 0x60, 0x67: # 103
+                self.update_from_message(jt_s1_sys_pb2.SysParamGetAck())
+            case 0x60, 0x60, 0x69: # 105
+                self.update_from_message(jt_s1_sys_pb2.SysOnOffMachineSetAck())
+            case 0x60, 0x60, 0x6a: # 106
+                self.update_from_message(jt_s1_sys_pb2.EmsEcologyDevGetAck())
+            case 0x60, 0x60, 0x6b: # 107
+                self.update_from_message(jt_s1_sys_pb2.EmsEcologyDevBindAck())
+            case 0x60, 0x60, 0x6d: # 109
+                self.update_from_message(jt_s1_sys_pb2.EmsEcologyDevParamSetAck())
 
+            case 0x60, 0x60, 0x70: # 112
+                self.update_from_message(jt_s1_sys_pb2.SysBatChgDsgSetAck())
+
+            case 0x60, 0x60, 0x79: # 121
+                self.update_from_message(jt_s1_sys_pb2.SysFactoryResetAck())
+            case 0x60, 0x60, 0x7c: # 124
+                self.update_from_message(jt_s1_sys_pb2.EmsSgReadySetAck())
+            case 0x60, 0x60, 0x7d: # 125
+                self.update_from_message(jt_s1_sys_pb2.EmsTimerTaskCfgAck())
+            case 0x60, 0x60, 0x7e: # 126
+                self.update_from_message(jt_s1_sys_pb2.EmsTimerTaskGetAck())
+            case 0x60, 0x60, 0x7f: # 127
+                self.update_from_message(jt_s1_sys_pb2.EmsAllTimerTaskGetAck())
+            case 0x60, 0x60, 0x84: # 132
+                self.update_from_message(jt_s1_sys_pb2.EmsPVInvMeterGetAck())
+            case 0x60, 0x60, 0x85: # 133
+                self.update_from_message(jt_s1_sys_pb2.EmsPVInvMeterCfgSetAck())
+            case 0x60, 0x60, 0x89: # 137
+                self.update_from_message(jt_s1_sys_pb2.EmsParamSetAck())
+            case 0x60, 0x60, 0x8a: # 138
+                self.update_from_message(jt_s1_sys_pb2.EmsEnergyEfficientSetAck())
+
+            case 0x60, 0x60, 0x8f: # 143
+                self.update_from_message(jt_s1_sys_pb2.EmsTouTaskCfgAck())
+            case 0x60, 0x60, 0x90: # 144
+                self.update_from_message(jt_s1_sys_pb2.EmsTouTaskGetAck())
+            case 0x60, 0x60, 0x91: # 145
+                self.update_from_message(jt_s1_sys_pb2.EmsAllTouTaskGetAck())
+            case 0x60, 0x60, 0x93: # 147
+                self.update_from_message(jt_s1_sys_pb2.EmsTaskTypeEnableFlagSetAck())
+            case 0x60, 0x60, 0x94: # 148
+                self.update_from_message(jt_s1_sys_pb2.EmsSupplyTypeEnableFlagSetAck())
+            case 0x60, 0x60, 0x97: # 151
+                self.update_from_message(jt_s1_sys_pb2.PeakTaskCfgAck())
+            case 0x60, 0x60, 0x98: # 152
+                self.update_from_message(jt_s1_sys_pb2.EmsPeakShavingTaskGetAck())
+            case 0x60, 0x60, 0x99: # 153
+                self.update_from_message(jt_s1_sys_pb2.EmsAllPeakShavingTaskGetAck())
 
 
 
@@ -234,17 +228,20 @@ class Device(DeviceBase, ProtobufProps):
                 self.update_from_message(jt_s1_ecology_dev_pb2.EcologyDevGetAck())
 
             # 96,225,x
-            # case 0x60, 0xE1, 0x61:
-            #     self.update_from_message(jt_s1_parallel_pb2.ParallelDevList()) # TODO(andy) Not sure if right one
-            # case 0x60, 0xE1, 0x62:
-            #     self.update_from_message(jt_s1_parallel_pb2.DevInfo()) # TODO(andy) Not sure
+            case 0x60, 0xE1, 0x61: # 97
+                self.update_from_message(jt_parallel_lan_pb2.ScanParallelDevListAck())
+            case 0x60, 0xE1, 0x62: # 98
+                self.update_from_message(jt_parallel_lan_pb2.BindParallelDevAck())
 
             # 96,240,x
-            case 0x60, 0xF0, 0x6B:
-                self.update_from_message(jt_s1_ecology_dev_pb2.EcologyDevGetAck())
-            case 0x60, 0xF0, 0x6B:
-                self.update_from_message(jt_s1_ecology_dev_pb2.EcologyDevGetAck())
-
+            case 0x60, 0xF0, 0x02: # 2
+                self.update_from_message(jt_s1_edev_pb2.EDevPriorityListReport())
+            case 0x60, 0xF0, 0x61: # 97
+                self.update_from_message(jt_s1_edev_pb2.EDevGetAck())
+            case 0x60, 0xF0, 0x62: # 98
+                self.update_from_message(jt_s1_edev_pb2.EDevBindAck())
+            case 0x60, 0xF0, 0x63: # 99
+                self.update_from_message(jt_s1_edev_pb2.EDevPriorityListSetAck())
 
             # 96,241,x
             case 0x60, 0xF1, 0x01:
@@ -268,9 +265,9 @@ class Device(DeviceBase, ProtobufProps):
             case 0x60, 0xF1, 0x71:  # 113
                 self.update_from_message(jt_s1_edev_convert_pb2.BatchBindAck())
 
-            # _,53,x
-            # 53,53,x
             # 3,50,x
+            case 0x03,0x32,0x62:
+                pass   # TODO (Andy) - EcoPacket not sure
 
 
 
