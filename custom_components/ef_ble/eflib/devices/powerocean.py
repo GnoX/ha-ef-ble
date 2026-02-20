@@ -5,6 +5,7 @@ from ..pb import (
     jt_s1_ecology_dev_pb2,
     jt_s1_sys_pb2,
     platform_comm_pb2, jt_s1_parallel_pb2, jt_s1_edev_convert_pb2, jt_s1_ev_pb2, jt_s1_heatpump_pb2,
+    jt_s1_heatingrod_pb2,
 )
 from ..props import (
     ProtobufProps,
@@ -80,7 +81,6 @@ class Device(DeviceBase, ProtobufProps):
             case 0x60, 0xD1, 0x67: # 103
                 self.update_from_message(jt_s1_ev_pb2.EVChargingVehicleSetAck())
 
-
             # 96,211,x
             case 0x60, 0xD3, 0x01: # 1
                 self.update_from_message(jt_s1_heatpump_pb2.HPUIReport())
@@ -93,8 +93,18 @@ class Device(DeviceBase, ProtobufProps):
             case 0x60, 0xD3, 0x66: # 102
                 self.update_from_message(jt_s1_heatpump_pb2.HPTimerTaskCfgAck())
 
-
             # 96,212,x
+            case 0x60, 0xD4, 0x02: # 2
+                self.update_from_message(jt_s1_heatingrod_pb2.HeatingRodTimerTaskReport())
+            case 0x60, 0xD4, 0x08: # 8
+                self.update_from_message(jt_s1_heatingrod_pb2.HRChargingParamReport())
+            case 0x60, 0xD4, 0x21: # 33
+                self.update_from_message(jt_s1_heatingrod_pb2.HeatingRodEnergyStreamShow())
+            case 0x60, 0xD4, 0x63: # 99
+                self.update_from_message(jt_s1_heatingrod_pb2.HeatingRodParamSetAck())
+            case 0x60, 0xD4, 0x65: # 101
+                self.update_from_message(jt_s1_heatingrod_pb2.HeatingRodTimerTaskCfgAck())
+
             # 96,224,x
             case 0x60, 0xE0, 0x01:
                 self.update_from_message(jt_s1_ecology_dev_pb2.EcologyDevBindListReport())
