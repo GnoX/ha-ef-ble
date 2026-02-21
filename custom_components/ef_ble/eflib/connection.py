@@ -9,6 +9,7 @@ from collections import deque
 from collections.abc import Awaitable, Callable, Collection, Coroutine, MutableSequence
 from enum import StrEnum, auto
 from functools import cached_property
+from typing import Literal
 
 import ecdsa
 from bleak import BleakClient
@@ -35,6 +36,7 @@ from .exceptions import (
     MaxReconnectAttemptsReached,
     PacketParseError,
     PacketReceiveError,
+    UnsupportedBluetoothProtocol,
 )
 from .listeners import ListenerGroup, ListenerRegistry
 from .logging_util import ConnectionLogger, LogOptions
@@ -45,6 +47,18 @@ MAX_RECONNECT_ATTEMPTS = 2
 MAX_CONNECTION_ATTEMPTS = 10
 
 type DisconnectListener = Callable[[Exception | type[Exception] | None], None]
+
+
+_BT_PROTOCOL_UUIDS = {
+    "rfcomm": {
+        "notify": "00000003-0000-1000-8000-00805f9b34fb",
+        "write": "00000002-0000-1000-8000-00805f9b34fb",
+    },
+    "nordic_uart": {
+        "notify": "6e400003-b5a3-f393-e0a9-e50e24dcca9e",
+        "write": "6e400002-b5a3-f393-e0a9-e50e24dcca9e",
+    },
+}
 
 
 def _state_in(states: "Collection[ConnectionState | str]"):
@@ -172,9 +186,6 @@ class Connection:
     to parse back
     """
 
-    NOTIFY_CHARACTERISTIC = "00000003-0000-1000-8000-00805f9b34fb"
-    WRITE_CHARACTERISTIC = "00000002-0000-1000-8000-00805f9b34fb"
-
     _listeners = _ConnectionListeners.create()
 
     def __init__(
@@ -185,6 +196,7 @@ class Connection:
         data_parse: Callable[[Packet], Awaitable[bool]],
         packet_parse: Callable[[bytes], Awaitable[Packet]],
         packet_version: int = 0x03,
+        auth_header_dst: int = 0x53,
     ) -> None:
         self._ble_dev = ble_dev
         self._address = ble_dev.address
@@ -203,6 +215,7 @@ class Connection:
         self._retry_on_disconnect = False
         self._retry_on_disconnect_delay = 10
         self._enc_packet_buffer = b""
+        self._auth_header_dst = auth_header_dst
 
         self._tasks: set[asyncio.Task] = set()
 
@@ -526,6 +539,28 @@ class Connection:
         if state.is_error:
             self._notify_disconnect(exc)
 
+    def _get_characteristics(self, char_type: Literal["write", "notify"]):
+        assert self._client is not None
+
+        for uuids in _BT_PROTOCOL_UUIDS.values():
+            if (
+                uuid := self._client.services.get_characteristic(uuids[char_type])
+            ) is not None:
+                return uuid
+        characteristic_list = [
+            f"{c.uuid} {c.description} {c.properties}"
+            for c in self._client.services.characteristics.values()
+        ]
+        raise UnsupportedBluetoothProtocol("write", characteristic_list)
+
+    @cached_property
+    def _notify_characteristic(self):
+        return self._get_characteristics("notify")
+
+    @cached_property
+    def _write_characteristic(self):
+        return self._get_characteristics("write")
+
     # En/Decrypt functions must create AES object every time, because
     # it saves the internal state after encryption and become useless
     async def decryptShared(self, encrypted_payload: str):
@@ -717,10 +752,10 @@ class Connection:
 
         if response_handler:
             await self._client.start_notify(
-                Connection.NOTIFY_CHARACTERISTIC, response_handler
+                self._notify_characteristic, response_handler
             )
         await self._client.write_gatt_char(
-            Connection.WRITE_CHARACTERISTIC, bytearray(send_data)
+            self._write_characteristic, bytearray(send_data)
         )
 
     async def sendPacket(self, packet: Packet, response_handler=None):
@@ -786,7 +821,7 @@ class Connection:
             return
 
         self._set_state(ConnectionState.PUBLIC_KEY_RECEIVED)
-        await self._client.stop_notify(Connection.NOTIFY_CHARACTERISTIC)
+        await self._client.stop_notify(self._notify_characteristic)
 
         data = await self.parseSimple(bytes(recv_data))
         if len(data) < 3:
@@ -834,7 +869,7 @@ class Connection:
             return
 
         self._set_state(ConnectionState.SESSION_KEY_RECEIVED)
-        await self._client.stop_notify(Connection.NOTIFY_CHARACTERISTIC)
+        await self._client.stop_notify(self._notify_characteristic)
         encrypted_data = await self.parseSimple(bytes(recv_data))
 
         if encrypted_data[0] != 0x02:
@@ -857,7 +892,16 @@ class Connection:
             LogOptions.CONNECTION_DEBUG, "getKeyInfoReq: Receiving auth status"
         )
 
-        packet = Packet(0x21, 0x35, 0x35, 0x89, b"", 0x01, 0x01, self._packet_version)
+        packet = Packet(
+            0x21,
+            self._auth_header_dst,
+            0x35,
+            0x89,
+            b"",
+            0x01,
+            0x01,
+            self._packet_version,
+        )
 
         await self.sendPacket(packet, self.getAuthStatusHandler)
 
@@ -868,7 +912,7 @@ class Connection:
             return
 
         self._set_state(ConnectionState.AUTH_STATUS_RECEIVED)
-        await self._client.stop_notify(Connection.NOTIFY_CHARACTERISTIC)
+        await self._client.stop_notify(self._notify_characteristic)
         packets = await self.parseEncPackets(bytes(recv_data))
         if len(packets) < 1:
             raise PacketReceiveError
@@ -895,7 +939,14 @@ class Connection:
 
         # Forming packet - use detected protocol version (V2 or V3)
         packet = Packet(
-            0x21, 0x35, 0x35, 0x86, payload, 0x01, 0x01, self._packet_version
+            0x21,
+            self._auth_header_dst,
+            0x35,
+            0x86,
+            payload,
+            0x01,
+            0x01,
+            self._packet_version,
         )
 
         # Sending request and starting the common listener
@@ -914,7 +965,11 @@ class Connection:
             processed = False
 
             # Handling autoAuthentication response
-            if packet.src == 0x35 and packet.cmdSet == 0x35 and packet.cmdId == 0x86:
+            if (
+                packet.src == self._auth_header_dst
+                and packet.cmdSet == 0x35
+                and packet.cmdId == 0x86
+            ):
                 if packet.payload != b"\x00":
                     # TODO: Most probably we need to follow some other way for auth, but
                     # happens rarely
