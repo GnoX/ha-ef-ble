@@ -188,8 +188,8 @@ ECOFLOW_DEVICE_LIST = {
     # =====================
     # POWERSTREAM / STREAM
     # =====================
-    "HW51":{"name": "EcoFlow PowerStream", "packets": "v2"},
-    "HW52":{"name": "EcoFlow Smart Plug (PowerStream)", "packets": "v2"},
+    "HW51":{"name": "EcoFlow PowerStream", "packets": "v3"},
+    "HW52":{"name": "EcoFlow Smart Plug (PowerStream)", "packets": "v3"},
 
     "BK01":{"name": "EcoFlow STREAM Microinverter", "packets": "v3"},
     "BK02":{"name": "EcoFlow STREAM Microinverter", "packets": "v3"},

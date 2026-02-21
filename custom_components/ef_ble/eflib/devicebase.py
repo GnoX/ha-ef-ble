@@ -2,8 +2,10 @@ import abc
 import asyncio
 import time
 from collections import defaultdict
-from collections.abc import Callable
-from typing import Any
+from collections.abc import Callable, Coroutine
+from dataclasses import dataclass, field
+from functools import cached_property
+from typing import Any, overload
 
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
@@ -12,6 +14,8 @@ from .connection import (
     Connection,
     ConnectionState,
     ConnectionStateListener,
+    DataReceivedListener,
+    DataSendListener,
     DisconnectListener,
     PacketParsedListener,
     PacketReceivedListener,
@@ -24,6 +28,7 @@ from .logging_util import (
     LogOptions,
 )
 from .packet import Packet
+from .props.raw_data_props import Literal
 
 
 class _Listeners(ListenerRegistry):
@@ -31,6 +36,8 @@ class _Listeners(ListenerRegistry):
     on_disconnect: ListenerGroup[DisconnectListener]
     on_connection_state_change: ListenerGroup[ConnectionStateListener]
     on_packet_parsed: ListenerGroup[PacketParsedListener]
+    on_data_received: ListenerGroup[DataReceivedListener]
+    on_data_send: ListenerGroup[DataSendListener]
 
 
 class DeviceBase(abc.ABC):
@@ -82,6 +89,8 @@ class DeviceBase(abc.ABC):
         self._reconnect_disabled = False
         self._diagnostics = DeviceDiagnosticsCollector(self)
 
+        self._manufacturer_data = adv_data.manufacturer_data[self.MANUFACTURER_KEY]
+
     @property
     def device(self):
         return self.__doc__ if self.__doc__ else ""
@@ -121,6 +130,22 @@ class DeviceBase(abc.ABC):
     @property
     def diagnostics(self):
         return self._diagnostics
+
+    @cached_property
+    def scan_record(self):
+        return _ScanRecordV2.from_manufacturer_data(self._manufacturer_data)
+
+    def add_timer_task(
+        self,
+        coro: Callable[[], Coroutine],
+        interval: int = 30,
+        event_loop: asyncio.AbstractEventLoop | None = None,
+    ):
+        def _register_timer_task(state: ConnectionState):
+            if state == ConnectionState.AUTHENTICATED:
+                self._conn.add_timer_task(coro, interval, event_loop)
+
+        self.on_connection_state_change(_register_timer_task)
 
     def with_update_period(self, period: int):
         self._update_period = period
@@ -168,6 +193,19 @@ class DeviceBase(abc.ABC):
         self._connection_log = ConnectionLog(self.address.replace(":", "_"))
         return self._connection_log
 
+    def _create_connection(
+        self, ble_dev, dev_sn, user_id, data_parse, packet_parse, packet_version
+    ):
+        return Connection(
+            ble_dev=ble_dev,
+            dev_sn=dev_sn,
+            user_id=user_id,
+            data_parse=data_parse,
+            packet_parse=packet_parse,
+            packet_version=packet_version,
+            encrypt_type=self.scan_record.encrypt_type,
+        )
+
     async def connect(
         self,
         user_id: str | None = None,
@@ -176,7 +214,7 @@ class DeviceBase(abc.ABC):
     ):
         if self._conn is None:
             self._conn = (
-                Connection(
+                self._create_connection(
                     ble_dev=self._ble_dev,
                     dev_sn=self._sn,
                     user_id=user_id,
@@ -195,6 +233,9 @@ class DeviceBase(abc.ABC):
             self._conn.on_packet_data_received(self._listeners.on_packet_received)
             self._conn.on_packet_parsed(self._listeners.on_packet_parsed)
             self._conn.on_state_change(self._listeners.on_connection_state_change)
+            self._conn.on_state_change(lambda state: self.connection_log.append(state))
+            self._conn.on_data_received(self._listeners.on_data_received)
+            self._conn.on_data_send(self._listeners.on_data_send)
 
         elif self._conn._user_id != user_id:
             self._conn._user_id = user_id
@@ -224,12 +265,27 @@ class DeviceBase(abc.ABC):
         if self.is_connected:
             await self._conn.wait_disconnected()
 
-    async def wait_until_authenticated_or_error(self, raise_on_error: bool = False):
+    @overload
+    async def wait_until_authenticated_or_error(
+        self, raise_on_error: bool = False, return_exc: Literal[False] = False
+    ) -> ConnectionState: ...
+
+    @overload
+    async def wait_until_authenticated_or_error(
+        self,
+        raise_on_error: bool = False,
+        return_exc: Literal[True] = True,
+    ) -> tuple[ConnectionState, Exception | None]: ...
+
+    async def wait_until_authenticated_or_error(
+        self, raise_on_error: bool = False, return_exc: bool = False
+    ):
         if self._conn is None:
             return ConnectionState.NOT_CONNECTED
 
         return await self._conn.wait_until_authenticated_or_error(
-            raise_on_error=raise_on_error
+            raise_on_error=raise_on_error,
+            return_exc=return_exc,
         )
 
     async def observe_connection(self):
@@ -261,6 +317,12 @@ class DeviceBase(abc.ABC):
 
     def on_packet_parsed(self, packet_parsed_listener: PacketParsedListener):
         return self._listeners.on_packet_parsed.add(packet_parsed_listener)
+
+    def on_data_received(self, listener: DataReceivedListener):
+        return self._listeners.on_data_received.add(listener)
+
+    def on_data_send(self, listener: DataSendListener):
+        return self._listeners.on_data_send.add(listener)
 
     def on_connection_state_change(
         self, connection_state_listener: ConnectionStateListener
@@ -332,3 +394,40 @@ class DeviceBase(abc.ABC):
 
         for update in self._state_update_callbacks[propname]:
             update(value)
+
+
+@dataclass
+class _ScanRecordV2:
+    proto_version: int
+    serial_number: str
+    status: int
+    product_type: int
+
+    capability_flags: int
+
+    encrypt: bool = field(init=False)
+    support_verified: bool = field(init=False)
+    verified: bool = field(init=False)
+    encrypt_type: int = field(init=False)
+    support_5g: bool = field(init=False)
+
+    active_flag: bool = field(init=False)
+
+    def __post_init__(self):
+        self.encrypt = (self.capability_flags & 0x01) != 0
+        self.support_verified = (self.capability_flags & 0x02) != 0
+        self.verified = (self.capability_flags & 0x04) != 0
+        self.encrypt_type = (self.capability_flags & 0x38) >> 3
+        self.support_5g = ((self.capability_flags >> 6) & 0x01) == 1
+
+        self.active_flag = ((self.status >> 7) & 0x01) == 1
+
+    @classmethod
+    def from_manufacturer_data(cls, manufacturer_data: bytes):
+        return cls(
+            proto_version=manufacturer_data[0],
+            serial_number=manufacturer_data[1:17].decode(),
+            status=manufacturer_data[17],
+            product_type=manufacturer_data[18],
+            capability_flags=manufacturer_data[22],
+        )
