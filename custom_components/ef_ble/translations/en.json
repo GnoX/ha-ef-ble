@@ -300,6 +300,12 @@
       "output_power": {
         "name": "Output Power"
       },
+      "remaining_time_charging": {
+        "name": "Charge Time Remaining"
+      },
+      "remaining_time_discharging": {
+        "name": "Discharge Time Remaining"
+      },
       "grid_power": {
         "name": "Grid Power"
       },
@@ -494,6 +500,9 @@
       "liquefied_gas_consumption": {
         "name": "Liquefied Gas Consumption per Hour"
       },
+      "liquefied_gas_remaining": {
+        "name": "Liquefied Gas Remaining"
+      },
       "generator_total_output": {
         "name": "Generator Total Output"
       },
@@ -542,9 +551,6 @@
       "load_from_pv": {
         "name": "Load From PV"
       },
-      "pv_power_sum": {
-        "name": "PV Power Sum"
-      },
       "grid_voltage": {
         "name": "Grid Voltage"
       },
@@ -565,78 +571,6 @@
       },
       "inverter_frequency": {
         "name": "Inverter Frequency"
-      },
-      "ambient_temperature": {
-        "name": "Ambient Temperature"
-      },
-      "ambient_humidity": {
-        "name": "Humidity"
-      },
-      "operating_mode": {
-        "name": "Operating Mode"
-      },
-      "condensate_water_level": {
-        "name": "Water Level"
-      },
-      "pcs_fan_level": {
-        "name": "Fan Level"
-      },
-      "in_drainage": {
-        "name": "In Drainage"
-      },
-      "drainage_mode": {
-        "name": "Drainage Mode"
-      },
-      "lcd_show_temp_type": {
-        "name": "Display Temperature Type"
-      },
-      "temp_indoor_supply_air": {
-        "name": "Indoor Supply Air Temp"
-      },
-      "temp_indoor_return_air": {
-        "name": "Indoor Return Air Temp"
-      },
-      "temp_outdoor_ambient": {
-        "name": "Outdoor Ambient Temp"
-      },
-      "temp_condenser": {
-        "name": "Condenser Temperature"
-      },
-      "temp_evaporator": {
-        "name": "Evaporator Temperature"
-      },
-      "temp_compressor_discharge": {
-        "name": "Compressor Discharge Temp"
-      },
-      "battery_charge_limit_min": {
-        "name": "Discharge Limit"
-      },
-      "battery_charge_limit_max": {
-        "name": "Charge Limit"
-      },
-      "sleep_state": {
-        "name": "Sleep State"
-      },
-      "power": {
-        "name": "Power"
-      },
-      "power_battery": {
-        "name": "Battery Power"
-      },
-      "power_psdr": {
-        "name": "PSDR Power"
-      },
-      "power_mppt": {
-        "name": "MPPT Power"
-      },
-      "llc_temperature": {
-        "name": "LLC Temperature"
-      },
-      "water_level": {
-        "name": "Water Level"
-      },
-      "outlet_temperature": {
-        "name": "Outlet Temperature"
       },
       "backup_is_ready": {
         "name": "Channel {channel} Backup Ready"
@@ -711,6 +645,78 @@
       },
       "channel_error_count": {
         "name": "Channel {channel} Error Count"
+      },
+      "ambient_temperature": {
+        "name": "Ambient Temperature"
+      },
+      "ambient_humidity": {
+        "name": "Humidity"
+      },
+      "operating_mode": {
+        "name": "Operating Mode"
+      },
+      "condensate_water_level": {
+        "name": "Water Level"
+      },
+      "pcs_fan_level": {
+        "name": "Fan Level"
+      },
+      "in_drainage": {
+        "name": "In Drainage"
+      },
+      "drainage_mode": {
+        "name": "Drainage Mode"
+      },
+      "lcd_show_temp_type": {
+        "name": "Display Temperature Type"
+      },
+      "temp_indoor_supply_air": {
+        "name": "Indoor Supply Air Temp"
+      },
+      "temp_indoor_return_air": {
+        "name": "Indoor Return Air Temp"
+      },
+      "temp_outdoor_ambient": {
+        "name": "Outdoor Ambient Temp"
+      },
+      "temp_condenser": {
+        "name": "Condenser Temperature"
+      },
+      "temp_evaporator": {
+        "name": "Evaporator Temperature"
+      },
+      "temp_compressor_discharge": {
+        "name": "Compressor Discharge Temp"
+      },
+      "battery_charge_limit_min": {
+        "name": "Discharge Limit"
+      },
+      "battery_charge_limit_max": {
+        "name": "Charge Limit"
+      },
+      "sleep_state": {
+        "name": "Sleep State"
+      },
+      "power": {
+        "name": "Power"
+      },
+      "power_battery": {
+        "name": "Battery Power"
+      },
+      "power_psdr": {
+        "name": "PSDR Power"
+      },
+      "power_mppt": {
+        "name": "MPPT Power"
+      },
+      "water_level": {
+        "name": "Water Level"
+      },
+      "outlet_temperature": {
+        "name": "Outlet Temperature"
+      },
+      "pv_power_sum": {
+        "name": "PV Power Total"
       }
     },
     "select": {
