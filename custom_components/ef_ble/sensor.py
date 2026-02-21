@@ -21,6 +21,7 @@ from homeassistant.const import (
     UnitOfFrequency,
     UnitOfPower,
     UnitOfTemperature,
+    UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -269,6 +270,22 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=0,
+    ),
+    "remaining_time_charging": SensorEntityDescription(
+        key="remaining_time_charging",
+        native_unit_of_measurement=UnitOfTime.MINUTES,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_unit_of_measurement=UnitOfTime.HOURS,
+        entity_registry_enabled_default=False,
+    ),
+    "remaining_time_discharging": SensorEntityDescription(
+        key="remaining_time_discharging",
+        native_unit_of_measurement=UnitOfTime.MINUTES,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_unit_of_measurement=UnitOfTime.HOURS,
+        entity_registry_enabled_default=False,
     ),
     # SHP2
     "grid_power": SensorEntityDescription(
@@ -667,6 +684,12 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=2,
     ),
+    "liquefied_gas_remaining": EcoflowSensorEntityDescription[smart_generator.Device](
+        key="liquefied_gas_remaining",
+        device_class=SensorDeviceClass.WEIGHT,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+    ),
     "generator_abnormal_state": SensorEntityDescription(
         key="generator_abnormal_state",
         device_class=SensorDeviceClass.ENUM,
@@ -769,6 +792,14 @@ SENSOR_TYPES: dict[str, SensorEntityDescription] = {
         )
         for i in range(5)
     },
+    "pv_power_sum": SensorEntityDescription(
+        key="pv_power_sum",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        translation_key="pv_power_sum",
+    ),
     # Smart Meter
     "grid_energy": SensorEntityDescription(
         key="grid_energy",
