@@ -1,3 +1,4 @@
+from ..connection import ConnectionState
 from ..devicebase import DeviceBase
 from ..packet import Packet
 from ..pb import (
@@ -20,13 +21,22 @@ from ..props import (
 
 pb_heartbeat = proto_attr_mapper(jt_s1_sys_pb2.HeartbeatReport)
 pb_moduleinfo = proto_attr_mapper(iot_comm_pb2.ModuleInfo)
-
+pb_energyStreamReport = proto_attr_mapper(jt_s1_sys_pb2.EnergyStreamReport)
 
 class Device(DeviceBase, ProtobufProps):
+    """Power Ocean"""
+
     SN_PREFIX = (b"J32",)
     NAME_PREFIX = "EF-J32"
 
     grid_power = pb_field(pb_heartbeat.ems_bp_power)
+
+    sysLoadPwr = pb_field(pb_energyStreamReport.sys_load_pwr)
+    mpptPwr = pb_field(pb_energyStreamReport.mppt_pwr)
+    bpPwr = pb_field(pb_energyStreamReport.bp_pwr)
+    bpSoc = pb_field(pb_energyStreamReport.bp_soc)
+    mpptPv1_pwr = pb_field(pb_energyStreamReport.pv1_pwr)
+    mpptPv2_pwr = pb_field(pb_energyStreamReport.pv2_pwr)
 
     @classmethod
     def check(cls, sn: bytes):
@@ -39,231 +49,235 @@ class Device(DeviceBase, ProtobufProps):
         return False
 
     async def data_parse(self, packet: Packet):
+        # TODO temporary solution since PO doesn't return authenticated response and just starts sending data
+        if not self.connection_state.authenticated:
+            self._conn._set_state(ConnectionState.AUTHENTICATED)
+            self._conn._connected.set()
+
         processed = False
         self.reset_updated()
 
         match packet.src, packet.cmdSet, packet.cmdId:
             case _, 0xFE, 0x10:
-                self.update_from_message(platform_comm_pb2.EventRecordReport())
+                self.update_from_bytes(platform_comm_pb2.EventRecordReport, packet.payload)
                 # TODO(gnox): should respond with platform_comm_pb2.EventInfoReportAck
-
             # 53,53
             case 0x35, 0x35, 0x71: # 113
                 pass   # TODO (Andy) not sure about this
             case 0x35, 0x35, 0x71: # 113
-                self.update_from_message(iot_comm_pb2.ModuleClusterInfo())
+                self.update_from_bytes(iot_comm_pb2.ModuleClusterInfo, packet.payload)
             case 0x35, 0x35, 0xaa: # 170
-                self.update_from_message(iot_comm_pb2.RefreshTokenAck())  # TODO (Andy) not sure
+                self.update_from_bytes(iot_comm_pb2.RefreshTokenAck, packet.payload)  # TODO (Andy) not sure
 
             # 96,96,x  - (47)
             case 0x60, 0x60, 0x01: # 1
-                self.update_from_message(jt_s1_sys_pb2.HeartbeatReport())
+                self.update_from_bytes(jt_s1_sys_pb2.HeartbeatReport, packet.payload)
             case 0x60, 0x60, 0x03: # 3
-                self.update_from_message(jt_s1_sys_pb2.ErrorChangeReport())
+                self.update_from_bytes(jt_s1_sys_pb2.ErrorChangeReport, packet.payload)
             case 0x60, 0x60, 0x07: # 7
-                self.update_from_message(jt_s1_sys_pb2.BpHeartbeatReport())
+                self.update_from_bytes(jt_s1_sys_pb2.BpHeartbeatReport, packet.payload)
             case 0x60, 0x60, 0x08: # 8
                 if not self.isPowerOceanPlus():
-                    self.update_from_message(jt_s1_sys_pb2.EmsChangeReport())
+                    self.update_from_bytes(jt_s1_sys_pb2.EmsChangeReport, packet.payload)
                 else:
-                    self.update_from_message(re307_sys_pb2.EmsChangeReport())
+                    self.update_from_bytes(re307_sys_pb2.EmsChangeReport, packet.payload)
             case 0x60, 0x60, 0x0a: # 10
-                self.update_from_message(jt_s1_sys_pb2.EmsAllTimerTaskReport())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsAllTimerTaskReport, packet.payload)
             case 0x60, 0x60, 0x0b: # 11
-                self.update_from_message(jt_s1_sys_pb2.EmsEcologyDevReport())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsEcologyDevReport, packet.payload)
             case 0x60, 0x60, 0x0c: # 12
-                self.update_from_message(jt_s1_parallel_pb2.ParallelDevListReport())
+                self.update_from_bytes(jt_s1_parallel_pb2.ParallelDevListReport, packet.payload)
             case 0x60, 0x60, 0x0D: # 13
                 # NOTE(gnox): network config data - even though it is parsable as
                 # protocol buffers, in the app, it's parsed manually into NetConfig
                 # beans
                 pass
             case 0x60, 0x60, 0x0e: # 14
-                self.update_from_message(jt_s1_sys_pb2.EmsAllTouTaskReport())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsAllTouTaskReport, packet.payload)
 
             case 0x60, 0x60, 0x11: # 17
                 if not self.isPowerOceanPlus():
-                    self.update_from_message(jt_s1_sys_pb2.EmsChangeReport())
+                    self.update_from_bytes(jt_s1_sys_pb2.EmsChangeReport, packet.payload)
                 else:
-                    self.update_from_message(re307_sys_pb2.EmsChangeReport()) # andy - has some code see 8 too
+                    self.update_from_bytes(re307_sys_pb2.EmsChangeReport, packet.payload) # andy - has some code see 8 too
             case 0x60, 0x60, 0x18: # 24
-                self.update_from_message(jt_s1_sys_pb2.OilEngineBindAck())
+                self.update_from_bytes(jt_s1_sys_pb2.OilEngineBindAck, packet.payload)
             case 0x60, 0x60, 0x19: # 25
-                self.update_from_message(jt_s1_sys_pb2.OilEngineParaSetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.OilEngineParaSetAck, packet.payload)
             case 0x60, 0x60, 0x1a: # 26
-                self.update_from_message(jt_s1_sys_pb2.OilEngineParaReport())
+                self.update_from_bytes(jt_s1_sys_pb2.OilEngineParaReport, packet.payload)
 
             case 0x60, 0x60, 0x21: # 33
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReport())
+                self.update_from_bytes(jt_s1_sys_pb2.EnergyStreamReport, packet.payload)
             case 0x60, 0x60, 0x22: # 34
                 pass  # ignored in java
             case 0x60, 0x60, 0x23: # 35
-                self.update_from_message(jt_s1_sys_pb2.SysRTCSync())
+                self.update_from_bytes(jt_s1_sys_pb2.SysRTCSync, packet.payload)
             case 0x60, 0x60, 0x24: # 36
-                self.update_from_message(jt_s1_sys_pb2.SysEventRecordReport())
+                self.update_from_bytes(jt_s1_sys_pb2.SysEventRecordReport, packet.payload)
             case 0x60, 0x60, 0x25: # 37
-                self.update_from_message(jt_s1_sys_pb2.EmsChangeReport())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsChangeReport, packet.payload)
             case 0x60, 0x60, 0x21: # 39
-                self.update_from_message(jt_s1_sys_pb2.EmsPVInvEnergyStreamReport())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsPVInvEnergyStreamReport, packet.payload)
 
 
             case 0x60, 0x60, 0x29: # 41
-                self.update_from_message(jt_s1_sys_pb2.EmsEcologyDevEnergyStreamReport())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsEcologyDevEnergyStreamReport, packet.payload)
 
             case 0x60, 0x60, 0x32: # 50
-                self.update_from_message(jt_s1_parallel_pb2.ParallelEnergyStreamReport())
+                self.update_from_bytes(jt_s1_parallel_pb2.ParallelEnergyStreamReport, packet.payload)
 
             case 0x60, 0x60, 0x62: # 98
-                self.update_from_message(jt_s1_sys_pb2.SysWorkModeSetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.SysWorkModeSetAck, packet.payload)
             case 0x60, 0x60, 0x63: # 99
-                self.update_from_message(jt_s1_sys_pb2.SysBackupEventSetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.SysBackupEventSetAck, packet.payload)
             case 0x60, 0x60, 0x64: # 100
-                self.update_from_message(jt_s1_sys_pb2.SysKeepSocSetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.SysKeepSocSetAck, packet.payload)
             case 0x60, 0x60, 0x65: # 101
-                self.update_from_message(jt_s1_sys_pb2.SysFeedPowerSetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.SysFeedPowerSetAck, packet.payload)
             case 0x60, 0x60, 0x66: # 102
-                self.update_from_message(jt_s1_sys_pb2.SysOffGridSetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.SysOffGridSetAck, packet.payload)
             case 0x60, 0x60, 0x67: # 103
-                self.update_from_message(jt_s1_sys_pb2.SysParamGetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.SysParamGetAck, packet.payload)
             case 0x60, 0x60, 0x69: # 105
-                self.update_from_message(jt_s1_sys_pb2.SysOnOffMachineSetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.SysOnOffMachineSetAck, packet.payload)
             case 0x60, 0x60, 0x6a: # 106
-                self.update_from_message(jt_s1_sys_pb2.EmsEcologyDevGetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsEcologyDevGetAck, packet.payload)
             case 0x60, 0x60, 0x6b: # 107
-                self.update_from_message(jt_s1_sys_pb2.EmsEcologyDevBindAck())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsEcologyDevBindAck, packet.payload)
             case 0x60, 0x60, 0x6d: # 109
-                self.update_from_message(jt_s1_sys_pb2.EmsEcologyDevParamSetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsEcologyDevParamSetAck, packet.payload)
 
             case 0x60, 0x60, 0x70: # 112
-                self.update_from_message(jt_s1_sys_pb2.SysBatChgDsgSetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.SysBatChgDsgSetAck, packet.payload)
 
             case 0x60, 0x60, 0x79: # 121
-                self.update_from_message(jt_s1_sys_pb2.SysFactoryResetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.SysFactoryResetAck, packet.payload)
             case 0x60, 0x60, 0x7c: # 124
-                self.update_from_message(jt_s1_sys_pb2.EmsSgReadySetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsSgReadySetAck, packet.payload)
             case 0x60, 0x60, 0x7d: # 125
-                self.update_from_message(jt_s1_sys_pb2.EmsTimerTaskCfgAck())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsTimerTaskCfgAck, packet.payload)
             case 0x60, 0x60, 0x7e: # 126
-                self.update_from_message(jt_s1_sys_pb2.EmsTimerTaskGetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsTimerTaskGetAck, packet.payload)
             case 0x60, 0x60, 0x7f: # 127
-                self.update_from_message(jt_s1_sys_pb2.EmsAllTimerTaskGetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsAllTimerTaskGetAck, packet.payload)
             case 0x60, 0x60, 0x84: # 132
-                self.update_from_message(jt_s1_sys_pb2.EmsPVInvMeterGetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsPVInvMeterGetAck, packet.payload)
             case 0x60, 0x60, 0x85: # 133
-                self.update_from_message(jt_s1_sys_pb2.EmsPVInvMeterCfgSetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsPVInvMeterCfgSetAck, packet.payload)
             case 0x60, 0x60, 0x89: # 137
-                self.update_from_message(jt_s1_sys_pb2.EmsParamSetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsParamSetAck, packet.payload)
             case 0x60, 0x60, 0x8a: # 138
-                self.update_from_message(jt_s1_sys_pb2.EmsEnergyEfficientSetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsEnergyEfficientSetAck, packet.payload)
 
             case 0x60, 0x60, 0x8f: # 143
-                self.update_from_message(jt_s1_sys_pb2.EmsTouTaskCfgAck())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsTouTaskCfgAck, packet.payload)
             case 0x60, 0x60, 0x90: # 144
-                self.update_from_message(jt_s1_sys_pb2.EmsTouTaskGetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsTouTaskGetAck, packet.payload)
             case 0x60, 0x60, 0x91: # 145
-                self.update_from_message(jt_s1_sys_pb2.EmsAllTouTaskGetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsAllTouTaskGetAck, packet.payload)
             case 0x60, 0x60, 0x93: # 147
-                self.update_from_message(jt_s1_sys_pb2.EmsTaskTypeEnableFlagSetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsTaskTypeEnableFlagSetAck, packet.payload)
             case 0x60, 0x60, 0x94: # 148
-                self.update_from_message(jt_s1_sys_pb2.EmsSupplyTypeEnableFlagSetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsSupplyTypeEnableFlagSetAck, packet.payload)
             case 0x60, 0x60, 0x97: # 151
-                self.update_from_message(jt_s1_sys_pb2.PeakTaskCfgAck())
+                self.update_from_bytes(jt_s1_sys_pb2.PeakTaskCfgAck, packet.payload)
             case 0x60, 0x60, 0x98: # 152
-                self.update_from_message(jt_s1_sys_pb2.EmsPeakShavingTaskGetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsPeakShavingTaskGetAck, packet.payload)
             case 0x60, 0x60, 0x99: # 153
-                self.update_from_message(jt_s1_sys_pb2.EmsAllPeakShavingTaskGetAck())
+                self.update_from_bytes(jt_s1_sys_pb2.EmsAllPeakShavingTaskGetAck, packet.payload)
 
 
 
             # 96,209,x -
             case 0x60, 0xD1, 0x02: # 2
-                self.update_from_message(jt_s1_ev_pb2.EVChargingTimerTaskReport())
+                self.update_from_bytes(jt_s1_ev_pb2.EVChargingTimerTaskReport, packet.payload)
             case 0x60, 0xD1, 0x08: # 8
-                self.update_from_message(jt_s1_ev_pb2.EVChargingParamReport())
+                self.update_from_bytes(jt_s1_ev_pb2.EVChargingParamReport, packet.payload)
             case 0x60, 0xD1, 0x21: # 33
-                self.update_from_message(jt_s1_ev_pb2.EVChargingEnergyStreamReport())
+                self.update_from_bytes(jt_s1_ev_pb2.EVChargingEnergyStreamReport, packet.payload)
             case 0x60, 0xD1, 0x61: # 97
-                self.update_from_message(jt_s1_ev_pb2.EVChargingListAck())
+                self.update_from_bytes(jt_s1_ev_pb2.EVChargingListAck, packet.payload)
             case 0x60, 0xD1, 0x62: # 98
-                self.update_from_message(jt_s1_ev_pb2.EVChargingBindAck())
+                self.update_from_bytes(jt_s1_ev_pb2.EVChargingBindAck, packet.payload)
             case 0x60, 0xD1, 0x63: # 99
-                self.update_from_message(jt_s1_ev_pb2.EVChargingParamSetAck())
+                self.update_from_bytes(jt_s1_ev_pb2.EVChargingParamSetAck, packet.payload)
             case 0x60, 0xD1, 0x64: # 100
-                self.update_from_message(jt_s1_ev_pb2.EVChargingAppCtrlAck())
+                self.update_from_bytes(jt_s1_ev_pb2.EVChargingAppCtrlAck, packet.payload)
             case 0x60, 0xD1, 0x65: # 101
-                self.update_from_message(jt_s1_ev_pb2.EVChargingTimerTaskCfgAck())
+                self.update_from_bytes(jt_s1_ev_pb2.EVChargingTimerTaskCfgAck, packet.payload)
             case 0x60, 0xD1, 0x67: # 103
-                self.update_from_message(jt_s1_ev_pb2.EVChargingVehicleSetAck())
+                self.update_from_bytes(jt_s1_ev_pb2.EVChargingVehicleSetAck, packet.payload)
 
             # 96,211,x
             case 0x60, 0xD3, 0x01: # 1
-                self.update_from_message(jt_s1_heatpump_pb2.HPUIReport())
+                self.update_from_bytes(jt_s1_heatpump_pb2.HPUIReport, packet.payload)
             case 0x60, 0xD3, 0x02: # 2
-                self.update_from_message(jt_s1_heatpump_pb2.HPTimerTaskReport())
+                self.update_from_bytes(jt_s1_heatpump_pb2.HPTimerTaskReport, packet.payload)
             case 0x60, 0xD3, 0x63: # 99
-                self.update_from_message(jt_s1_heatpump_pb2.HPParamSetAck())
+                self.update_from_bytes(jt_s1_heatpump_pb2.HPParamSetAck, packet.payload)
             case 0x60, 0xD3, 0x64: # 100
-                self.update_from_message(jt_s1_heatpump_pb2.HPParamGetAck())
+                self.update_from_bytes(jt_s1_heatpump_pb2.HPParamGetAck, packet.payload)
             case 0x60, 0xD3, 0x66: # 102
-                self.update_from_message(jt_s1_heatpump_pb2.HPTimerTaskCfgAck())
+                self.update_from_bytes(jt_s1_heatpump_pb2.HPTimerTaskCfgAck, packet.payload)
 
             # 96,212,x
             case 0x60, 0xD4, 0x02: # 2
-                self.update_from_message(jt_s1_heatingrod_pb2.HeatingRodTimerTaskReport())
+                self.update_from_bytes(jt_s1_heatingrod_pb2.HeatingRodTimerTaskReport, packet.payload)
             case 0x60, 0xD4, 0x08: # 8
-                self.update_from_message(jt_s1_heatingrod_pb2.HRChargingParamReport())
+                self.update_from_bytes(jt_s1_heatingrod_pb2.HRChargingParamReport, packet.payload)
             case 0x60, 0xD4, 0x21: # 33
-                self.update_from_message(jt_s1_heatingrod_pb2.HeatingRodEnergyStreamShow())
+                self.update_from_bytes(jt_s1_heatingrod_pb2.HeatingRodEnergyStreamShow, packet.payload)
             case 0x60, 0xD4, 0x63: # 99
-                self.update_from_message(jt_s1_heatingrod_pb2.HeatingRodParamSetAck())
+                self.update_from_bytes(jt_s1_heatingrod_pb2.HeatingRodParamSetAck, packet.payload)
             case 0x60, 0xD4, 0x65: # 101
-                self.update_from_message(jt_s1_heatingrod_pb2.HeatingRodTimerTaskCfgAck())
+                self.update_from_bytes(jt_s1_heatingrod_pb2.HeatingRodTimerTaskCfgAck, packet.payload)
 
             # 96,224,x
             case 0x60, 0xE0, 0x01:
-                self.update_from_message(jt_s1_ecology_dev_pb2.EcologyDevBindListReport())
+                self.update_from_bytes(jt_s1_ecology_dev_pb2.EcologyDevBindListReport, packet.payload)
             case 0x60, 0xE0, 0x6A:
-                self.update_from_message(jt_s1_ecology_dev_pb2.EcologyDevBindAck())
+                self.update_from_bytes(jt_s1_ecology_dev_pb2.EcologyDevBindAck, packet.payload)
             case 0x60, 0xE0, 0x6B:
-                self.update_from_message(jt_s1_ecology_dev_pb2.EcologyDevGetAck())
+                self.update_from_bytes(jt_s1_ecology_dev_pb2.EcologyDevGetAck, packet.payload)
 
             # 96,225,x
             case 0x60, 0xE1, 0x61: # 97
-                self.update_from_message(jt_parallel_lan_pb2.ScanParallelDevListAck())
+                self.update_from_bytes(jt_parallel_lan_pb2.ScanParallelDevListAck, packet.payload)
             case 0x60, 0xE1, 0x62: # 98
-                self.update_from_message(jt_parallel_lan_pb2.BindParallelDevAck())
+                self.update_from_bytes(jt_parallel_lan_pb2.BindParallelDevAck, packet.payload)
 
             # 96,240,x
             case 0x60, 0xF0, 0x02: # 2
-                self.update_from_message(jt_s1_edev_pb2.EDevPriorityListReport())
+                self.update_from_bytes(jt_s1_edev_pb2.EDevPriorityListReport, packet.payload)
             case 0x60, 0xF0, 0x61: # 97
-                self.update_from_message(jt_s1_edev_pb2.EDevGetAck())
+                self.update_from_bytes(jt_s1_edev_pb2.EDevGetAck, packet.payload)
             case 0x60, 0xF0, 0x62: # 98
-                self.update_from_message(jt_s1_edev_pb2.EDevBindAck())
+                self.update_from_bytes(jt_s1_edev_pb2.EDevBindAck, packet.payload)
             case 0x60, 0xF0, 0x63: # 99
-                self.update_from_message(jt_s1_edev_pb2.EDevPriorityListSetAck())
+                self.update_from_bytes(jt_s1_edev_pb2.EDevPriorityListSetAck, packet.payload)
 
             # 96,241,x
             case 0x60, 0xF1, 0x01:
-                self.update_from_message(jt_s1_edev_pb2.EDevBindListReport())
+                self.update_from_bytes(jt_s1_edev_pb2.EDevBindListReport, packet.payload)
             case 0x60, 0xF1, 0x03: # 3
-                self.update_from_message(jt_s1_edev_convert_pb2.EDevParamReport())
+                self.update_from_bytes(jt_s1_edev_convert_pb2.EDevParamReport, packet.payload)
             case 0x60, 0xF1, 0x04: # 4
-                self.update_from_message(jt_s1_edev_pb2.EDevTimerTaskReport())
+                self.update_from_bytes(jt_s1_edev_pb2.EDevTimerTaskReport, packet.payload)
             case 0x60, 0xF1, 0x21:  # 33
-                self.update_from_message(jt_s1_edev_pb2.EDevEnergyStreamShow())
+                self.update_from_bytes(jt_s1_edev_pb2.EDevEnergyStreamShow, packet.payload)
             case 0x60, 0xF1, 0x64: # 100
-                self.update_from_message(jt_s1_edev_pb2.EDevOnOffSetAck())
+                self.update_from_bytes(jt_s1_edev_pb2.EDevOnOffSetAck, packet.payload)
             case 0x60, 0xF1, 0x65:  # 101
-                self.update_from_message(jt_s1_edev_pb2.EDevModeSetAck())
+                self.update_from_bytes(jt_s1_edev_pb2.EDevModeSetAck, packet.payload)
             case 0x60, 0xF1, 0x66:  # 102
-                self.update_from_message(jt_s1_edev_convert_pb2.EDevParamSetAck())
+                self.update_from_bytes(jt_s1_edev_convert_pb2.EDevParamSetAck, packet.payload)
             case 0x60, 0xF1, 0x6A:  # 106
-                self.update_from_message(jt_s1_edev_pb2.EDevTimerTaskCfgSetAck())
+                self.update_from_bytes(jt_s1_edev_pb2.EDevTimerTaskCfgSetAck, packet.payload)
             case 0x60, 0xF1, 0x6C: # 108
-                self.update_from_message(jt_s1_edev_convert_pb2.EDevExpendCtrlAck())
+                self.update_from_bytes(jt_s1_edev_convert_pb2.EDevExpendCtrlAck, packet.payload)
             case 0x60, 0xF1, 0x71:  # 113
-                self.update_from_message(jt_s1_edev_convert_pb2.BatchBindAck())
+                self.update_from_bytes(jt_s1_edev_convert_pb2.BatchBindAck, packet.payload)
 
             # 3,50,x
             case 0x03,0x32,0x62:
@@ -276,3 +290,4 @@ class Device(DeviceBase, ProtobufProps):
             self.update_state(field_name, getattr(self, field_name))
 
         return processed
+
