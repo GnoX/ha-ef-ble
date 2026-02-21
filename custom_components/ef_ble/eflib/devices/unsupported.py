@@ -217,11 +217,24 @@ ECOFLOW_DEVICE_LIST = {
     "HR63":{"name": "EcoFlow Smart Home Panel 3", "packets": "v3"},
     "HR6C":{"name": "EcoFlow Smart Home Panel 3", "packets": "v3"},
 
+    # =====================
+    # SOLAR SYSTEMS (Power Ocean)
+    # =====================
     "HJ31":{"name": "EcoFlow PowerOcean", "packets": "?"},
     "HJ32":{"name": "EcoFlow PowerOcean Battery", "packets": "?"},
     "HJ35":{"name": "EcoFlow PowerOcean 6kW", "packets": "?"},
     "HJ36":{"name": "EcoFlow PowerOcean 8kW", "packets": "?"},
     "HJ37":{"name": "EcoFlow PowerOcean 12kW", "packets": "?"},
+
+#    "J321": {"name": "PowerOcean Single Phase", "packets": "v3"},
+#     "J32A": {"name": "PowerOcean Single Phase 3kW", "packets": "v3"},
+#     "J32B": {"name": "PowerOcean Single Phase 3.68 kW", "packets": "v3"},
+#     "J32C": {"name": "PowerOcean Single Phase 4.65 kW", "packets": "v3"},
+#     "J32D": {"name": "PowerOcean Single Phase 5 kW", "packets": "v3"},
+#     "J32E": {"name": "PowerOcean Single Phase 6 kW", "packets": "v3"},
+
+   "J32G": {"name": "PowerOcean Single Phase 5kW", "packets": "?"},
+   "J32": {"name": "PowerOcean Single Phase", "packets": "?"},
 
     # =====================
     # TRAIL

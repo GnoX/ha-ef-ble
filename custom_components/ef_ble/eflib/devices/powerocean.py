@@ -30,7 +30,7 @@ class Device(DeviceBase, ProtobufProps):
 
     @classmethod
     def check(cls, sn: bytes):
-        return sn[:4] in cls.SN_PREFIX
+        return sn[:3] in cls.SN_PREFIX
 
     async def packet_parse(self, data: bytes):
         return Packet.fromBytes(data, xor_payload=True)
