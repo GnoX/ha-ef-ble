@@ -214,6 +214,7 @@ class Connection:
         self._disconnected = asyncio.Event()
         self._retry_on_disconnect = False
         self._retry_on_disconnect_delay = 10
+        self._enc_packet_buffer = b""
         self._auth_header_dst = auth_header_dst
 
         self._tasks: set[asyncio.Task] = set()
