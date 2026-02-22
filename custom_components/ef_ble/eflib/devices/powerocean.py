@@ -197,8 +197,8 @@ class Device(DeviceBase, ProtobufProps):
     async def packet_parse(self, data: bytes):
         return Packet.fromBytes(data, xor_payload=True)
 
-    # def isPowerOceanPlus(self):
-    #     return False
+    def isPowerOceanPlus(self):
+        return False
 
     async def data_parse(self, packet: Packet):
         # TODO temporary solution since PO doesn't return authenticated response and just starts sending data
@@ -209,17 +209,20 @@ class Device(DeviceBase, ProtobufProps):
         processed = False
         self.reset_updated()
 
+        # Lot of messages are useless, so I will mark them with pass, but leave processing under comment (in case
+        # we need to enable in the future. - Andy
+
         match packet.src, packet.cmdSet, packet.cmdId:
             case _, 0xFE, 0x10:
-                self.update_from_bytes(platform_comm_pb2.EventRecordReport, packet.payload)
+                pass # self.update_from_bytes(platform_comm_pb2.EventRecordReport, packet.payload)
                 # TODO(gnox): should respond with platform_comm_pb2.EventInfoReportAck
             # 53,53
-            case 0x35, 0x35, 0x71: # 113
-                pass   # TODO (Andy) not sure about this
+            case 0x35, 0x35, 0x0d: # 13
+                pass   # not sure about this java code call something
             case 0x35, 0x35, 0x71: # 113
                 self.update_from_bytes(iot_comm_pb2.ModuleClusterInfo, packet.payload)
             case 0x35, 0x35, 0xaa: # 170
-                self.update_from_bytes(iot_comm_pb2.RefreshTokenAck, packet.payload)  # TODO (Andy) not sure
+                pass # self.update_from_bytes(iot_comm_pb2.RefreshTokenAck, packet.payload)
 
             # 96,96,x  - (47)
             case 0x60, 0x60, 0x01: # 1
@@ -229,14 +232,14 @@ class Device(DeviceBase, ProtobufProps):
             case 0x60, 0x60, 0x07: # 7
                 self.update_from_bytes(jt_s1_sys_pb2.BpHeartbeatReport, packet.payload)
             case 0x60, 0x60, 0x08: # 8
-                # if not self.isPowerOceanPlus():
-                self.update_from_bytes(jt_s1_sys_pb2.EmsChangeReport, packet.payload)
-                # else:
-                #     self.update_from_bytes(re307_sys_pb2.EmsChangeReport, packet.payload)
+                if not self.isPowerOceanPlus():
+                    self.update_from_bytes(jt_s1_sys_pb2.EmsChangeReport, packet.payload)
+                else:
+                    self.update_from_bytes(re307_sys_pb2.EmsChangeReport, packet.payload)
             case 0x60, 0x60, 0x0a: # 10
                 self.update_from_bytes(jt_s1_sys_pb2.EmsAllTimerTaskReport, packet.payload)
             case 0x60, 0x60, 0x0b: # 11
-                self.update_from_bytes(jt_s1_sys_pb2.EmsEcologyDevReport, packet.payload)
+                pass # self.update_from_bytes(jt_s1_sys_pb2.EmsEcologyDevReport, packet.payload)
             case 0x60, 0x60, 0x0c: # 12
                 self.update_from_bytes(jt_s1_parallel_pb2.ParallelDevListReport, packet.payload)
             case 0x60, 0x60, 0x0D: # 13
@@ -248,10 +251,10 @@ class Device(DeviceBase, ProtobufProps):
                 self.update_from_bytes(jt_s1_sys_pb2.EmsAllTouTaskReport, packet.payload)
 
             case 0x60, 0x60, 0x11: # 17
-                # if not self.isPowerOceanPlus():
-                self.update_from_bytes(jt_s1_sys_pb2.EmsChangeReport, packet.payload)
-                # else:
-                #     self.update_from_bytes(re307_sys_pb2.EmsChangeReport, packet.payload) # andy - has some code see 8 too
+                if not self.isPowerOceanPlus():
+                    self.update_from_bytes(jt_s1_sys_pb2.EmsChangeReport, packet.payload)
+                else:
+                    self.update_from_bytes(re307_sys_pb2.EmsChangeReport, packet.payload) # andy - has some code see 8 too
             case 0x60, 0x60, 0x18: # 24
                 self.update_from_bytes(jt_s1_sys_pb2.OilEngineBindAck, packet.payload)
             case 0x60, 0x60, 0x19: # 25
@@ -269,7 +272,7 @@ class Device(DeviceBase, ProtobufProps):
                 self.update_from_bytes(jt_s1_sys_pb2.SysEventRecordReport, packet.payload)
             case 0x60, 0x60, 0x25: # 37
                 self.update_from_bytes(jt_s1_sys_pb2.EmsChangeReport, packet.payload)
-            case 0x60, 0x60, 0x21: # 39
+            case 0x60, 0x60, 0x27: # 39
                 self.update_from_bytes(jt_s1_sys_pb2.EmsPVInvEnergyStreamReport, packet.payload)
 
 
@@ -387,11 +390,13 @@ class Device(DeviceBase, ProtobufProps):
 
             # 96,224,x
             case 0x60, 0xE0, 0x01:
-                self.update_from_bytes(jt_s1_ecology_dev_pb2.EcologyDevBindListReport, packet.payload)
-            case 0x60, 0xE0, 0x6A:
-                self.update_from_bytes(jt_s1_ecology_dev_pb2.EcologyDevBindAck, packet.payload)
-            case 0x60, 0xE0, 0x6B:
-                self.update_from_bytes(jt_s1_ecology_dev_pb2.EcologyDevGetAck, packet.payload)
+                pass # self.update_from_bytes(jt_s1_ecology_dev_pb2.EcologyDevBindListReport, packet.payload)
+            case 0x60, 0xE0, 0x6A:  # 36
+                pass # unknown message
+            case 0x60, 0xE0, 0x6A: # 106
+                pass # self.update_from_bytes(jt_s1_ecology_dev_pb2.EcologyDevBindAck, packet.payload)
+            case 0x60, 0xE0, 0x6B: # 107
+                pass # self.update_from_bytes(jt_s1_ecology_dev_pb2.EcologyDevGetAck, packet.payload)
 
             # 96,225,x
             case 0x60, 0xE1, 0x61: # 97
@@ -401,7 +406,7 @@ class Device(DeviceBase, ProtobufProps):
 
             # 96,240,x
             case 0x60, 0xF0, 0x02: # 2
-                self.update_from_bytes(jt_s1_edev_pb2.EDevPriorityListReport, packet.payload)
+                pass # self.update_from_bytes(jt_s1_edev_pb2.EDevPriorityListReport, packet.payload)
             case 0x60, 0xF0, 0x61: # 97
                 self.update_from_bytes(jt_s1_edev_pb2.EDevGetAck, packet.payload)
             case 0x60, 0xF0, 0x62: # 98
@@ -411,7 +416,7 @@ class Device(DeviceBase, ProtobufProps):
 
             # 96,241,x
             case 0x60, 0xF1, 0x01:
-                self.update_from_bytes(jt_s1_edev_pb2.EDevBindListReport, packet.payload)
+                pass # self.update_from_bytes(jt_s1_edev_pb2.EDevBindListReport, packet.payload)
             case 0x60, 0xF1, 0x03: # 3
                 self.update_from_bytes(jt_s1_edev_convert_pb2.EDevParamReport, packet.payload)
             case 0x60, 0xF1, 0x04: # 4
@@ -432,8 +437,8 @@ class Device(DeviceBase, ProtobufProps):
                 self.update_from_bytes(jt_s1_edev_convert_pb2.BatchBindAck, packet.payload)
 
             # 3,50,x
-            case 0x03,0x32,0x62:
-                pass   # TODO (Andy) - EcoPacket not sure
+            case 0x03,0x32,0x62: # 98
+                pass # EcoPacket ??
 
             case _:
                 self._logger.info("Unprocessed packet: src=%d,cmdSet=%d,cmdId=%d: Packet=%s", packet.src, packet.cmdSet, packet.cmdId, packet)
