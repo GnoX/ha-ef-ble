@@ -419,6 +419,12 @@
       "battery_output_power": {
         "name": "Battery Output Power"
       },
+      "battery_power": {
+        "name": "Battery Power"
+      },
+      "inverter_temperature": {
+        "name": "Inverter Temperature"
+      },
       "cell_temperature": {
         "name": "Cell Temperature"
       },
@@ -543,6 +549,9 @@
       },
       "grid_frequency": {
         "name": "Grid Frequency"
+      },
+      "grid_current": {
+        "name": "Grid Current"
       },
       "ambient_temperature": {
         "name": "Ambient Temperature"
