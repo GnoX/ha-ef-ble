@@ -73,7 +73,7 @@ class DeviceBase(abc.ABC):
             sn,
         )
 
-        self._conn = None
+        self._conn: Connection = None
         self._connection_event = asyncio.Event()
         self._callbacks = set()
         self._callbacks_map = {}
@@ -142,7 +142,7 @@ class DeviceBase(abc.ABC):
     def add_timer_task(
         self,
         coro: Callable[[], Coroutine],
-        interval: int = 30,
+        interval: float = 30,
         event_loop: asyncio.AbstractEventLoop | None = None,
     ):
         def _register_timer_task(state: ConnectionState):
@@ -197,19 +197,6 @@ class DeviceBase(abc.ABC):
         self._connection_log = ConnectionLog(self.address.replace(":", "_"))
         return self._connection_log
 
-    def _create_connection(
-        self, ble_dev, dev_sn, user_id, data_parse, packet_parse, packet_version
-    ):
-        return Connection(
-            ble_dev=ble_dev,
-            dev_sn=dev_sn,
-            user_id=user_id,
-            data_parse=data_parse,
-            packet_parse=packet_parse,
-            packet_version=packet_version,
-            encrypt_type=self.scan_record.encrypt_type,
-        )
-
     async def connect(
         self,
         user_id: str | None = None,
@@ -218,7 +205,7 @@ class DeviceBase(abc.ABC):
     ):
         if self._conn is None:
             self._conn = (
-                self._create_connection(
+                Connection(
                     ble_dev=self._ble_dev,
                     dev_sn=self._sn,
                     user_id=user_id,
