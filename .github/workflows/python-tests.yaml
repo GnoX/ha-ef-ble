@@ -1,4 +1,4 @@
-name: "Python Tests"
+name: Python Tests eflib
 on:
   push:
     branches: [main]
@@ -6,19 +6,19 @@ on:
 
 jobs:
   tests:
-    runs-on: "ubuntu-latest"
+    runs-on: ubuntu-latest
     name: Run python tests
     steps:
       - name: Check out code from GitHub
-        uses: "actions/checkout@v4"
+        uses: actions/checkout@v4
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          cache-dependency-glob: "pyproject.toml"
+          cache-dependency-glob: pyproject.toml
       - name: Setup Python 3.x
-        uses: "actions/setup-python@v5"
+        uses: actions/setup-python@v5
         with:
           python-version: 3.x
       - name: Tests
-        run: uv run pytest tests
+        run: uv run pytest tests/eflib
