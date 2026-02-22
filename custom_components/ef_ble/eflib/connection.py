@@ -649,6 +649,13 @@ class Connection:
                 self._listeners.on_packet_received(payload)
                 packet = await self._packet_parse(payload)
                 self._listeners.on_packet_parsed(packet)
+
+                self._logger.log_filtered(
+                    LogOptions.DECRYPTED_PAYLOADS,
+                    "decrypted payload: '%s'",
+                    payload.hex(),
+                )
+
                 self._logger.log_filtered(
                     LogOptions.PACKETS,
                     "Parsed packet: %s",
@@ -710,17 +717,27 @@ class Connection:
             self._write_characteristic, bytearray(send_data)
         )
 
-    async def sendPacket(self, packet: Packet, response_handler=None):
+    async def sendPacket(
+        self, packet: Packet, response_handler=None, wait_for_response: bool = True
+    ):
         self._logger.log_filtered(
             LogOptions.CONNECTION_DEBUG, "Sending packet: %r", packet
         )
         to_send = await self._frame_assembler.encode(packet)
 
+        if not wait_for_response:
+            await self._client.write_gatt_char(
+                self._write_characteristic,
+                bytearray(to_send),
+                response=False,
+            )
+            return
+
         if self._frame_assembler.write_with_response:
             await self.sendRequest(to_send, response_handler)
         elif self._client is not None and self._client.is_connected:
             await self._client.write_gatt_char(
-                Connection.WRITE_CHARACTERISTIC,
+                self._write_characteristic,
                 bytearray(to_send),
                 response=False,
             )
@@ -757,7 +774,7 @@ class Connection:
         self._encryption = Type1Encryption(session_key, iv)
 
         await self._client.start_notify(
-            Connection.NOTIFY_CHARACTERISTIC, self.listenForDataHandler
+            self._notify_characteristic, self.listenForDataHandler
         )
 
         await self.send_auth_status_packet()
