@@ -11,17 +11,78 @@ from ..pb import (
     jt_s1_edev_convert_pb2,
     jt_s1_ev_pb2,
     jt_s1_heatpump_pb2,
-    jt_s1_heatingrod_pb2, jt_parallel_lan_pb2, re307_sys_pb2,
+    jt_s1_heatingrod_pb2,
+    jt_parallel_lan_pb2,
+    re307_sys_pb2,
 )
 from ..props import (
     ProtobufProps,
     pb_field,
-    proto_attr_mapper,
+    proto_attr_mapper, repeated_pb_field_type,
 )
 
 pb_heartbeat = proto_attr_mapper(jt_s1_sys_pb2.HeartbeatReport)
 pb_moduleinfo = proto_attr_mapper(iot_comm_pb2.ModuleInfo)
-pb_energyStreamReport = proto_attr_mapper(jt_s1_sys_pb2.EnergyStreamReport)
+pb_energy_stream_report = proto_attr_mapper(jt_s1_sys_pb2.EnergyStreamReport)
+pb_error_change_report = proto_attr_mapper(jt_s1_sys_pb2.ErrorChangeReport)
+pb_bp_heart = proto_attr_mapper(jt_s1_sys_pb2.BpHeartbeatReport)
+pb_ems_change_report = proto_attr_mapper(jt_s1_sys_pb2.EmsChangeReport)
+
+
+class _BpHeartbeatIntValue(repeated_pb_field_type(pb_bp_heart.bp_heart_beat, lambda msg: msg, per_item=True)):
+    idx: int
+    type: str
+    def get_value(self, item: jt_s1_sys_pb2.BpStaReport) -> int | None:
+        if item.bp_dsrc == self.idx:
+            return getattr(item, self.type, None)
+        else:
+            return None
+
+class _BpHeartbeatFloatValue(repeated_pb_field_type(pb_bp_heart.bp_heart_beat, lambda msg: msg, per_item=True)):
+    idx: int
+    type: str
+    def get_value(self, item: jt_s1_sys_pb2.BpStaReport) -> float | None:
+        if item.bp_dsrc == self.idx:
+            return getattr(item, self.type, None)
+        else:
+            return None
+
+
+class _MpptPv(repeated_pb_field_type(pb_heartbeat.mppt_heart_beat, lambda msg: msg, per_item=True)):
+    idx: int
+    type: str
+    def get_value(self, item: jt_s1_sys_pb2.MpptStaReport) -> float | None:
+        if not item.mppt_pv:
+            return None
+
+        if self.idx==1:
+            itemPv = item.mppt_pv[0]
+        elif self.idx==2:
+            if len(item.mppt_pv)>1:
+                itemPv = item.mppt_pv[1]
+            else:
+                return None
+
+        return getattr(itemPv, self.type, None) if itemPv else None
+
+
+# class _ErrorChangeReport(repeated_pb_field_type(pb_error_change_report, lambda msg: msg, per_item=True)):
+#     type: str
+#     def get_value(self, item: jt_s1_sys_pb2.MpptStaReport) -> float | None:
+#         if not item.mppt_pv:
+#             return None
+#
+#         if self.idx==1:
+#             itemPv = item.mppt_pv[0]
+#         elif self.idx==2:
+#             if len(item.mppt_pv)>1:
+#                 itemPv = item.mppt_pv[1]
+#             else:
+#                 return None
+#
+#         return getattr(itemPv, self.type, None) if itemPv else None
+
+
 
 class Device(DeviceBase, ProtobufProps):
     """Power Ocean"""
@@ -29,14 +90,105 @@ class Device(DeviceBase, ProtobufProps):
     SN_PREFIX = (b"J32",)
     NAME_PREFIX = "EF-J32"
 
-    grid_power = pb_field(pb_heartbeat.ems_bp_power)
+    bpack1_bp_amp = _BpHeartbeatFloatValue(1, 'bp_amp')
+    bpack1_bp_err_code = _BpHeartbeatIntValue(1, 'bp_err_code')
+    bpack1_bp_env_temp = _BpHeartbeatFloatValue(1, 'bp_env_temp')
+    bpack1_bp_max_cell_temp = _BpHeartbeatFloatValue(1, 'bp_max_cell_temp')
+    bpack1_bp_min_cell_temp = _BpHeartbeatFloatValue(1, 'bp_min_cell_temp')
+    bpack1_bp_pwr = _BpHeartbeatFloatValue(1, 'bp_pwr')
+    bpack1_bp_remain_watth = _BpHeartbeatFloatValue(1, 'bp_remain_watth')
+    bpack1_bp_soc = _BpHeartbeatIntValue(1, 'bp_soc')
+    bpack1_bp_soh = _BpHeartbeatIntValue(1, 'bp_soh')
+    bpack1_bp_vol = _BpHeartbeatFloatValue(1, 'bp_vol')
 
-    sysLoadPwr = pb_field(pb_energyStreamReport.sys_load_pwr)
-    mpptPwr = pb_field(pb_energyStreamReport.mppt_pwr)
-    bpPwr = pb_field(pb_energyStreamReport.bp_pwr)
-    bpSoc = pb_field(pb_energyStreamReport.bp_soc)
-    mpptPv1_pwr = pb_field(pb_energyStreamReport.pv1_pwr)
-    mpptPv2_pwr = pb_field(pb_energyStreamReport.pv2_pwr)
+    bpack2_bp_amp = _BpHeartbeatFloatValue(2, 'bp_amp')
+    bpack2_bp_err_code = _BpHeartbeatIntValue(2, 'bp_err_code')
+    bpack2_bp_env_temp = _BpHeartbeatFloatValue(2, 'bp_env_temp')
+    bpack2_bp_max_cell_temp = _BpHeartbeatFloatValue(2, 'bp_max_cell_temp')
+    bpack2_bp_min_cell_temp = _BpHeartbeatFloatValue(2, 'bp_min_cell_temp')
+    bpack2_bp_pwr = _BpHeartbeatFloatValue(2, 'bp_pwr')
+    bpack2_bp_remain_watth = _BpHeartbeatFloatValue(2, 'bp_remain_watth')
+    bpack2_bp_soc = _BpHeartbeatIntValue(2, 'bp_soc')
+    bpack2_bp_soh = _BpHeartbeatIntValue(2, 'bp_soh')
+    bpack2_bp_vol = _BpHeartbeatFloatValue(2, 'bp_vol')
+
+    bpack3_bp_amp = _BpHeartbeatFloatValue(3, 'bp_amp')
+    bpack3_bp_err_code = _BpHeartbeatIntValue(3, 'bp_err_code')
+    bpack3_bp_env_temp = _BpHeartbeatFloatValue(3, 'bp_env_temp')
+    bpack3_bp_max_cell_temp = _BpHeartbeatFloatValue(3, 'bp_max_cell_temp')
+    bpack3_bp_min_cell_temp = _BpHeartbeatFloatValue(3, 'bp_min_cell_temp')
+    bpack3_bp_pwr = _BpHeartbeatFloatValue(3, 'bp_pwr')
+    bpack3_bp_remain_watth = _BpHeartbeatFloatValue(3, 'bp_remain_watth')
+    bpack3_bp_soc = _BpHeartbeatIntValue(3, 'bp_soc')
+    bpack3_bp_soh = _BpHeartbeatIntValue(3, 'bp_soh')
+    bpack3_bp_vol = _BpHeartbeatFloatValue(3, 'bp_vol')
+
+    bp_soc = pb_field(pb_ems_change_report.bp_soc)
+    #bp_pwr = pb_field(pb_ems_change_report.bp_pwr)
+    bp_total_chg_energy = pb_field(pb_ems_change_report.bp_total_chg_energy)
+    bp_total_dsg_energy = pb_field(pb_ems_change_report.bp_total_dsg_energy)
+    bp_online_count = pb_field(pb_ems_change_report.bp_online_sum)
+    mppt_pv1_fault_code = pb_field(pb_ems_change_report.mppt1_fault_code)
+    mppt_pv1_warning_code = pb_field(pb_ems_change_report.mppt1_warning_code)
+    mppt_pv2_fault_code = pb_field(pb_ems_change_report.mppt2_fault_code)
+    mppt_pv2_warning_code = pb_field(pb_ems_change_report.mppt1_warning_code)
+    ems_work_mode_value = pb_field(pb_ems_change_report.ems_word_mode)
+
+    bp_remain_watth = pb_field(pb_heartbeat.bp_remain_watth)
+    pcs_meter_power = pb_field(pb_heartbeat.pcs_meter_power)
+
+    ems_bp_power = pb_field(pb_heartbeat.ems_bp_power)
+    pcs_act_pwr = pb_field(pb_heartbeat.pcs_act_pwr)
+    pcs_a_phase_vol = pb_field(pb_heartbeat.pcs_a_phase.vol)
+    pcs_a_phase_amp = pb_field(pb_heartbeat.pcs_a_phase.amp)
+    pcs_a_phase_act_pwr = pb_field(pb_heartbeat.pcs_a_phase.act_pwr)
+    pcs_a_phase_react_pwr = pb_field(pb_heartbeat.pcs_a_phase.react_pwr)
+    pcs_a_phase_apparent_pwr = pb_field(pb_heartbeat.pcs_a_phase.apparent_pwr)
+
+    pcs_b_phase_vol = pb_field(pb_heartbeat.pcs_b_phase.vol)
+    pcs_b_phase_amp = pb_field(pb_heartbeat.pcs_b_phase.amp)
+    pcs_b_phase_act_pwr = pb_field(pb_heartbeat.pcs_b_phase.act_pwr)
+    pcs_b_phase_react_pwr = pb_field(pb_heartbeat.pcs_b_phase.react_pwr)
+    pcs_b_phase_apparent_pwr = pb_field(pb_heartbeat.pcs_b_phase.apparent_pwr)
+
+    pcs_c_phase_vol = pb_field(pb_heartbeat.pcs_c_phase.vol)
+    pcs_c_phase_amp = pb_field(pb_heartbeat.pcs_c_phase.amp)
+    pcs_c_phase_act_pwr = pb_field(pb_heartbeat.pcs_c_phase.act_pwr)
+    pcs_c_phase_react_pwr = pb_field(pb_heartbeat.pcs_c_phase.react_pwr)
+    pcs_c_phase_apparent_pwr = pb_field(pb_heartbeat.pcs_c_phase.apparent_pwr)
+
+    mppt_pv1_vol = _MpptPv(1,'vol')
+    mppt_pv1_amp = _MpptPv(1,'amp')
+    mppt_pv1_pwr = _MpptPv(1,'pwr')
+
+    mppt_pv2_vol = _MpptPv(2, 'vol')
+    mppt_pv2_amp = _MpptPv(2, 'amp')
+    mppt_pv2_pwr = _MpptPv(2, 'pwr')
+
+    # Test fields trying to see if offgrid is indicated
+    power_limit_mode = pb_field(pb_heartbeat.power_limit_mode)
+    ems_work_mode = pb_field(pb_heartbeat.ems_work_mode)
+    pcs_offgrid_para_type = pb_field(pb_heartbeat.pcs_offgrid_para_type)
+    pcs_offgrid_para_addr = pb_field(pb_heartbeat.pcs_offgrid_para_addr)
+
+    ecr_ems_sn = pb_field(pb_error_change_report.ems_err_code.module_sn)
+    #inverter_error_code = pb_field(pb_error_change_report.ems_err_code.err_code)
+
+    pcs_sn = pb_field(pb_error_change_report.pcs_err_code.module_sn)
+    #pcs_error_code = pb_field(pb_error_change_report.pcs_err_code.err_code)
+
+    # TODO (andy) batteries error codes
+
+    sys_load_pwr = pb_field(pb_energy_stream_report.sys_load_pwr)
+    sys_grid_pwr = pb_field(pb_energy_stream_report.sys_grid_pwr)
+    mppt_pwr = pb_field(pb_energy_stream_report.mppt_pwr)
+    bp_pwr = pb_field(pb_energy_stream_report.bp_pwr)
+
+    pv1_pwr = pb_field(pb_energy_stream_report.pv1_pwr)
+    pv2_pwr = pb_field(pb_energy_stream_report.pv2_pwr)
+    # pv3_pwr = pb_field(pb_energy_stream_report.pv3_pwr) NOTE: don't think this is supported yet on hardware
+
+    pv_inv_pwr = pb_field(pb_energy_stream_report.pv_inv_pwr)
 
     @classmethod
     def check(cls, sn: bytes):
@@ -45,8 +197,8 @@ class Device(DeviceBase, ProtobufProps):
     async def packet_parse(self, data: bytes):
         return Packet.fromBytes(data, xor_payload=True)
 
-    async def isPowerOceanPlus(self):
-        return False
+    # def isPowerOceanPlus(self):
+    #     return False
 
     async def data_parse(self, packet: Packet):
         # TODO temporary solution since PO doesn't return authenticated response and just starts sending data
@@ -77,10 +229,10 @@ class Device(DeviceBase, ProtobufProps):
             case 0x60, 0x60, 0x07: # 7
                 self.update_from_bytes(jt_s1_sys_pb2.BpHeartbeatReport, packet.payload)
             case 0x60, 0x60, 0x08: # 8
-                if not self.isPowerOceanPlus():
-                    self.update_from_bytes(jt_s1_sys_pb2.EmsChangeReport, packet.payload)
-                else:
-                    self.update_from_bytes(re307_sys_pb2.EmsChangeReport, packet.payload)
+                # if not self.isPowerOceanPlus():
+                self.update_from_bytes(jt_s1_sys_pb2.EmsChangeReport, packet.payload)
+                # else:
+                #     self.update_from_bytes(re307_sys_pb2.EmsChangeReport, packet.payload)
             case 0x60, 0x60, 0x0a: # 10
                 self.update_from_bytes(jt_s1_sys_pb2.EmsAllTimerTaskReport, packet.payload)
             case 0x60, 0x60, 0x0b: # 11
@@ -96,10 +248,10 @@ class Device(DeviceBase, ProtobufProps):
                 self.update_from_bytes(jt_s1_sys_pb2.EmsAllTouTaskReport, packet.payload)
 
             case 0x60, 0x60, 0x11: # 17
-                if not self.isPowerOceanPlus():
-                    self.update_from_bytes(jt_s1_sys_pb2.EmsChangeReport, packet.payload)
-                else:
-                    self.update_from_bytes(re307_sys_pb2.EmsChangeReport, packet.payload) # andy - has some code see 8 too
+                # if not self.isPowerOceanPlus():
+                self.update_from_bytes(jt_s1_sys_pb2.EmsChangeReport, packet.payload)
+                # else:
+                #     self.update_from_bytes(re307_sys_pb2.EmsChangeReport, packet.payload) # andy - has some code see 8 too
             case 0x60, 0x60, 0x18: # 24
                 self.update_from_bytes(jt_s1_sys_pb2.OilEngineBindAck, packet.payload)
             case 0x60, 0x60, 0x19: # 25
@@ -283,7 +435,8 @@ class Device(DeviceBase, ProtobufProps):
             case 0x03,0x32,0x62:
                 pass   # TODO (Andy) - EcoPacket not sure
 
-
+            case _:
+                self._logger.info("Unprocessed packet: src=%d,cmdSet=%d,cmdId=%d: Packet=%s", packet.src, packet.cmdSet, packet.cmdId, packet)
 
         for field_name in self.updated_fields:
             self.update_callback(field_name)
