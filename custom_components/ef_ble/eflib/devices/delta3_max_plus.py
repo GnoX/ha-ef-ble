@@ -8,6 +8,10 @@ from ._delta3_base import flow_is_on, out_power
 pb = delta3_plus.pb
 
 
+def _out_power(x) -> float:
+    return -round(x, 2) if x != 0 else 0
+
+
 class _ACPortPower(repeated_pb_field_type(pb.pow_get_ac_out_list.pow_get_ac_out_item)):
     index: int
 
