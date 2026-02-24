@@ -537,6 +537,9 @@ class Connection:
                 self._logger.warning("Client disconnected after encountering 5 errors")
                 await self._client.disconnect()
 
+    def _reset_error_counter(self):
+        self._errors = 0
+
     @property
     def _state(self) -> ConnectionState:
         return self._connection_state
@@ -934,6 +937,8 @@ class Connection:
         except Exception as e:  # noqa: BLE001
             await self.add_error(e)
             return
+
+        self._reset_error_counter()
 
         for packet in packets:
             processed = False
