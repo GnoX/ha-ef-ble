@@ -71,7 +71,7 @@ class EncPacketAssembler(FrameAssembler):
             payload_len = struct.unpack("<H", header[4:6])[0]
 
             # reject obviously corrupt length values instead of buffering
-            if payload_len > self.mtu:
+            if payload_len > 10_000:
                 data = data[2:]
                 continue
 
