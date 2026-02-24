@@ -1,6 +1,4 @@
-import time
-
-from google.protobuf.message import Message
+from google.protobuf.message import DecodeError, Message
 
 from ..devicebase import DeviceBase
 from ..packet import Packet
@@ -87,13 +85,22 @@ class Device(DeviceBase, ProtobufProps):
             case (0x35, 0x14, 0x01):
                 self.update_from_bytes(wn511_sys_pb2.inverter_heartbeat, packet.payload)
             case (0x35, 0x14, 0x04):
-                self.update_from_bytes(
-                    wn511_sys_pb2.inv_heartbeat_type2, packet.payload
-                )
-                now = time.monotonic()
-                if now - self._heartbeat2_last_reply_time >= self._REPLY_INTERVAL:
-                    self._heartbeat2_last_reply_time = now
-                    await self._conn.replyPacket(packet)
+                try:
+                    self.update_from_bytes(
+                        wn511_sys_pb2.inv_heartbeat_type2, packet.payload
+                    )
+                    # now = time.monotonic()
+                    # if now - self._heartbeat2_last_reply_time >= self._REPLY_INTERVAL:
+                    #     self._heartbeat2_last_reply_time = now
+                    #     with contextlib.suppress(Exception):
+                    #         await self._conn.replyPacket(packet)
+                except DecodeError as e:
+                    self._logger.warning(
+                        "Could not decode heartbeat message, error: %s, payload: %s",
+                        e,
+                        packet.payload.hex(),
+                    )
+                    return False
 
             case (0x35, 0x14, 0x88):
                 inv_power = self.update_from_bytes(

@@ -10,6 +10,7 @@ from collections import deque
 from collections.abc import Awaitable, Callable, Collection, Coroutine, MutableSequence
 from enum import StrEnum, auto
 from functools import cached_property
+from itertools import batched
 
 import ecdsa
 from bleak import BleakClient
@@ -106,6 +107,15 @@ class ConnectionState(StrEnum):
             ERROR_TOO_MANY_ERRORS,
             ERROR_UNKNOWN,
         ],
+    )
+    received_session_key = _state_in(
+        [
+            SESSION_KEY_RECEIVED,
+            REQUESTING_AUTH_STATUS,
+            AUTH_STATUS_RECEIVED,
+            AUTHENTICATING,
+            AUTHENTICATED,
+        ]
     )
 
     is_connected = _state_in(
@@ -229,6 +239,10 @@ class Connection:
     @property
     def is_connected(self) -> bool:
         return self._client is not None and self._client.is_connected
+
+    @cached_property
+    def mtu_size(self):
+        return self._client.mtu_size
 
     def _add_listener(self, collection: MutableSequence[Callable], listener: Callable):
         collection.append(listener)
@@ -363,9 +377,7 @@ class Connection:
         if self._client._backend.__class__.__name__ == "BleakClientBlueZDBus":
             await self._client._backend._acquire_mtu()
 
-        self._logger.log_filtered(
-            LogOptions.CONNECTION_DEBUG, "MTU: %d", self._client.mtu_size
-        )
+        self._logger.log_filtered(LogOptions.CONNECTION_DEBUG, "MTU: %d", self.mtu_size)
         self._logger.info("Init completed, starting auth routine...")
 
         await self.initBleSessionKey()
@@ -615,7 +627,13 @@ class Connection:
             bytearray(data).hex(),
         )
 
-        decoded_payloads = await self._frame_assembler.reassemble(data)
+        frame_assembler = (
+            self._frame_assembler
+            if self._connection_state.received_session_key
+            else self._create_frame_assembler()
+        )
+
+        decoded_payloads = await frame_assembler.reassemble(data)
 
         packets = []
         for payload in decoded_payloads:
@@ -680,24 +698,33 @@ class Connection:
             await self._client.start_notify(
                 Connection.NOTIFY_CHARACTERISTIC, response_handler
             )
-        await self._client.write_gatt_char(
-            Connection.WRITE_CHARACTERISTIC, bytearray(send_data)
-        )
+        await self._write_gatt_chunked(send_data)
 
     async def sendPacket(self, packet: Packet, response_handler=None):
         self._logger.log_filtered(
             LogOptions.CONNECTION_DEBUG, "Sending packet: %r", packet
         )
-        to_send = await self._frame_assembler.encode(packet)
 
-        if self._frame_assembler.write_with_response:
+        frame_assembler = (
+            self._frame_assembler
+            if self._connection_state.received_session_key
+            else self._create_frame_assembler()
+        )
+
+        to_send = await frame_assembler.encode(packet)
+
+        if frame_assembler.write_with_response:
             await self.sendRequest(to_send, response_handler)
         elif self._client is not None and self._client.is_connected:
+            await self._write_gatt_chunked(data=to_send)
+
+    async def _write_gatt_chunked(self, data: bytes):
+        assert self._client is not None
+        for chunk in batched(data, self.mtu_size):
             await self._client.write_gatt_char(
-                Connection.WRITE_CHARACTERISTIC,
-                bytearray(to_send),
-                response=False,
+                Connection.WRITE_CHARACTERISTIC, bytearray(chunk)
             )
+            await asyncio.sleep(0.05)
 
     async def replyPacket(self, packet: Packet):
         """Copy and change the packet to be reply packet and sends it back to device"""
@@ -840,7 +867,7 @@ class Connection:
 
         packet = Packet(0x21, 0x35, 0x35, 0x89, b"", 0x01, 0x01, self._packet_version)
 
-        await self.sendPacket(packet, self.getAuthStatusHandler)
+        await self.sendPacket(packet=packet, response_handler=self.getAuthStatusHandler)
 
     async def getAuthStatusHandler(
         self, characteristic: BleakGATTCharacteristic, recv_data: bytearray
@@ -934,9 +961,8 @@ class Connection:
                     LogOptions.CONNECTION_DEBUG, "listenForDataHandler: %r", packet
                 )
 
-    @cached_property
-    def _frame_assembler(self):
-        mtu = self._client.mtu_size if self._client is not None else 517
+    def _create_frame_assembler(self):
+        mtu = self.mtu_size if self._client is not None else 517
         match self._encrypt_type:
             case 1:
                 return RawHeaderAssembler(self._encryption, mtu=mtu)
@@ -944,6 +970,10 @@ class Connection:
                 return EncPacketAssembler(self._encryption, mtu=mtu)
             case _:
                 raise ValueError(f"Unsupported encryption type: {self._encrypt_type}")
+
+    @cached_property
+    def _frame_assembler(self):
+        return self._create_frame_assembler()
 
     def _cancel_tasks(self):
         for task in self._tasks:
