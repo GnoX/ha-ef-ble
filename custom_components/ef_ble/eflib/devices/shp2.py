@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from ..commands import TimeCommands
+from ..connection import ConnectionState
 from ..devicebase import AdvertisementData, BLEDevice, DeviceBase
 from ..packet import Packet
 from ..pb import pd303_pb2
@@ -84,10 +85,8 @@ def _errors(error_codes: pd303_pb2.ErrCode):
 
 
 def _is_circuit_on(v):
-    return CircuitState.from_value(v) is CircuitState.ON if v is not None else False
+    return CircuitState.from_value(v) == CircuitState.ON if v is not None else False
 
-
-_is_circuit_on_missing = TransformIfMissing(_is_circuit_on)
 
 _hall1_incre_info = pb_push_set.load_incre_info.hall1_incre_info
 
@@ -130,18 +129,18 @@ class Device(DeviceBase, ProtobufProps):
     circuit_current_12 = CircuitCurrentField(11)
 
     # Circuit state properties (on/off control)
-    circuit_1 = pb_field(_hall1_incre_info.ch1_sta.load_sta, _is_circuit_on_missing)
-    circuit_2 = pb_field(_hall1_incre_info.ch2_sta.load_sta, _is_circuit_on_missing)
-    circuit_3 = pb_field(_hall1_incre_info.ch3_sta.load_sta, _is_circuit_on_missing)
-    circuit_4 = pb_field(_hall1_incre_info.ch4_sta.load_sta, _is_circuit_on_missing)
-    circuit_5 = pb_field(_hall1_incre_info.ch5_sta.load_sta, _is_circuit_on_missing)
-    circuit_6 = pb_field(_hall1_incre_info.ch6_sta.load_sta, _is_circuit_on_missing)
-    circuit_7 = pb_field(_hall1_incre_info.ch7_sta.load_sta, _is_circuit_on_missing)
-    circuit_8 = pb_field(_hall1_incre_info.ch8_sta.load_sta, _is_circuit_on_missing)
-    circuit_9 = pb_field(_hall1_incre_info.ch9_sta.load_sta, _is_circuit_on_missing)
-    circuit_10 = pb_field(_hall1_incre_info.ch10_sta.load_sta, _is_circuit_on_missing)
-    circuit_11 = pb_field(_hall1_incre_info.ch11_sta.load_sta, _is_circuit_on_missing)
-    circuit_12 = pb_field(_hall1_incre_info.ch12_sta.load_sta, _is_circuit_on_missing)
+    circuit_1 = pb_field(_hall1_incre_info.ch1_sta.load_sta, _is_circuit_on)
+    circuit_2 = pb_field(_hall1_incre_info.ch2_sta.load_sta, _is_circuit_on)
+    circuit_3 = pb_field(_hall1_incre_info.ch3_sta.load_sta, _is_circuit_on)
+    circuit_4 = pb_field(_hall1_incre_info.ch4_sta.load_sta, _is_circuit_on)
+    circuit_5 = pb_field(_hall1_incre_info.ch5_sta.load_sta, _is_circuit_on)
+    circuit_6 = pb_field(_hall1_incre_info.ch6_sta.load_sta, _is_circuit_on)
+    circuit_7 = pb_field(_hall1_incre_info.ch7_sta.load_sta, _is_circuit_on)
+    circuit_8 = pb_field(_hall1_incre_info.ch8_sta.load_sta, _is_circuit_on)
+    circuit_9 = pb_field(_hall1_incre_info.ch9_sta.load_sta, _is_circuit_on)
+    circuit_10 = pb_field(_hall1_incre_info.ch10_sta.load_sta, _is_circuit_on)
+    circuit_11 = pb_field(_hall1_incre_info.ch11_sta.load_sta, _is_circuit_on)
+    circuit_12 = pb_field(_hall1_incre_info.ch12_sta.load_sta, _is_circuit_on)
 
     channel_power_1 = ChannelPowerField(0)
     channel_power_2 = ChannelPowerField(1)
@@ -408,6 +407,7 @@ class Device(DeviceBase, ProtobufProps):
         super().__init__(ble_dev, adv_data, sn)
 
         self._time_commands = TimeCommands(self)
+        self.on_connection_state_change(self._on_connection_state_change)
 
     async def data_parse(self, packet: Packet) -> bool:
         """Processing the incoming notifications from the device"""
@@ -495,6 +495,17 @@ class Device(DeviceBase, ProtobufProps):
                 )
 
         return processed
+
+    def _on_connection_state_change(self, state: ConnectionState):
+        if state == ConnectionState.AUTHENTICATED:
+
+            async def _update_controls():
+                for field in self._fields:
+                    value = getattr(self, field.public_name)
+                    if value is not None:
+                        self.update_state(field.public_name, value)
+
+            self._conn.call_later(_update_controls(), delay=10)
 
     async def set_config_flag(self, enable):
         """Send command to enable/disable sending config data from device to the host"""

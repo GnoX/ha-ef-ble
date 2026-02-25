@@ -994,6 +994,13 @@ class Connection:
         task.add_done_callback(self._tasks.discard)
         return task
 
+    def call_later(self, coro: Coroutine, delay: float):
+        async def _scheduled_task():
+            await asyncio.sleep(delay)
+            await coro
+
+        return self._add_task(_scheduled_task())
+
     def add_timer_task(
         self,
         coro: Callable[[], Coroutine],
