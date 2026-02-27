@@ -537,6 +537,9 @@ class Connection:
                 self._logger.warning("Client disconnected after encountering 5 errors")
                 await self._client.disconnect()
 
+    def _reset_error_counter(self):
+        self._errors = 0
+
     @property
     def _state(self) -> ConnectionState:
         return self._connection_state
@@ -936,6 +939,8 @@ class Connection:
             await self.add_error(e)
             return
 
+        self._reset_error_counter()
+
         for packet in packets:
             processed = False
 
@@ -989,6 +994,13 @@ class Connection:
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
         return task
+
+    def call_later(self, coro: Coroutine, delay: float):
+        async def _scheduled_task():
+            await asyncio.sleep(delay)
+            await coro
+
+        return self._add_task(_scheduled_task())
 
     def add_timer_task(
         self,
