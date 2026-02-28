@@ -38,7 +38,7 @@ class Device(Delta2Base):
         self.max_ac_charging_power = 1200
 
     def _after_message_parsed(self):
-        if self.battery_addon:
+        if self.battery_1_enabled or self.battery_2_enabled:
             self.max_ac_charging_power = 1500
         else:
             self.max_ac_charging_power = 1200
