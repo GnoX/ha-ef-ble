@@ -629,6 +629,9 @@
       "power_mppt": {
         "name": "MPPT Power"
       },
+      "llc_temperature": {
+        "name": "LLC Temperature"
+      },
       "water_level": {
         "name": "Water Level"
       },
