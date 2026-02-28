@@ -106,6 +106,10 @@ SWITCH_TYPES = [
         key="emergency_reverse_charging",
         name="Emergency Reverse Charging",
     ),
+    SwitchEntityDescription(
+        key="battery_2_enabled",
+        name="Battery 2 Enabled",
+    ),
 ]
 
 
