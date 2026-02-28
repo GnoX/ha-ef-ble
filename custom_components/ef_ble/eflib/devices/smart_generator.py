@@ -97,6 +97,7 @@ class Device(DeviceBase, ProtobufProps):
     )
     liquefied_gas_value = pb_field(pb.fuels_liquefied_gas_val)
     liquefied_gas_consumption = pb_field(pb.fuels_liquefied_gas_consume_per_hour)
+    liquefied_gas_remaining = pb_field(pb.fuels_liquefied_gas_remain_val)
     lpg_level_monitoring = pb_field(pb.generator_lpg_monitor_en)
 
     generator_abnormal_state = pb_field(
