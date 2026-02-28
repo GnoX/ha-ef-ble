@@ -78,8 +78,6 @@ class EcoflowEntity(Entity):
 
 
 class EcoflowBatteryAddonEntity(EcoflowEntity):
-    """Base entity linked to a battery addon subdevice."""
-
     def __init__(
         self,
         device: DeviceBase,
