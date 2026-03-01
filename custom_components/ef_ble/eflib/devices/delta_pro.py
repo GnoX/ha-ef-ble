@@ -246,14 +246,14 @@ class Device(DeviceBase, RawDataProps):
 
     async def enable_ac_ports(self, enabled: bool):
         payload = bytes([1 if enabled else 0, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
-        await self._send_config_packet(0x05, 0x42, payload)
+        await self._send_config_packet(0x04, 0x42, payload)
 
     async def enable_xboost(self, enabled: bool):
         payload = bytes([0xFF, 1 if enabled else 0, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
-        await self._send_config_packet(0x05, 0x42, payload)
+        await self._send_config_packet(0x04, 0x42, payload)
 
     async def enable_dc_12v_port(self, enabled: bool):
-        await self._send_config_packet(0x05, 0x51, enabled.to_bytes())
+        await self._send_config_packet(0x07, 0x51, enabled.to_bytes())
 
     async def enable_usb_ports(self, enabled: bool):
         await self._send_config_packet(0x02, 0x22, enabled.to_bytes())
@@ -268,8 +268,10 @@ class Device(DeviceBase, RawDataProps):
         if self.max_ac_charging_power is None:
             return False
         value = max(1, min(value, self.max_ac_charging_power))
-        payload = value.to_bytes(2, "little") + bytes([0xFF])
-        await self._send_config_packet(0x05, 0x45, payload)
+        payload = bytes([0xFF, 0xFF]) + value.to_bytes(2, "little") + bytes([0xFF])
+        await self._conn.sendPacket(
+            Packet(0x20, 0x04, 0x20, 0x45, payload, version=0x02)
+        )
         return True
 
     async def enable_energy_backup(self, enabled: bool):
@@ -284,8 +286,7 @@ class Device(DeviceBase, RawDataProps):
         await self._send_config_packet(0x02, 0x5C, bytes([1 if enabled else 0]))
 
     async def set_buzzer(self, enabled: bool):
-        #  0 = on, 1 = off
-        await self._send_config_packet(0x05, 0x26, bytes([0 if enabled else 1]))
+        await self._send_config_packet(0x02, 0x26, bytes([0 if enabled else 1]))
 
     async def set_screen_timeout(self, seconds: int):
         payload = bytes([seconds & 0xFF, (seconds >> 8) & 0xFF, 0xFF])
@@ -295,7 +296,7 @@ class Device(DeviceBase, RawDataProps):
         await self._send_config_packet(0x02, 0x27, bytes([0xFF, 0xFF, value]))
 
     async def set_ac_standby_time(self, minutes: int):
-        await self._send_config_packet(0x05, 0x99, minutes.to_bytes(2, "little"))
+        await self._send_config_packet(0x04, 0x99, minutes.to_bytes(2, "little"))
 
     async def set_dc_standby_time(self, minutes: int):
         await self._send_config_packet(0x05, 0x54, minutes.to_bytes(2, "little"))
