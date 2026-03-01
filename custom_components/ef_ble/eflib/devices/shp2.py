@@ -142,6 +142,32 @@ class Device(DeviceBase, ProtobufProps):
     circuit_11 = pb_field(_hall1_incre_info.ch11_sta.load_sta, _is_circuit_on)
     circuit_12 = pb_field(_hall1_incre_info.ch12_sta.load_sta, _is_circuit_on)
 
+    circuit_1_is_split = pb_field(_hall1_incre_info.ch1_info.splitphase.link_mark)
+    circuit_2_is_split = pb_field(_hall1_incre_info.ch2_info.splitphase.link_mark)
+    circuit_3_is_split = pb_field(_hall1_incre_info.ch3_info.splitphase.link_mark)
+    circuit_4_is_split = pb_field(_hall1_incre_info.ch4_info.splitphase.link_mark)
+    circuit_5_is_split = pb_field(_hall1_incre_info.ch5_info.splitphase.link_mark)
+    circuit_6_is_split = pb_field(_hall1_incre_info.ch6_info.splitphase.link_mark)
+    circuit_7_is_split = pb_field(_hall1_incre_info.ch7_info.splitphase.link_mark)
+    circuit_8_is_split = pb_field(_hall1_incre_info.ch8_info.splitphase.link_mark)
+    circuit_9_is_split = pb_field(_hall1_incre_info.ch9_info.splitphase.link_mark)
+    circuit_10_is_split = pb_field(_hall1_incre_info.ch10_info.splitphase.link_mark)
+    circuit_11_is_split = pb_field(_hall1_incre_info.ch11_info.splitphase.link_mark)
+    circuit_12_is_split = pb_field(_hall1_incre_info.ch12_info.splitphase.link_mark)
+
+    circuit_1_split_link = pb_field(_hall1_incre_info.ch1_info.splitphase.link_ch)
+    circuit_2_split_link = pb_field(_hall1_incre_info.ch2_info.splitphase.link_ch)
+    circuit_3_split_link = pb_field(_hall1_incre_info.ch3_info.splitphase.link_ch)
+    circuit_4_split_link = pb_field(_hall1_incre_info.ch4_info.splitphase.link_ch)
+    circuit_5_split_link = pb_field(_hall1_incre_info.ch5_info.splitphase.link_ch)
+    circuit_6_split_link = pb_field(_hall1_incre_info.ch6_info.splitphase.link_ch)
+    circuit_7_split_link = pb_field(_hall1_incre_info.ch7_info.splitphase.link_ch)
+    circuit_8_split_link = pb_field(_hall1_incre_info.ch8_info.splitphase.link_ch)
+    circuit_9_split_link = pb_field(_hall1_incre_info.ch9_info.splitphase.link_ch)
+    circuit_10_split_link = pb_field(_hall1_incre_info.ch10_info.splitphase.link_ch)
+    circuit_11_split_link = pb_field(_hall1_incre_info.ch11_info.splitphase.link_ch)
+    circuit_12_split_link = pb_field(_hall1_incre_info.ch12_info.splitphase.link_ch)
+
     channel_power_1 = ChannelPowerField(0)
     channel_power_2 = ChannelPowerField(1)
     channel_power_3 = ChannelPowerField(2)
@@ -523,16 +549,56 @@ class Device(DeviceBase, ProtobufProps):
         self._logger.debug(
             "%s: setCircuitPower for %d: %s", self._address, circuit_id, enable
         )
+        is_split = getattr(self, f"circuit_{circuit_id}_is_split", None)
+        split_link = getattr(self, f"circuit_{circuit_id}_split_link", None)
+        if is_split is None or split_link is None:
+            self._logger.warning(
+                "%s: Cannot set circuit power for circuit %d because split circuit info is not available",
+                self._address,
+                circuit_id,
+            )
+            return
+        if is_split and (split_link < 1 or split_link > self.NUM_OF_CIRCUITS):
+            self._logger.warning(
+                "%s: Cannot set circuit power for circuit %d because split link circuit id %d is invalid",
+                self._address,
+                circuit_id,
+                split_link,
+            )
+            return
 
         ppas = pd303_pb2.ProtoPushAndSet()
         sta = getattr(
-            ppas.load_incre_info.hall1_incre_info, "ch" + str(circuit_id + 1) + "_sta"
+            ppas.load_incre_info.hall1_incre_info, "ch" + str(circuit_id) + "_sta"
         )
         sta.load_sta = (
             pd303_pb2.LOAD_CH_POWER_ON if enable else pd303_pb2.LOAD_CH_POWER_OFF
         )
         sta.ctrl_mode = pd303_pb2.RLY_HAND_CTRL_MODE
+
+        # If it's a split circuit, also set the linked circuit to the same state because they will be turned on/off together
+        if is_split:
+            sta2 = getattr(
+                ppas.load_incre_info.hall1_incre_info, "ch" + str(split_link) + "_sta"
+            )
+            sta2.load_sta = (
+                pd303_pb2.LOAD_CH_POWER_ON if enable else pd303_pb2.LOAD_CH_POWER_OFF
+            )
+            sta2.ctrl_mode = pd303_pb2.RLY_HAND_CTRL_MODE
+
         payload = ppas.SerializeToString()
         packet = Packet(0x21, 0x0B, 0x0C, 0x21, payload, 0x01, 0x01, 0x13)
 
         await self._conn.sendPacket(packet)
+
+    def is_circuit_switch_available(self, circuit_id: int):
+        """Circuit switch is available if the device is connected, the state is available, and the circuit is not a split circuit
+           or it's the main circuit of a split circuit (circuit with higher circuit id is the sub circuit)"""
+        return self.is_connected and getattr(self, f"circuit_{circuit_id}", None) is not None \
+            and getattr(self, f"circuit_{circuit_id}_is_split", None) is not None \
+            and getattr(self, f"circuit_{circuit_id}_split_link", None) is not None \
+            and (getattr(self, f"circuit_{circuit_id}_is_split") is False or getattr(self, f"circuit_{circuit_id}_split_link") > circuit_id)
+
+    def get_circuit_switch_additional_properties(self, circuit_id: int):
+        """Get the list of additional device properties to listen for state updates for the circuit switch (e.g. split circuit info)"""
+        return [f"circuit_{circuit_id}_is_split", f"circuit_{circuit_id}_split_link"]

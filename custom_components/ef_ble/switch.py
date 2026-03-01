@@ -20,6 +20,7 @@ from .entity import EcoflowEntity
 @dataclass(frozen=True, kw_only=True)
 class EcoflowSwitchEntityDescription[Device: DeviceBase](SwitchEntityDescription):
     enable: Callable[[Device, bool], Awaitable[None]] | None = None
+    available: Callable[[Device], bool] | None = None
 
 
 SWITCH_TYPES = [
@@ -124,8 +125,9 @@ SWITCH_TYPES = [
             device_class=SwitchDeviceClass.OUTLET,
             icon="mdi:power-socket-us",
             enable=lambda device, enabled, i=i: device.set_circuit_power(
-                i - 1, enabled
+                i, enabled
             ),
+            available=lambda device, i=i: device.is_circuit_switch_available(i),
         )
         for i in range(1, shp2.Device.NUM_OF_CIRCUITS + 1)
     ],
@@ -162,7 +164,7 @@ class EcoflowSwitchEntity(EcoflowEntity, SwitchEntity):
         self._attr_unique_id = f"{device.name}_{entity_description.key}"
         self._prop_name = entity_description.key
         self.entity_description = entity_description
-        self._on_off_state = False
+        self._on_off_state = None
 
         if (
             isinstance(entity_description, EcoflowSwitchEntityDescription)
@@ -192,7 +194,11 @@ class EcoflowSwitchEntity(EcoflowEntity, SwitchEntity):
 
     @property
     def available(self):
-        return self._device.is_connected and self._on_off_state is not None
+        return self._device.is_connected and self._on_off_state is not None and (
+            not isinstance(self.entity_description, EcoflowSwitchEntityDescription) or
+            not getattr(self.entity_description, "available", None) is not None or
+            self.entity_description.available(self._device)
+        )
 
     @property
     def is_on(self):
