@@ -1,3 +1,5 @@
+import logging
+
 from ..connection import ConnectionState
 from ..devicebase import DeviceBase
 from ..packet import Packet
@@ -15,11 +17,15 @@ from ..pb import (
     jt_parallel_lan_pb2,
     re307_sys_pb2,
 )
+from ..pb.jt_s1_sys_pb2 import bms_SysState
 from ..props import (
     ProtobufProps,
     pb_field,
     proto_attr_mapper, repeated_pb_field_type,
 )
+from ..props.enums import IntFieldValue
+
+_LOGGER = logging.getLogger(__name__)
 
 pb_heartbeat = proto_attr_mapper(jt_s1_sys_pb2.HeartbeatReport)
 pb_moduleinfo = proto_attr_mapper(iot_comm_pb2.ModuleInfo)
@@ -27,6 +33,114 @@ pb_energy_stream_report = proto_attr_mapper(jt_s1_sys_pb2.EnergyStreamReport)
 pb_error_change_report = proto_attr_mapper(jt_s1_sys_pb2.ErrorChangeReport)
 pb_bp_heart = proto_attr_mapper(jt_s1_sys_pb2.BpHeartbeatReport)
 pb_ems_change_report = proto_attr_mapper(jt_s1_sys_pb2.EmsChangeReport)
+pb_sys_param_get_ack = proto_attr_mapper(jt_s1_sys_pb2.SysParamGetAck)
+
+
+
+class WorkMode(IntFieldValue):
+    WORKMODE_SELFUSE = 0
+    WORKMODE_TOU = 1
+    WORKMODE_BACKUP = 2
+    WORKMODE_DBG = 3
+    WORKMODE_AC_MAKEUP = 4
+    WORKMODE_DRM_MODE = 5
+    WORKMODE_REMOTE_SCHED = 6
+    WORKMODE_STANDBY_MODE = 7
+    WORKMODE_SOC_CALIB = 8
+    WORKMODE_TIMER_MODE = 9
+    WORKMODE_FCR_MODE = 10
+    WORKMODE_THIRD_MODE = 11
+    WORKMODE_AI_SCHEDULE = 12
+    WORKMODE_KRAKEN = 13
+    UNKNOWN = -1
+
+    @classmethod
+    def from_mode(cls, mode: jt_s1_sys_pb2.WorkMode):
+        try:
+            return cls(mode)
+        except ValueError:
+            _LOGGER.debug("Encountered invalid value %s for %s", mode, cls.__name__)
+            return WorkMode.UNKNOWN
+
+    def __str__(self):
+        return self.state_name.upper()
+
+    def as_pb_enum(self):
+        return {
+            WorkMode.WORKMODE_SELFUSE: jt_s1_sys_pb2.WORKMODE_SELFUSE,
+            WorkMode.WORKMODE_TOU: jt_s1_sys_pb2.WORKMODE_TOU,
+            WorkMode.WORKMODE_BACKUP: jt_s1_sys_pb2.WORKMODE_BACKUP,
+            WorkMode.WORKMODE_DBG: jt_s1_sys_pb2.WORKMODE_DBG,
+            WorkMode.WORKMODE_AC_MAKEUP: jt_s1_sys_pb2.WORKMODE_AC_MAKEUP,
+            WorkMode.WORKMODE_DRM_MODE: jt_s1_sys_pb2.WORKMODE_DRM_MODE,
+            WorkMode.WORKMODE_REMOTE_SCHED: jt_s1_sys_pb2.WORKMODE_REMOTE_SCHED,
+            WorkMode.WORKMODE_STANDBY_MODE: jt_s1_sys_pb2.WORKMODE_STANDBY_MODE,
+            WorkMode.WORKMODE_SOC_CALIB: jt_s1_sys_pb2.WORKMODE_SOC_CALIB,
+            WorkMode.WORKMODE_TIMER_MODE: jt_s1_sys_pb2.WORKMODE_TIMER_MODE,
+            WorkMode.WORKMODE_FCR_MODE: jt_s1_sys_pb2.WORKMODE_FCR_MODE,
+            WorkMode.WORKMODE_THIRD_MODE: jt_s1_sys_pb2.WORKMODE_THIRD_MODE,
+            WorkMode.WORKMODE_AI_SCHEDULE: jt_s1_sys_pb2.WORKMODE_AI_SCHEDULE,
+            WorkMode.WORKMODE_KRAKEN: jt_s1_sys_pb2.WORKMODE_KRAKEN,
+        }[self]
+
+
+
+class BmsSysState(IntFieldValue):
+    PRE_POWER_ON_STATE = 0
+    CFM_POWER_ON_STATE = 1
+    NORMAL_STATE = 2
+    POWER_OFF_STATE = 3
+    SLEEP_STATE = 4
+    UNKNOWN = -1
+
+    @classmethod
+    def from_mode(cls, mode: jt_s1_sys_pb2.bms_SysState):
+        try:
+            return cls(mode)
+        except ValueError:
+            _LOGGER.debug("Encountered invalid value %s for %s", mode, cls.__name__)
+            return BmsSysState.UNKNOWN
+
+    def __str__(self):
+        return self.state_name.upper()
+
+    def as_pb_enum(self):
+        return {
+            BmsSysState.NORMAL_STATE: jt_s1_sys_pb2.NORMAL_STATE,
+            BmsSysState.CFM_POWER_ON_STATE: jt_s1_sys_pb2.CFM_POWER_ON_STATE,
+            BmsSysState.POWER_OFF_STATE: jt_s1_sys_pb2.POWER_OFF_STATE,
+            BmsSysState.PRE_POWER_ON_STATE: jt_s1_sys_pb2.PRE_POWER_ON_STATE,
+            BmsSysState.SLEEP_STATE: jt_s1_sys_pb2.SLEEP_STATE,
+        }[self]
+
+
+class BmsRunStaDef(IntFieldValue):
+    PB_BMS_STATE_SHUTDOWN = 0
+    PB_BMS_STATE_NORMAL = 1
+    PB_BMS_STATE_CHARGEABLE = 2
+    PB_BMS_STATE_DISCHARGEABLE = 3
+    PB_BMS_STATE_FAULT = 4
+    UNKNOWN = -1
+
+    @classmethod
+    def from_mode(cls, mode: jt_s1_sys_pb2.bms_SysState):
+        try:
+            return cls(mode)
+        except ValueError:
+            _LOGGER.debug("Encountered invalid value %s for %s", mode, cls.__name__)
+            return BmsRunStaDef.UNKNOWN
+
+    def __str__(self):
+        return self.state_name.upper()
+
+    def as_pb_enum(self):
+        return {
+            BmsRunStaDef.PB_BMS_STATE_SHUTDOWN: jt_s1_sys_pb2.PB_BMS_STATE_SHUTDOWN,
+            BmsRunStaDef.PB_BMS_STATE_NORMAL: jt_s1_sys_pb2.PB_BMS_STATE_NORMAL,
+            BmsRunStaDef.PB_BMS_STATE_CHARGEABLE: jt_s1_sys_pb2.PB_BMS_STATE_CHARGEABLE,
+            BmsRunStaDef.PB_BMS_STATE_DISCHARGEABLE: jt_s1_sys_pb2.PB_BMS_STATE_DISCHARGEABLE,
+            BmsRunStaDef.PB_BMS_STATE_FAULT: jt_s1_sys_pb2.PB_BMS_STATE_FAULT,
+        }[self]
 
 
 class _BpHeartbeatIntValue(repeated_pb_field_type(pb_bp_heart.bp_heart_beat, lambda msg: msg, per_item=True)):
@@ -47,6 +161,27 @@ class _BpHeartbeatFloatValue(repeated_pb_field_type(pb_bp_heart.bp_heart_beat, l
         else:
             return None
 
+class _BpHeartbeatBmsSysState(repeated_pb_field_type(pb_bp_heart.bp_heart_beat, lambda msg: msg, per_item=True)):
+    idx: int
+    def get_value(self, item: jt_s1_sys_pb2.BpStaReport) -> BmsSysState | None:
+        if item.bp_dsrc == self.idx:
+            return BmsSysState.from_mode(item.bp_sys_state)
+        else:
+            return None
+
+class _BpHeartbeatBmsRunStaDef(repeated_pb_field_type(pb_bp_heart.bp_heart_beat, lambda msg: msg, per_item=True)):
+    idx: int
+    def get_value(self, item: jt_s1_sys_pb2.BpStaReport) -> BmsRunStaDef | None:
+        if item.bp_dsrc == self.idx:
+            return BmsRunStaDef.from_mode(item.bms_run_sta)
+        else:
+            return None
+
+
+
+
+#bp_sys_state = pb_field(pb_disp.user_temp_unit, BmsSysState.from_mode)
+
 
 class _MpptPv(repeated_pb_field_type(pb_heartbeat.mppt_heart_beat, lambda msg: msg, per_item=True)):
     idx: int
@@ -55,15 +190,50 @@ class _MpptPv(repeated_pb_field_type(pb_heartbeat.mppt_heart_beat, lambda msg: m
         if not item.mppt_pv:
             return None
 
-        if self.idx==1:
-            itemPv = item.mppt_pv[0]
-        elif self.idx==2:
-            if len(item.mppt_pv)>1:
-                itemPv = item.mppt_pv[1]
-            else:
-                return None
+        resolved_idx = self.idx-1
 
-        return getattr(itemPv, self.type, None) if itemPv else None
+        if (self.idx> len(item.mppt_pv)):
+            item_pv = None
+        else:
+            item_pv = item.mppt_pv[resolved_idx]
+
+        # if self.idx==1:
+        #     item_pv = item.mppt_pv[0]
+        # elif self.idx==2:
+        #     if len(item.mppt_pv)>1:
+        #         item_pv = item.mppt_pv[1]
+        #     else:
+        #         return None
+
+        return getattr(item_pv, self.type, None) if item_pv else None
+
+
+# pb_error_change_report.pcs_err_code.err_code
+# ems_err_code
+
+
+class _EmsErrorCode(repeated_pb_field_type(pb_error_change_report.ems_err_code, lambda msg: msg, per_item=True)):
+    #idx: int
+    #type: str
+    def get_value(self, item: jt_s1_sys_pb2.ErrorCode) -> int | None:
+        if not item.err_code:
+            return None
+        else:
+            return item.err_code[0]
+
+
+
+class _PcsErrorCode(repeated_pb_field_type(pb_error_change_report.pcs_err_code, lambda msg: msg, per_item=True)):
+    #idx: int
+    #type: str
+    def get_value(self, item: jt_s1_sys_pb2.ErrorCode) -> int | None:
+        if not item.err_code:
+            return None
+        else:
+            return item.err_code[0]
+
+
+
 
 
 # class _ErrorChangeReport(repeated_pb_field_type(pb_error_change_report, lambda msg: msg, per_item=True)):
@@ -82,13 +252,55 @@ class _MpptPv(repeated_pb_field_type(pb_heartbeat.mppt_heart_beat, lambda msg: m
 #
 #         return getattr(itemPv, self.type, None) if itemPv else None
 
+#      TODO:
+#       - error change report
+#       - sensor values:
+#           - add sensor values from cloud implementation   DONE
+#           - support for total accumulating values if possible and few missing
+#       - add diagnostic values
+#       - put pass on most of messages (I wouldn't remove implementation, because we have all of there, if we need to
+#          use it we can just uncomment it and use the message)
+#       - hotrod support
+#       - EV support
+#       - HeatPump support
+#       - split into plus and normal version
+#
 
+#   Description:
+#   This device is to be used for all PowerOcean models that are not plus and pro. There is quite a lot of
+#   "Standard" models available and they all should be handled by this implementation.
 
 class Device(DeviceBase, ProtobufProps):
     """Power Ocean"""
 
     SN_PREFIX = (b"J32",)
     NAME_PREFIX = "EF-J32"
+
+
+    ecr_ems_sn = pb_field(pb_error_change_report.ems_err_code.module_sn)
+    #ecr_ems_error_code = _EmsErrorCode()
+
+    pcs_sn = pb_field(pb_error_change_report.pcs_err_code.module_sn)
+    #pcs_error_code = _PcsErrorCode()
+
+    sys_load_pwr = pb_field(pb_energy_stream_report.sys_load_pwr)
+    sys_grid_pwr = pb_field(pb_energy_stream_report.sys_grid_pwr)
+    mppt_pwr = pb_field(pb_energy_stream_report.mppt_pwr)
+    bp_pwr = pb_field(pb_energy_stream_report.bp_pwr)
+    ems_work_mode_value = pb_field(pb_ems_change_report.ems_word_mode, WorkMode.from_mode)
+
+    pv1_pwr = pb_field(pb_energy_stream_report.pv1_pwr)
+    pv2_pwr = pb_field(pb_energy_stream_report.pv2_pwr)
+    pv3_pwr = pb_field(pb_energy_stream_report.pv3_pwr) # on Plus
+    pv_inv_pwr = pb_field(pb_energy_stream_report.pv_inv_pwr)
+
+    bp_remain_watth = pb_field(pb_heartbeat.bp_remain_watth)
+    pcs_meter_power = pb_field(pb_heartbeat.pcs_meter_power)
+    ems_bp_power = pb_field(pb_heartbeat.ems_bp_power)
+    pcs_act_pwr = pb_field(pb_heartbeat.pcs_act_pwr)
+
+
+
 
     bpack1_bp_amp = _BpHeartbeatFloatValue(1, 'bp_amp')
     bpack1_bp_err_code = _BpHeartbeatIntValue(1, 'bp_err_code')
@@ -100,6 +312,11 @@ class Device(DeviceBase, ProtobufProps):
     bpack1_bp_soc = _BpHeartbeatIntValue(1, 'bp_soc')
     bpack1_bp_soh = _BpHeartbeatIntValue(1, 'bp_soh')
     bpack1_bp_vol = _BpHeartbeatFloatValue(1, 'bp_vol')
+    bpack1_bp_cycles = _BpHeartbeatIntValue(1, 'bp_cycles') # Diag
+    bpack1_bp_sys_state = _BpHeartbeatBmsSysState(1) # Diag
+    bpack1_bms_run_sta = _BpHeartbeatBmsRunStaDef(1) # Diag
+
+    # temp_unit = pb_field(pb_disp.user_temp_unit, TemperatureUnit.from_mode)
 
     bpack2_bp_amp = _BpHeartbeatFloatValue(2, 'bp_amp')
     bpack2_bp_err_code = _BpHeartbeatIntValue(2, 'bp_err_code')
@@ -111,6 +328,9 @@ class Device(DeviceBase, ProtobufProps):
     bpack2_bp_soc = _BpHeartbeatIntValue(2, 'bp_soc')
     bpack2_bp_soh = _BpHeartbeatIntValue(2, 'bp_soh')
     bpack2_bp_vol = _BpHeartbeatFloatValue(2, 'bp_vol')
+    bpack2_bp_cycles = _BpHeartbeatIntValue(2, 'bp_cycles') # Diag
+    bpack2_bp_sys_state = _BpHeartbeatBmsSysState(2) # Diag
+    bpack2_bms_run_sta = _BpHeartbeatBmsRunStaDef(2) # Diag
 
     bpack3_bp_amp = _BpHeartbeatFloatValue(3, 'bp_amp')
     bpack3_bp_err_code = _BpHeartbeatIntValue(3, 'bp_err_code')
@@ -122,6 +342,9 @@ class Device(DeviceBase, ProtobufProps):
     bpack3_bp_soc = _BpHeartbeatIntValue(3, 'bp_soc')
     bpack3_bp_soh = _BpHeartbeatIntValue(3, 'bp_soh')
     bpack3_bp_vol = _BpHeartbeatFloatValue(3, 'bp_vol')
+    bpack3_bp_cycles = _BpHeartbeatIntValue(3, 'bp_cycles')  # Diag
+    bpack3_bp_sys_state = _BpHeartbeatBmsSysState(3) # Diag
+    bpack3_bms_run_sta = _BpHeartbeatBmsRunStaDef(3) # Diag
 
     bp_soc = pb_field(pb_ems_change_report.bp_soc)
     #bp_pwr = pb_field(pb_ems_change_report.bp_pwr)
@@ -132,13 +355,10 @@ class Device(DeviceBase, ProtobufProps):
     mppt_pv1_warning_code = pb_field(pb_ems_change_report.mppt1_warning_code)
     mppt_pv2_fault_code = pb_field(pb_ems_change_report.mppt2_fault_code)
     mppt_pv2_warning_code = pb_field(pb_ems_change_report.mppt1_warning_code)
-    ems_work_mode_value = pb_field(pb_ems_change_report.ems_word_mode)
+    ems_work_mode_value = pb_field(pb_ems_change_report.ems_word_mode, WorkMode.from_mode) # TODO enum WORKMODE_SELFUSE
 
-    bp_remain_watth = pb_field(pb_heartbeat.bp_remain_watth)
-    pcs_meter_power = pb_field(pb_heartbeat.pcs_meter_power)
+    # temp_unit = pb_field(pb_disp.user_temp_unit, TemperatureUnit.from_mode)
 
-    ems_bp_power = pb_field(pb_heartbeat.ems_bp_power)
-    pcs_act_pwr = pb_field(pb_heartbeat.pcs_act_pwr)
     pcs_a_phase_vol = pb_field(pb_heartbeat.pcs_a_phase.vol)
     pcs_a_phase_amp = pb_field(pb_heartbeat.pcs_a_phase.amp)
     pcs_a_phase_act_pwr = pb_field(pb_heartbeat.pcs_a_phase.act_pwr)
@@ -165,34 +385,69 @@ class Device(DeviceBase, ProtobufProps):
     mppt_pv2_amp = _MpptPv(2, 'amp')
     mppt_pv2_pwr = _MpptPv(2, 'pwr')
 
+    mppt_pv3_vol = _MpptPv(3, 'vol')
+    mppt_pv3_amp = _MpptPv(3, 'amp')
+    mppt_pv3_pwr = _MpptPv(3, 'pwr')
+
+
+
+    # mpptPv_pwrTotal     0.00015777285     W
+
+    # todayElectricityGeneration     4.09     kWh
+    # totalElectricityGeneration     14.48     kWh
+    # monthElectricityGeneration     14.48     kWh
+    # yearElectricityGeneration      14.48     kWh
+
+    # Diagnostics TODO
+
+    bp_online_sum = pb_field(pb_ems_change_report.bp_online_sum)
+
+
+
+    # TODO test code for island mode - remove before production
+    spga_sys_grid_disconnect_mode = pb_field(pb_sys_param_get_ack.sys_grid_disconnect_mode)
+    spga_ems_backup_event = pb_field(pb_sys_param_get_ack.ems_backup_event)
+    spga_ems_max_feed_pwr = pb_field(pb_sys_param_get_ack.ems_max_feed_pwr)
+    spga_ems_work_mode = pb_field(pb_sys_param_get_ack.ems_work_mode)
     # Test fields trying to see if offgrid is indicated
     power_limit_mode = pb_field(pb_heartbeat.power_limit_mode)
-    ems_work_mode = pb_field(pb_heartbeat.ems_work_mode)
+    #ems_work_mode = pb_field(pb_heartbeat.ems_work_mode)   # WORKMODE_SELFUSE
     pcs_offgrid_para_type = pb_field(pb_heartbeat.pcs_offgrid_para_type)
     pcs_offgrid_para_addr = pb_field(pb_heartbeat.pcs_offgrid_para_addr)
-
-    ecr_ems_sn = pb_field(pb_error_change_report.ems_err_code.module_sn)
-    #inverter_error_code = pb_field(pb_error_change_report.ems_err_code.err_code)
-
-    pcs_sn = pb_field(pb_error_change_report.pcs_err_code.module_sn)
-    #pcs_error_code = pb_field(pb_error_change_report.pcs_err_code.err_code)
-
-    # TODO (andy) batteries error codes
-
-    sys_load_pwr = pb_field(pb_energy_stream_report.sys_load_pwr)
-    sys_grid_pwr = pb_field(pb_energy_stream_report.sys_grid_pwr)
-    mppt_pwr = pb_field(pb_energy_stream_report.mppt_pwr)
-    bp_pwr = pb_field(pb_energy_stream_report.bp_pwr)
-
-    pv1_pwr = pb_field(pb_energy_stream_report.pv1_pwr)
-    pv2_pwr = pb_field(pb_energy_stream_report.pv2_pwr)
-    # pv3_pwr = pb_field(pb_energy_stream_report.pv3_pwr) NOTE: don't think this is supported yet on hardware
-
-    pv_inv_pwr = pb_field(pb_energy_stream_report.pv_inv_pwr)
 
     @classmethod
     def check(cls, sn: bytes):
         return sn[:3] in cls.SN_PREFIX
+
+    @property
+    def device(self):
+        model = " (Unidentified)"
+        match self._sn[:4]:
+            case "HJ31":
+                model = ""
+            case "HJ35":
+                model = "6kW"
+            case "HJ36":
+                model = "8kW"
+            case "HJ37":
+                model = "12kW"
+            case "J321":
+                model = "Single Phase"
+            case "J32A":
+                model = "Single Phase 3kW"
+            case "J32B":
+                model = "Single Phase 3.68kW"
+            case "J32C":
+                model = "Single Phase 4.6kW"
+            case "J32D":
+                model = "Single Phase 5kW"
+            case "J32E":
+                model = "Single Phase 6kW"
+            case "HC31":
+                model = "DC Fit"  # this might work or not
+
+        return f"Power Ocean {model}".strip()
+
 
     async def packet_parse(self, data: bytes):
         return Packet.fromBytes(data, xor_payload=True)
@@ -441,7 +696,7 @@ class Device(DeviceBase, ProtobufProps):
                 pass # EcoPacket ??
 
             case _:
-                self._logger.info("Unprocessed packet: src=%d,cmdSet=%d,cmdId=%d: Packet=%s", packet.src, packet.cmdSet, packet.cmdId, packet)
+                self._logger.info("PowerOcean: Unprocessed packet: src=%d,cmdSet=%d,cmdId=%d: Packet=%s", packet.src, packet.cmdSet, packet.cmdId, packet)
 
         for field_name in self.updated_fields:
             self.update_callback(field_name)
