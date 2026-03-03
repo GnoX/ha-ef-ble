@@ -632,7 +632,7 @@ class Connection:
         self._logger.log_filtered(
             LogOptions.ENCRYPTED_PAYLOADS,
             "parseSimple: Data: %r",
-            bytearray(data).hex(),
+            data,
         )
 
         try:
@@ -650,7 +650,7 @@ class Connection:
         self._logger.log_filtered(
             LogOptions.ENCRYPTED_PAYLOADS,
             "parseEncPackets: Data: %r",
-            bytearray(data).hex(),
+            data,
         )
 
         frame_assembler = (
@@ -671,7 +671,7 @@ class Connection:
                 self._logger.log_filtered(
                     LogOptions.DECRYPTED_PAYLOADS,
                     "decrypted payload: '%s'",
-                    payload.hex(),
+                    payload,
                 )
 
                 self._logger.log_filtered(
@@ -687,10 +687,9 @@ class Connection:
         return packets
 
     async def sendRequest(self, send_data: bytes, response_handler=None):
-        self._logger.log_filtered(
-            LogOptions.CONNECTION_DEBUG, "Sending: %r", bytearray(send_data).hex()
-        )
+        self._logger.log_filtered(LogOptions.CONNECTION_DEBUG, "Sending: %r", send_data)
         self._listeners.on_data_send(send_data)
+
         # In case exception happens we need to try again
         err = None
         for retry in range(4):
@@ -723,7 +722,7 @@ class Connection:
             self._logger.log_filtered(
                 LogOptions.CONNECTION_DEBUG,
                 "Skip sending: disconnected: %r",
-                bytearray(send_data).hex(),
+                send_data,
             )
             return
 
@@ -925,7 +924,7 @@ class Connection:
         self._logger.log_filtered(
             LogOptions.CONNECTION_DEBUG,
             "getAuthStatusHandler: data: %r",
-            bytearray(data).hex(),
+            data,
         )
         await self.autoAuthentication()
 
