@@ -27,11 +27,11 @@ from .const import (
     DOMAIN,
 )
 from .eflib.connection import (
-    AuthFailedError,
     BleakError,
     ConnectionTimeout,
     MaxConnectionAttemptsReached,
 )
+from .eflib.exceptions import AuthErrors
 from .eflib.logging_util import ConnectionLog
 
 PLATFORMS: list[Platform] = [
@@ -59,9 +59,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
     merged_options = entry.data | entry.options
     update_period = merged_options.get(CONF_UPDATE_PERIOD, DEFAULT_UPDATE_PERIOD)
     timeout = merged_options.get(CONF_CONNECTION_TIMEOUT, DEFAULT_CONNECTION_TIMEOUT)
-    packet_version = PacketVersion.from_str(
-        entry.data.get(CONF_PACKET_VERSION, PacketVersion.V3)
-    )
+    raw_pv = entry.data.get(CONF_PACKET_VERSION)
+    packet_version = PacketVersion.from_str(raw_pv).to_num() if raw_pv else None
 
     if address is None or user_id is None:
         return False
@@ -91,7 +90,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
             device.with_update_period(update_period)
             .with_logging_options(ConfLogOptions.from_config(merged_options))
             .with_disabled_reconnect()
-            .with_packet_version(packet_version.to_num())
+            .with_packet_version(packet_version)
             .with_enabled_packet_diagnostics(packet_collection_enabled)
             .connect(
                 user_id=user_id,
@@ -105,7 +104,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
             translation_key="could_not_connect",
             translation_placeholders={"time": str(timeout)},
         ) from e
-    except AuthFailedError as e:
+    except AuthErrors.BaseException as e:
         raise ConfigEntryNotReady(translation_key="authentication_failed") from e
     except MaxConnectionAttemptsReached as e:
         await device.disconnect()
