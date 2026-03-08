@@ -316,6 +316,33 @@ first charging task</sup>
 </details>
 
 <details>
+<summary><b>PowerStream</b></summary>
+
+<br>
+
+| *Sensors*            | *Sliders*        | *Selects*             |
+|----------------------|------------------|-----------------------|
+| Battery Level        | Load Power       | Power Supply Priority |
+| Battery Power        | Charge Limit     |                       |
+| Battery Temperature  | Discharge Limit  |                       |
+| PV (1) Power         |                  |                       |
+| PV (1) Voltage       |                  |                       |
+| PV (1) Current       |                  |                       |
+| PV (1) Temperature   |                  |                       |
+| PV (2) Power         |                  |                       |
+| PV (2) Voltage       |                  |                       |
+| PV (2) Current       |                  |                       |
+| PV (2) Temperature   |                  |                       |
+| Inverter Power       |                  |                       |
+| Inverter Voltage     |                  |                       |
+| Inverter Current     |                  |                       |
+| Inverter Frequency   |                  |                       |
+| Inverter Temperature |                  |                       |
+| LLC Temperature      |                  |                       |
+
+</details>
+
+<details>
 <summary><b>Wave 3</b></summary>
 
 <br>
@@ -330,6 +357,8 @@ first charging task</sup>
 | Cell Temperature (disabled)      |                 |            |
 | Fan Level                        |                 |            |
 | Drainage Mode                    |                 |            |
+| In Drainage                      |                 |            |
+| Display Temperature Type         |                 |            |
 | Input Power                      |                 |            |
 | Output Power                     |                 |            |
 | Indoor Supply Air Temperature    |                 |            |
