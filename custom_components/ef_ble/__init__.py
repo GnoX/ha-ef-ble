@@ -18,6 +18,7 @@ from homeassistant.helpers import entity_registry as er
 from . import eflib
 from .config_flow import CONF_COLLECT_PACKETS, ConfLogOptions, LogOptions, PacketVersion
 from .const import (
+    CONF_COLLECT_PACKETS_AMOUNT,
     CONF_CONNECTION_TIMEOUT,
     CONF_PACKET_VERSION,
     CONF_UPDATE_PERIOD,
@@ -27,11 +28,11 @@ from .const import (
     DOMAIN,
 )
 from .eflib.connection import (
-    AuthFailedError,
     BleakError,
     ConnectionTimeout,
     MaxConnectionAttemptsReached,
 )
+from .eflib.exceptions import AuthErrors
 from .eflib.logging_util import ConnectionLog
 
 PLATFORMS: list[Platform] = [
@@ -105,7 +106,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
             translation_key="could_not_connect",
             translation_placeholders={"time": str(timeout)},
         ) from e
-    except AuthFailedError as e:
+    except AuthErrors.BaseException as e:
         raise ConfigEntryNotReady(translation_key="authentication_failed") from e
     except MaxConnectionAttemptsReached as e:
         await device.disconnect()
@@ -211,9 +212,13 @@ async def _update_listener(hass: HomeAssistant, entry: DeviceConfigEntry):
     packet_collection = merged_options.get(
         CONF_COLLECT_PACKETS, eflib.is_unsupported(device)
     )
+    diagnostics_buffer_size = merged_options.get(CONF_COLLECT_PACKETS_AMOUNT, 100)
 
     (
         device.with_update_period(period=update_period)
         .with_logging_options(ConfLogOptions.from_config(merged_options))
-        .with_enabled_packet_diagnostics(packet_collection)
+        .with_enabled_packet_diagnostics(
+            enabled=packet_collection,
+            buffer_size=diagnostics_buffer_size,
+        )
     )
