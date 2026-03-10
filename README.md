@@ -144,7 +144,7 @@ be manually reconfigured if battery is connected/disconnected.</sup>
 </details>
 
 <details>
-<summary><b>Delta 3</b> <i>(Classic, Plus, Max, Max Plus, Ultra, Air)</i></summary>
+<summary><b>Delta 3</b> <i>(Classic, Plus, Max, Max Plus, Ultra, Ultra Plus, Air)</i></summary>
 
 <br>
 
@@ -154,9 +154,8 @@ be manually reconfigured if battery is connected/disconnected.</sup>
 | Battery Level                   | AC Ports (2) ³                  | Max Charge Limit           |
 | AC Input Power                  | DC Ports ²                      | Min Discharge Limit        |
 | AC Output Power                 | Backup Reserve ²                | AC Charging Speed          |
-| AC (1) Power ³                  | USB Ports ¹²                    | DC Charging Max Amps       |
-| AC (2) Power ³                  | Disable Grid Bypass ²(disabled) | DC (2) Charging Max Amps ⁺ |
-| DC 12V Port Output Power ²      |                                 |                            |
+| AC (1, 2) Power ³               | USB Ports ¹²                    | DC Charging Max Amps       |
+| DC 12V Port Output Power ²      | Disable Grid Bypass ²(disabled) | DC (2) Charging Max Amps ⁺ |
 | DC Port Input Power             |                                 |                            |
 | DC Port Input State             |                                 |                            |
 | DC Port (2) Input Power ⁺       |                                 |                            |
@@ -178,7 +177,7 @@ be manually reconfigured if battery is connected/disconnected.</sup>
 <sup>⁺ Only available on Plus variant</sup><br>
 <sup>¹ Not available on Classic</sup><br>
 <sup>² Not available on Air</sup><br>
-<sup>³ Only available on Max Plus</sup>
+<sup>³ Only available on Max Plus and Ultra Plus</sup><br>
 
 > **📝 Note:** Delta 3 models do not expose energy sensors. To use with the Energy
 > dashboard, you must create them yourself. See the
