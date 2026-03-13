@@ -943,6 +943,28 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = {
         suggested_display_precision=2,
         entity_registry_enabled_default=False,
     ),
+    "dc_input_voltage": SensorEntityDescription(
+        key="dc_input_voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+    ),
+    "dc_input_current": SensorEntityDescription(
+        key="dc_input_current",
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+    ),
+    "xt60_input_power": SensorEntityDescription(
+        key="xt60_input_power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
     # Wave 2
     "outlet_temperature": SensorEntityDescription(
         key="outlet_temperature",

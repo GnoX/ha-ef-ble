@@ -55,13 +55,6 @@ class Delta2Base(DeviceBase, RawDataProps):
 
     battery_level = raw_field(pb_ems.f32_lcd_show_soc, lambda x: round(x, 2))
 
-    master_design_cap = raw_field(pb_bms.design_cap)
-    master_remain_cap = raw_field(pb_bms.remain_cap)
-    master_full_cap = raw_field(pb_bms.full_cap)
-    slave_design_cap = raw_field(pb_bms_1.design_cap)
-    slave_remain_cap = raw_field(pb_bms_1.remain_cap)
-    slave_full_cap = raw_field(pb_bms_1.full_cap)
-
     input_power = raw_field(pb_pd.watts_in_sum)
     output_power = raw_field(pb_pd.watts_out_sum)
 
@@ -82,6 +75,9 @@ class Delta2Base(DeviceBase, RawDataProps):
     remaining_time_discharging = raw_field(pb_ems.dsg_remain_time)
 
     cell_temperature = raw_field(pb_bms.max_cell_temp)
+
+    dc_input_voltage = raw_field(pb_mppt.in_vol, lambda x: round(x / 1000, 2))
+    dc_input_current = raw_field(pb_mppt.in_amp, lambda x: round(x / 1000, 2))
 
     dc_12v_port = raw_field(pb_pd.car_state, lambda x: x == 1)
     dc12v_output_voltage = raw_field(pb_mppt.car_out_vol, lambda x: round(x / 1000, 2))
