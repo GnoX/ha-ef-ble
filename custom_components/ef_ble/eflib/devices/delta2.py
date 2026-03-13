@@ -22,6 +22,8 @@ class Device(Delta2Base):
     dc_output_power = raw_field(pb_pd.dc_pv_output_watts)
     ac_charging_speed = raw_field(pb_mppt.cfg_chg_watts)
 
+    xt60_input_power = raw_field(pb_pd.dc_pv_input_watts)
+
     async def packet_parse(self, data: bytes):
         return Packet.fromBytes(data, xor_payload=True)
 

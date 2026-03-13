@@ -717,6 +717,15 @@
       },
       "pv_power_sum": {
         "name": "PV Power Total"
+      },
+      "xt60_input_power": {
+        "name": "XT60 Input Power"
+      },
+      "dc_input_voltage": {
+        "name": "DC Input Voltage"
+      },
+      "dc_input_current": {
+        "name": "DC Input Current"
       }
     },
     "select": {
