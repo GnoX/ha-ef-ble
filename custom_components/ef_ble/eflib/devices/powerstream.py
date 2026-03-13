@@ -37,9 +37,7 @@ class Device(DeviceBase, ProtobufProps):
     pv_current_2 = pb_field(pb.pv2_input_cur, _div10)
     pv_temperature_2 = pb_field(pb.pv2_temp, _div10)
 
-    battery_level = pb_field(
-        pb_inv2.new_psdr_heartbeat.f32_show_soc, lambda x: round(x, 2)
-    )
+    battery_level = pb_field(pb.bat_soc)
     battery_power = pb_field(pb.bat_input_watts, _div10)
     battery_temperature = pb_field(pb.bat_temp, _div10)
 
