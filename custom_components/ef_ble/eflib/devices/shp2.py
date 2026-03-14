@@ -77,6 +77,13 @@ def _errors(error_codes: pd303_pb2.ErrCode):
     return [e for e in error_codes.err_code if e != b"\x00\x00\x00\x00\x00\x00\x00\x00"]
 
 
+def _is_value_present(value: int | None) -> bool:
+    return value is not None
+
+
+_hall1_incre_info = pb_push_set.load_incre_info.hall1_incre_info
+
+
 class Device(DeviceBase, ProtobufProps):
     """Smart Home Panel 2"""
 
@@ -113,6 +120,70 @@ class Device(DeviceBase, ProtobufProps):
     circuit_current_10 = CircuitCurrentField(9)
     circuit_current_11 = CircuitCurrentField(10)
     circuit_current_12 = CircuitCurrentField(11)
+
+    # Circuit state properties (on/off control)
+    circuit_1 = pb_field(_hall1_incre_info.ch1_sta.load_sta)
+    circuit_2 = pb_field(_hall1_incre_info.ch2_sta.load_sta)
+    circuit_3 = pb_field(_hall1_incre_info.ch3_sta.load_sta)
+    circuit_4 = pb_field(_hall1_incre_info.ch4_sta.load_sta)
+    circuit_5 = pb_field(_hall1_incre_info.ch5_sta.load_sta)
+    circuit_6 = pb_field(_hall1_incre_info.ch6_sta.load_sta)
+    circuit_7 = pb_field(_hall1_incre_info.ch7_sta.load_sta)
+    circuit_8 = pb_field(_hall1_incre_info.ch8_sta.load_sta)
+    circuit_9 = pb_field(_hall1_incre_info.ch9_sta.load_sta)
+    circuit_10 = pb_field(_hall1_incre_info.ch10_sta.load_sta)
+    circuit_11 = pb_field(_hall1_incre_info.ch11_sta.load_sta)
+    circuit_12 = pb_field(_hall1_incre_info.ch12_sta.load_sta)
+
+    circuit_1_split_link = pb_field(_hall1_incre_info.ch1_info.splitphase.link_ch)
+    circuit_2_split_link = pb_field(_hall1_incre_info.ch2_info.splitphase.link_ch)
+    circuit_3_split_link = pb_field(_hall1_incre_info.ch3_info.splitphase.link_ch)
+    circuit_4_split_link = pb_field(_hall1_incre_info.ch4_info.splitphase.link_ch)
+    circuit_5_split_link = pb_field(_hall1_incre_info.ch5_info.splitphase.link_ch)
+    circuit_6_split_link = pb_field(_hall1_incre_info.ch6_info.splitphase.link_ch)
+    circuit_7_split_link = pb_field(_hall1_incre_info.ch7_info.splitphase.link_ch)
+    circuit_8_split_link = pb_field(_hall1_incre_info.ch8_info.splitphase.link_ch)
+    circuit_9_split_link = pb_field(_hall1_incre_info.ch9_info.splitphase.link_ch)
+    circuit_10_split_link = pb_field(_hall1_incre_info.ch10_info.splitphase.link_ch)
+    circuit_11_split_link = pb_field(_hall1_incre_info.ch11_info.splitphase.link_ch)
+    circuit_12_split_link = pb_field(_hall1_incre_info.ch12_info.splitphase.link_ch)
+
+    circuit_1_split_info_loaded = pb_field(
+        _hall1_incre_info.ch1_info.splitphase.link_ch, _is_value_present
+    )
+    circuit_2_split_info_loaded = pb_field(
+        _hall1_incre_info.ch2_info.splitphase.link_ch, _is_value_present
+    )
+    circuit_3_split_info_loaded = pb_field(
+        _hall1_incre_info.ch3_info.splitphase.link_ch, _is_value_present
+    )
+    circuit_4_split_info_loaded = pb_field(
+        _hall1_incre_info.ch4_info.splitphase.link_ch, _is_value_present
+    )
+    circuit_5_split_info_loaded = pb_field(
+        _hall1_incre_info.ch5_info.splitphase.link_ch, _is_value_present
+    )
+    circuit_6_split_info_loaded = pb_field(
+        _hall1_incre_info.ch6_info.splitphase.link_ch, _is_value_present
+    )
+    circuit_7_split_info_loaded = pb_field(
+        _hall1_incre_info.ch7_info.splitphase.link_ch, _is_value_present
+    )
+    circuit_8_split_info_loaded = pb_field(
+        _hall1_incre_info.ch8_info.splitphase.link_ch, _is_value_present
+    )
+    circuit_9_split_info_loaded = pb_field(
+        _hall1_incre_info.ch9_info.splitphase.link_ch, _is_value_present
+    )
+    circuit_10_split_info_loaded = pb_field(
+        _hall1_incre_info.ch10_info.splitphase.link_ch, _is_value_present
+    )
+    circuit_11_split_info_loaded = pb_field(
+        _hall1_incre_info.ch11_info.splitphase.link_ch, _is_value_present
+    )
+    circuit_12_split_info_loaded = pb_field(
+        _hall1_incre_info.ch12_info.splitphase.link_ch, _is_value_present
+    )
 
     channel_power_1 = ChannelPowerField(0)
     channel_power_2 = ChannelPowerField(1)
@@ -391,17 +462,13 @@ class Device(DeviceBase, ProtobufProps):
             if (
                 packet.cmdId == 0x01
             ):  # master_info, load_info, backup_info, watt_info, master_ver_info
-                self._logger.debug(
-                    "%s: %s: Parsed data: %r", self.address, self.name, packet
-                )
+                self._logger.debug("Parsed data: %r", packet)
 
                 await self._conn.replyPacket(packet)
                 self.update_from_bytes(pd303_pb2.ProtoTime, packet.payload)
                 processed = True
             elif packet.cmdId == 0x20:  # backup_incre_info
-                self._logger.debug(
-                    "%s: %s: Parsed data: %r", self.address, self.name, packet
-                )
+                self._logger.debug("Parsed data: %r", packet)
 
                 await self._conn.replyPacket(packet)
                 self.update_from_bytes(pd303_pb2.ProtoPushAndSet, packet.payload)
@@ -409,16 +476,12 @@ class Device(DeviceBase, ProtobufProps):
                 processed = True
 
             elif packet.cmdId == 0x21:  # is_get_cfg_flag
-                self._logger.debug(
-                    "%s: %s: Parsed data: %r", self.address, self.name, packet
-                )
+                self._logger.debug("Parsed data: %r", packet)
                 self.update_from_bytes(pd303_pb2.ProtoPushAndSet, packet.payload)
                 processed = True
 
         elif packet.src == 0x35 and packet.cmdSet == 0x35 and packet.cmdId == 0x20:
-            self._logger.debug(
-                "%s: %s: Ping received: %r", self.address, self.name, packet
-            )
+            self._logger.debug("Ping received: %r", packet)
             processed = True
 
         elif (
@@ -445,12 +508,7 @@ class Device(DeviceBase, ProtobufProps):
             and self.error_count > prev_error_count
         ) or (self.error_count is not None and prev_error_count is None):
             self.error_happened = True
-            self._logger.warning(
-                "%s: %s: Error happened on device: %s",
-                self.address,
-                self.name,
-                self.errors,
-            )
+            self._logger.warning("Error happened on device: %s", self.errors)
 
         for field_name in self.updated_fields:
             try:
@@ -458,41 +516,64 @@ class Device(DeviceBase, ProtobufProps):
                 self.update_state(field_name, getattr(self, field_name))
             except Exception as e:  # noqa: BLE001
                 self._logger.warning(
-                    "%s: %s: Error happened while updating field %s: %s",
-                    self.address,
-                    self.name,
-                    field_name,
-                    e,
+                    "Error happened while updating field %s: %s", field_name, e
                 )
 
         return processed
 
+    async def _send_config_packet(self, message):
+        payload = message.SerializeToString()
+        packet = Packet(0x21, 0x0B, 0x0C, 0x21, payload, 0x01, 0x01, 0x13)
+        await self._conn.sendPacket(packet)
+
     async def set_config_flag(self, enable):
         """Send command to enable/disable sending config data from device to the host"""
-        self._logger.debug("%s: setConfigFlag: %s", self._address, enable)
+        self._logger.debug("setConfigFlag: %s", enable)
 
         ppas = pd303_pb2.ProtoPushAndSet()
         ppas.is_get_cfg_flag = enable
-        payload = ppas.SerializeToString()
-        packet = Packet(0x21, 0x0B, 0x0C, 0x21, payload, 0x01, 0x01, 0x13)
 
-        await self._conn.sendPacket(packet)
+        await self._send_config_packet(ppas)
+        return True
 
-    async def set_circuit_power(self, circuit_id, enable):
+    async def set_circuit_power(self, circuit_id: int, enable: bool):
         """Send command to power on / off the specific circuit of the panel"""
-        self._logger.debug(
-            "%s: setCircuitPower for %d: %s", self._address, circuit_id, enable
-        )
+        self._logger.debug("setCircuitPower for %d: %s", circuit_id, enable)
+
+        split_link = getattr(self, f"circuit_{circuit_id}_split_link", None)
+        if split_link is None:
+            self._logger.warning(
+                "Cannot set circuit power for circuit %d because split circuit info is not available",
+                circuit_id,
+            )
+            return None
+        is_split = split_link != 0
+        if is_split and (split_link < 1 or split_link > self.NUM_OF_CIRCUITS):
+            self._logger.warning(
+                "Cannot set circuit power for circuit %d because split link circuit id %d is invalid",
+                circuit_id,
+                split_link,
+            )
+            return None
 
         ppas = pd303_pb2.ProtoPushAndSet()
         sta = getattr(
-            ppas.load_incre_info.hall1_incre_info, "ch" + str(circuit_id + 1) + "_sta"
+            ppas.load_incre_info.hall1_incre_info, "ch" + str(circuit_id) + "_sta"
         )
         sta.load_sta = (
             pd303_pb2.LOAD_CH_POWER_ON if enable else pd303_pb2.LOAD_CH_POWER_OFF
         )
         sta.ctrl_mode = pd303_pb2.RLY_HAND_CTRL_MODE
-        payload = ppas.SerializeToString()
-        packet = Packet(0x21, 0x0B, 0x0C, 0x21, payload, 0x01, 0x01, 0x13)
 
-        await self._conn.sendPacket(packet)
+        # If it's a split circuit, also set the linked circuit to the same state because they will be turned on/off together
+        if is_split:
+            sta2 = getattr(
+                ppas.load_incre_info.hall1_incre_info, "ch" + str(split_link) + "_sta"
+            )
+            sta2.load_sta = (
+                pd303_pb2.LOAD_CH_POWER_ON if enable else pd303_pb2.LOAD_CH_POWER_OFF
+            )
+            sta2.ctrl_mode = pd303_pb2.RLY_HAND_CTRL_MODE
+
+        await self._send_config_packet(ppas)
+        return True

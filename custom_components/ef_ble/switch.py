@@ -1,3 +1,6 @@
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
+from functools import partial
 from typing import Any
 
 from homeassistant.components.switch import (
@@ -10,7 +13,15 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import DeviceConfigEntry
 from .eflib import DeviceBase
+from .eflib.devices import shp2
 from .entity import EcoflowEntity
+
+
+@dataclass(frozen=True, kw_only=True)
+class EcoflowSwitchEntityDescription[T: DeviceBase](SwitchEntityDescription):
+    set_state: Callable[[T, str], Awaitable] | None = None
+    availability_prop: str | None = None
+
 
 SWITCH_TYPES = [
     SwitchEntityDescription(
@@ -106,10 +117,20 @@ SWITCH_TYPES = [
         key="emergency_reverse_charging",
         name="Emergency Reverse Charging",
     ),
-    SwitchEntityDescription(
-        key="battery_2_enabled",
-        name="Battery 2 Enabled",
-    ),
+    # SHP2 Circuit switches
+    *[
+        EcoflowSwitchEntityDescription[shp2.Device](
+            key=f"circuit_{i}",
+            name=f"Circuit {i}",
+            translation_key="circuit_is_enabled",
+            translation_placeholders={"circuit": f"{i}"},
+            device_class=SwitchDeviceClass.OUTLET,
+            icon="mdi:power-socket-us",
+            set_state=lambda device, value, i=i: device.set_circuit_power(i, value),
+            availability_prop=f"circuit_{i}_split_info_loaded",
+        )
+        for i in range(1, shp2.Device.NUM_OF_CIRCUITS + 1)
+    ],
 ]
 
 
@@ -123,8 +144,13 @@ async def async_setup_entry(
     switches = [
         EcoflowSwitchEntity(device, switch_desc)
         for switch_desc in SWITCH_TYPES
-        if hasattr(device, switch_desc.key)
-        and hasattr(device, f"enable_{switch_desc.key}")
+        if (
+            hasattr(device, switch_desc.key)
+            and (
+                isinstance(switch_desc, EcoflowSwitchEntityDescription)
+                or hasattr(device, f"enable_{switch_desc.key}")
+            )
+        )
     ]
 
     if switches:
@@ -139,31 +165,67 @@ class EcoflowSwitchEntity(EcoflowEntity, SwitchEntity):
 
         self._attr_unique_id = f"ef_{device.serial_number}_{entity_description.key}"
         self._prop_name = entity_description.key
-        self._method_name = f"enable_{self._prop_name}"
+        self._set_state = getattr(device, f"enable_{self._prop_name}", None)
         self.entity_description = entity_description
-        self._on_off_state = False
+        self._on_off_state = getattr(device, self._prop_name, None)
+        self._availability_prop = getattr(entity_description, "availability_prop", None)
 
         if entity_description.translation_key is None:
             self._attr_translation_key = self.entity_description.key
 
+        self._register_update_callback(
+            entity_attr="_attr_available",
+            prop_name=self._availability_prop,
+            get_state=lambda state: state if state is not None else self.SkipWrite,
+        )
+
+        custom_set_state = getattr(entity_description, "set_state", None)
+        if isinstance(custom_set_state, Callable):
+            self._set_state = partial(custom_set_state, device)
+
     async def async_turn_on(self, **kwargs: Any) -> None:
-        await getattr(self._device, self._method_name)(True)
+        if isinstance(self._set_state, Callable):
+            await self._set_state(True)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await getattr(self._device, self._method_name)(False)
+        if isinstance(self._set_state, Callable):
+            await self._set_state(False)
 
     async def async_added_to_hass(self) -> None:
         self._device.register_state_update_callback(self.state_updated, self._prop_name)
         await super().async_added_to_hass()
+        if self._availability_prop is not None:
+            self._device.register_state_update_callback(
+                self.availability_updated,
+                self._availability_prop,
+            )
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Entity being removed from hass."""
+        await super().async_will_remove_from_hass()
+        if self._availability_prop is not None:
+            self._device.remove_state_update_calback(
+                self.availability_updated,
+                self._availability_prop,
+            )
 
     @callback
     def state_updated(self, state: bool | None):
         self._on_off_state = state
         self.async_write_ha_state()
 
+    @callback
+    def availability_updated(self, state: bool):
+        self._attr_available = state
+        self.async_write_ha_state()
+
     @property
     def available(self):
-        return self._device.is_connected and self._on_off_state is not None
+        if not super().available or self._on_off_state is None:
+            return False
+        if self._availability_prop is not None:
+            return self._attr_available
+        return True
 
     @property
     def is_on(self):
