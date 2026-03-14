@@ -2,7 +2,7 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import Enum, EnumType
 from typing import Any, Final, TypedDict, Unpack
 
 from homeassistant.components.sensor import (
@@ -274,7 +274,7 @@ def enum(
     name: str | None = None,
     **kwargs: Unpack[_SensorKwargs],
 ) -> EcoflowSensorEntityDescription:
-    if options and type(options) is type and issubclass(options, IntFieldValue):
+    if type(options) is EnumType and issubclass(options, IntFieldValue):
         options = options.options()
 
     return EcoflowSensorEntityDescription(
