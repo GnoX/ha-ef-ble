@@ -182,7 +182,7 @@ class EcoflowSelect(EcoflowEntity, SelectEntity):
         self.entity_description = description
         self._prop_name = self.entity_description.key
         self._set_state = description.set_state
-        self._attr_current_option = None
+        self._attr_current_option = getattr(device, self._prop_name, None)
         self._availability_prop = description.availability_prop
 
         if self.entity_description.translation_key is None:

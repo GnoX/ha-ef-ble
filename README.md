@@ -43,24 +43,30 @@ Click on any device below to see available sensors, switches, and controls:
 
 <br>
 
-| *Sensors*                                  |
-|--------------------------------------------|
-| Battery Level                              |
-| Input Power                                |
-| Output Power                               |
-| Grid Power                                 |
-| Power In Use                               |
-| Circuit Power (Each Circuit)               |
-| Circuit Current (Each Circuit)             |
-| Channel Power (Each Channel)               |
-| Channel Battery Level (Each Channel)       |
-| Channel Battery Temperature (Each Channel) |
-| Channel Connected (Each Channel)           |
-| Channel Control Status (Each Channel)      |
-| Channel Enabled (Each Channel)             |
-| Channel Output Power (Each Channel)        |
-| Channel PV HV Input Power (Each Channel)   |
-| Channel PV LV Input Power (Each Channel)   |
+| *Sensors*                                  | *Switches*                    |
+|--------------------------------------------|-------------------------------|
+| Battery Level                              | Circuit On/Off (Each Circuit) |
+| Input Power                                |                               |
+| Output Power                               |                               |
+| Grid Power                                 |                               |
+| Power In Use                               |                               |
+| Circuit Power (Each Circuit)               |                               |
+| Circuit Current (Each Circuit)             |                               |
+| Channel Power (Each Channel)               |                               |
+| Channel Battery Level (Each Channel)       |                               |
+| Channel Battery Temperature (Each Channel) |                               |
+| Channel Connected (Each Channel)           |                               |
+| Channel Control Status (Each Channel)      |                               |
+| Channel Enabled (Each Channel)             |                               |
+| Channel Output Power (Each Channel)        |                               |
+| Channel PV HV Input Power (Each Channel)   |                               |
+| Channel PV LV Input Power (Each Channel)   |                               |
+
+> **📝 Note:** Using an ESPHome bluetooth proxy connection with a
+> Smart Home Panel 2 can result in slow performance and dropped
+> packets at this time. Please see the
+> [Issue #221](https://github.com/rabits/ha-ef-ble/issues/221)
+> for tracking.
 
 </details>
 <details>

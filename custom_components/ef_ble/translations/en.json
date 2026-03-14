@@ -766,6 +766,11 @@
           "external": "External"
         }
       }
+    },
+    "switch": {
+      "circuit_is_enabled": {
+        "name": "Circuit {circuit}"
+      }
     }
   }
 }
