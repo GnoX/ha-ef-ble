@@ -359,6 +359,7 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     "remaining_time_discharging": duration(enabled=False),
     # SHP2
     "grid_power": power(precision=1),
+    "power_status": enum(options=shp2.PowerStatus),
     "in_use_power": power(precision=2),
     "circuit_power_{n}": shp2_circuit(power, "circuit_power", precision=2),
     "circuit_current_{n}": shp2_circuit(
@@ -373,12 +374,6 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     ),
     "ch{n}_ctrl_status": shp2_channel(
         enum, "backup_ctrl_status", options=shp2.ControlStatus
-    ),
-    "ch{n}_force_charge": shp2_channel(
-        enum,
-        "backup_force_charge",
-        enabled=False,
-        options=shp2.ForceChargeStatus.options(include_unknown=False),
     ),
     "ch{n}_backup_rly1_cnt": shp2_channel(
         raw,
@@ -428,10 +423,7 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
         power, "channel_lcd_input_power", precision=0, enabled=False
     ),
     "channel{n}_pv_status": shp2_channel(
-        enum,
-        "channel_pv_status",
-        enabled=False,
-        options=shp2.PVStatus.options(include_unknown=False),
+        enum, "channel_pv_status", enabled=False, options=shp2.PVStatus
     ),
     "channel{n}_pv_lv_input": shp2_channel(
         power, "channel_pv_lv_input_power", precision=0

@@ -54,24 +54,29 @@ Click on any device below to see available sensors, switches, and controls:
 
 <br>
 
-| *Sensors*                                  | *Switches*                    |
-|--------------------------------------------|-------------------------------|
-| Battery Level                              | Circuit On/Off (Each Circuit) |
-| Input Power                                |                               |
-| Output Power                               |                               |
-| Grid Power                                 |                               |
-| Power In Use                               |                               |
-| Circuit Power (Each Circuit)               |                               |
-| Circuit Current (Each Circuit)             |                               |
-| Channel Power (Each Channel)               |                               |
-| Channel Battery Level (Each Channel)       |                               |
-| Channel Battery Temperature (Each Channel) |                               |
-| Channel Connected (Each Channel)           |                               |
-| Channel Control Status (Each Channel)      |                               |
-| Channel Enabled (Each Channel)             |                               |
-| Channel Output Power (Each Channel)        |                               |
-| Channel PV HV Input Power (Each Channel)   |                               |
-| Channel PV LV Input Power (Each Channel)   |                               |
+| *Sensors*                                  | *Switches*                          | *Sliders*            | *Selects*         |
+|--------------------------------------------|-------------------------------------|----------------------|-------------------|
+| Battery Level                              | Channel On/Off (Each Channel)       | AC Charge Speed      | Smart Backup Mode |
+| Input Power                                | Channel Force Charge (Each Channel) | Backup Reserve Level |                   |
+| Output Power                               | Circuit On/Off (Each Circuit)       | Max Charge Level     |                   |
+| Grid Power                                 |                                     |                      |                   |
+| Power In Use                               |                                     |                      |                   |
+| Power Status (grid, battery, oil, etc.)    |                                     |                      |                   |
+| Grid Status (grid outage)                  |                                     |                      |                   |
+| Storm Made                                 |                                     |                      |                   |
+| Circuit Power (Each Circuit)               |                                     |                      |                   |
+| Circuit Power (Each Circuit)               |                                     |                      |                   |
+| Circuit Current (Each Circuit)             |                                     |                      |                   |
+| Channel Power (Each Channel)               |                                     |                      |                   |
+| Channel Battery Level (Each Channel)       |                                     |                      |                   |
+| Channel Battery Temperature (Each Channel) |                                     |                      |                   |
+| Channel Connected (Each Channel)           |                                     |                      |                   |
+| Channel Control Status (Each Channel)      |                                     |                      |                   |
+| Channel Enabled (Each Channel)             |                                     |                      |                   |
+| Channel Force Charge (Each Channel)        |                                     |                      |                   |
+| Channel Output Power (Each Channel)        |                                     |                      |                   |
+| Channel PV HV Input Power (Each Channel)   |                                     |                      |                   |
+| Channel PV LV Input Power (Each Channel)   |                                     |                      |                   |
 
 > **📝 Note:** Using an ESPHome bluetooth proxy connection with a
 > Smart Home Panel 2 can result in slow performance and dropped
