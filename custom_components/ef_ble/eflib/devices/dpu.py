@@ -7,6 +7,7 @@ from ..pb import yj751_sys_pb2
 from ..props import (
     Field,
     ProtobufProps,
+    field_group,
     pb_field,
     proto_attr_mapper,
     repeated_pb_field_type,
@@ -54,25 +55,15 @@ class Device(DeviceBase, ProtobufProps):
     input_power = pb_field(pb_heartbeat.watts_in_sum)
     output_power = pb_field(pb_heartbeat.watts_out_sum)
 
-    battery_1_enabled = Field[bool]()
-    battery_1_battery_level = _BatteryLevel(1)
-    battery_1_cell_temperature = _BatteryTemperature(1)
-
-    battery_2_enabled = Field[bool]()
-    battery_2_battery_level = _BatteryLevel(2)
-    battery_2_cell_temperature = _BatteryTemperature(2)
-
-    battery_3_enabled = Field[bool]()
-    battery_3_battery_level = _BatteryLevel(3)
-    battery_3_cell_temperature = _BatteryTemperature(3)
-
-    battery_4_enabled = Field[bool]()
-    battery_4_battery_level = _BatteryLevel(4)
-    battery_4_cell_temperature = _BatteryTemperature(4)
-
-    battery_5_enabled = Field[bool]()
-    battery_5_battery_level = _BatteryLevel(5)
-    battery_5_cell_temperature = _BatteryTemperature(5)
+    battery_enabled = field_group(
+        lambda _: Field[bool](), 5, name_template="battery_{n}_enabled"
+    )
+    battery_battery_level = field_group(
+        _BatteryLevel, 5, name_template="battery_{n}_battery_level"
+    )
+    battery_cell_temperature = field_group(
+        _BatteryTemperature, 5, name_template="battery_{n}_cell_temperature"
+    )
 
     ac_l1_1_out_power = pb_field(pb_heartbeat.out_ac_l1_1_pwr)
     ac_l1_2_out_power = pb_field(pb_heartbeat.out_ac_l1_2_pwr)
