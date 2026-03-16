@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
@@ -25,6 +27,7 @@ class DcChargingType(IntFieldValue):
     SOLAR = 2
 
 
+@dataclass(unsafe_hash=True)
 class _StatField(
     repeated_pb_field_type(
         list_field=pb.display_statistics_sum.list_info,

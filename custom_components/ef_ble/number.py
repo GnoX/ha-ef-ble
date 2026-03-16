@@ -382,6 +382,7 @@ class EcoflowNumber(EcoflowEntity, NumberEntity):
             self._max_value_prop,
             lambda state: state if state is not None else self.SkipWrite,
         )
+
         self._register_update_callback(
             "_attr_native_step",
             self._step_value_prop,

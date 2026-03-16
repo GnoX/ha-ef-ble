@@ -9,7 +9,10 @@ from ..pb import pd303_pb2
 from ..props import (
     Field,
     ProtobufProps,
+    field_group,
     pb_field,
+    pb_group,
+    pb_indexed_attr,
     proto_attr_mapper,
     repeated_pb_field_type,
 )
@@ -67,7 +70,7 @@ class ChannelSetStatus(IntEnum):
     DISABLE = 2
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class CircuitPowerField(
     repeated_pb_field_type(list_field=pb_time.load_info.hall1_watt)
 ):
@@ -77,7 +80,7 @@ class CircuitPowerField(
         return value[self.idx] if value and len(value) > self.idx else None
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class CircuitCurrentField(
     repeated_pb_field_type(list_field=pb_time.load_info.hall1_curr)
 ):
@@ -87,7 +90,7 @@ class CircuitCurrentField(
         return round(value[self.idx], 4) if value and len(value) > self.idx else None
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class ChannelPowerField(repeated_pb_field_type(list_field=pb_time.watt_info.ch_watt)):
     idx: int
 
@@ -99,11 +102,14 @@ def _errors(error_codes: pd303_pb2.ErrCode):
     return [e for e in error_codes.err_code if e != b"\x00\x00\x00\x00\x00\x00\x00\x00"]
 
 
-def _is_value_present(value: int | None) -> bool:
-    return value is not None
+_hall1 = pb_push_set.load_incre_info.hall1_incre_info
+_channel_pb = pb_push_set.backup_incre_info.ch1_info
+_energy = pb_push_set.backup_incre_info.Energy1_info
 
-
-_hall1_incre_info = pb_push_set.load_incre_info.hall1_incre_info
+_circuit_sta_group = pb_group(match="ch{n}_sta")
+_circuit_info_group = pb_group(match="ch{n}_info")
+_channel_group = pb_group(match="ch{n}_info", name_prefix="ch{n}")
+_energy_group = pb_group(match="Energy{n}_info", name_prefix="channel{n}")
 
 
 class Device(DeviceBase, ProtobufProps):
@@ -120,331 +126,53 @@ class Device(DeviceBase, ProtobufProps):
     grid_status = pb_field(pb_push_set.master_incre_info.grid_sta)
     storm_mode = pb_field(pb_push_set.in_storm_mode)
 
-    circuit_power_1 = CircuitPowerField(0)
-    circuit_power_2 = CircuitPowerField(1)
-    circuit_power_3 = CircuitPowerField(2)
-    circuit_power_4 = CircuitPowerField(3)
-    circuit_power_5 = CircuitPowerField(4)
-    circuit_power_6 = CircuitPowerField(5)
-    circuit_power_7 = CircuitPowerField(6)
-    circuit_power_8 = CircuitPowerField(7)
-    circuit_power_9 = CircuitPowerField(8)
-    circuit_power_10 = CircuitPowerField(9)
-    circuit_power_11 = CircuitPowerField(10)
-    circuit_power_12 = CircuitPowerField(11)
+    circuit_power = field_group(lambda n: CircuitPowerField(n - 1), count=12)
+    circuit_current = field_group(lambda n: CircuitCurrentField(n - 1), count=12)
 
-    circuit_current_1 = CircuitCurrentField(0)
-    circuit_current_2 = CircuitCurrentField(1)
-    circuit_current_3 = CircuitCurrentField(2)
-    circuit_current_4 = CircuitCurrentField(3)
-    circuit_current_5 = CircuitCurrentField(4)
-    circuit_current_6 = CircuitCurrentField(5)
-    circuit_current_7 = CircuitCurrentField(6)
-    circuit_current_8 = CircuitCurrentField(7)
-    circuit_current_9 = CircuitCurrentField(8)
-    circuit_current_10 = CircuitCurrentField(9)
-    circuit_current_11 = CircuitCurrentField(10)
-    circuit_current_12 = CircuitCurrentField(11)
-
-    # Circuit state properties (on/off control)
-    circuit_1 = pb_field(_hall1_incre_info.ch1_sta.load_sta)
-    circuit_2 = pb_field(_hall1_incre_info.ch2_sta.load_sta)
-    circuit_3 = pb_field(_hall1_incre_info.ch3_sta.load_sta)
-    circuit_4 = pb_field(_hall1_incre_info.ch4_sta.load_sta)
-    circuit_5 = pb_field(_hall1_incre_info.ch5_sta.load_sta)
-    circuit_6 = pb_field(_hall1_incre_info.ch6_sta.load_sta)
-    circuit_7 = pb_field(_hall1_incre_info.ch7_sta.load_sta)
-    circuit_8 = pb_field(_hall1_incre_info.ch8_sta.load_sta)
-    circuit_9 = pb_field(_hall1_incre_info.ch9_sta.load_sta)
-    circuit_10 = pb_field(_hall1_incre_info.ch10_sta.load_sta)
-    circuit_11 = pb_field(_hall1_incre_info.ch11_sta.load_sta)
-    circuit_12 = pb_field(_hall1_incre_info.ch12_sta.load_sta)
-
-    circuit_1_split_link = pb_field(_hall1_incre_info.ch1_info.splitphase.link_ch)
-    circuit_2_split_link = pb_field(_hall1_incre_info.ch2_info.splitphase.link_ch)
-    circuit_3_split_link = pb_field(_hall1_incre_info.ch3_info.splitphase.link_ch)
-    circuit_4_split_link = pb_field(_hall1_incre_info.ch4_info.splitphase.link_ch)
-    circuit_5_split_link = pb_field(_hall1_incre_info.ch5_info.splitphase.link_ch)
-    circuit_6_split_link = pb_field(_hall1_incre_info.ch6_info.splitphase.link_ch)
-    circuit_7_split_link = pb_field(_hall1_incre_info.ch7_info.splitphase.link_ch)
-    circuit_8_split_link = pb_field(_hall1_incre_info.ch8_info.splitphase.link_ch)
-    circuit_9_split_link = pb_field(_hall1_incre_info.ch9_info.splitphase.link_ch)
-    circuit_10_split_link = pb_field(_hall1_incre_info.ch10_info.splitphase.link_ch)
-    circuit_11_split_link = pb_field(_hall1_incre_info.ch11_info.splitphase.link_ch)
-    circuit_12_split_link = pb_field(_hall1_incre_info.ch12_info.splitphase.link_ch)
-
-    circuit_1_split_info_loaded = pb_field(
-        _hall1_incre_info.ch1_info.splitphase.link_ch, _is_value_present
-    )
-    circuit_2_split_info_loaded = pb_field(
-        _hall1_incre_info.ch2_info.splitphase.link_ch, _is_value_present
-    )
-    circuit_3_split_info_loaded = pb_field(
-        _hall1_incre_info.ch3_info.splitphase.link_ch, _is_value_present
-    )
-    circuit_4_split_info_loaded = pb_field(
-        _hall1_incre_info.ch4_info.splitphase.link_ch, _is_value_present
-    )
-    circuit_5_split_info_loaded = pb_field(
-        _hall1_incre_info.ch5_info.splitphase.link_ch, _is_value_present
-    )
-    circuit_6_split_info_loaded = pb_field(
-        _hall1_incre_info.ch6_info.splitphase.link_ch, _is_value_present
-    )
-    circuit_7_split_info_loaded = pb_field(
-        _hall1_incre_info.ch7_info.splitphase.link_ch, _is_value_present
-    )
-    circuit_8_split_info_loaded = pb_field(
-        _hall1_incre_info.ch8_info.splitphase.link_ch, _is_value_present
-    )
-    circuit_9_split_info_loaded = pb_field(
-        _hall1_incre_info.ch9_info.splitphase.link_ch, _is_value_present
-    )
-    circuit_10_split_info_loaded = pb_field(
-        _hall1_incre_info.ch10_info.splitphase.link_ch, _is_value_present
-    )
-    circuit_11_split_info_loaded = pb_field(
-        _hall1_incre_info.ch11_info.splitphase.link_ch, _is_value_present
-    )
-    circuit_12_split_info_loaded = pb_field(
-        _hall1_incre_info.ch12_info.splitphase.link_ch, _is_value_present
+    circuit = _circuit_sta_group(_hall1.ch1_sta.load_sta)
+    circuit_split_link = _circuit_info_group(_hall1.ch1_info.splitphase.link_ch)
+    circuit_split_info_loaded = _circuit_info_group(
+        _hall1.ch1_info.splitphase.link_ch, transform=lambda value: value is not None
     )
 
-    channel_power_1 = ChannelPowerField(0)
-    channel_power_2 = ChannelPowerField(1)
-    channel_power_3 = ChannelPowerField(2)
+    channel_power = field_group(lambda n: ChannelPowerField(n - 1), count=3)
 
-    # Input 1
-    channel1_sn = pb_field(
-        pb_push_set.backup_incre_info.Energy1_info.dev_info.model_info.sn
+    channel_sn = _energy_group(_energy.dev_info.model_info.sn)
+    channel_type = _energy_group(_energy.dev_info.type)
+    channel_capacity = _energy_group(_energy.dev_info.full_cap)
+    channel_rate_power = _energy_group(_energy.dev_info.rate_power)
+    channel_is_enabled = _energy_group(_energy.is_enable)
+    channel_is_connected = _energy_group(_energy.is_connect)
+    channel_is_ac_open = _energy_group(_energy.is_ac_open)
+    channel_is_power_output = _energy_group(_energy.is_power_output)
+    channel_is_grid_charge = _energy_group(_energy.is_grid_charge)
+    channel_is_mppt_charge = _energy_group(_energy.is_mppt_charge)
+    channel_battery_percentage = _energy_group(_energy.battery_percentage)
+    channel_output_power = _energy_group(_energy.output_power)
+    channel_ems_charging = _energy_group(_energy.ems_chg_flag)
+    channel_hw_connect = _energy_group(_energy.hw_connect)
+    channel_battery_temp = _energy_group(_energy.ems_bat_temp)
+    channel_lcd_input = _energy_group(_energy.lcd_input_watts)
+    channel_pv_status = _energy_group(
+        _energy.pv_charge_watts,
+        transform=PVStatus.from_value,
     )
-    channel1_type = pb_field(pb_push_set.backup_incre_info.Energy1_info.dev_info.type)
-    channel1_capacity = pb_field(
-        pb_push_set.backup_incre_info.Energy1_info.dev_info.full_cap
-    )
-    channel1_rate_power = pb_field(
-        pb_push_set.backup_incre_info.Energy1_info.dev_info.rate_power
-    )
-    channel1_is_enabled = pb_field(pb_push_set.backup_incre_info.Energy1_info.is_enable)
-    channel1_is_connected = pb_field(
-        pb_push_set.backup_incre_info.Energy1_info.is_connect
-    )
-    channel1_is_ac_open = pb_field(
-        pb_push_set.backup_incre_info.Energy1_info.is_ac_open
-    )
-    channel1_is_power_output = pb_field(
-        pb_push_set.backup_incre_info.Energy1_info.is_power_output
-    )
-    channel1_is_grid_charge = pb_field(
-        pb_push_set.backup_incre_info.Energy1_info.is_grid_charge
-    )
-    channel1_is_mppt_charge = pb_field(
-        pb_push_set.backup_incre_info.Energy1_info.is_mppt_charge
-    )
-    channel1_battery_percentage = pb_field(
-        pb_push_set.backup_incre_info.Energy1_info.battery_percentage
-    )
-    channel1_output_power = pb_field(
-        pb_push_set.backup_incre_info.Energy1_info.output_power
-    )
-    channel1_ems_charging = pb_field(
-        pb_push_set.backup_incre_info.Energy1_info.ems_chg_flag
-    )
-    channel1_hw_connect = pb_field(
-        pb_push_set.backup_incre_info.Energy1_info.hw_connect
-    )
-    channel1_battery_temp = pb_field(
-        pb_push_set.backup_incre_info.Energy1_info.ems_bat_temp
-    )
-    channel1_lcd_input = pb_field(
-        pb_push_set.backup_incre_info.Energy1_info.lcd_input_watts
-    )
-    channel1_pv_status = pb_field(
-        pb_push_set.backup_incre_info.Energy1_info.pv_charge_watts, PVStatus.from_value
-    )
-    channel1_pv_lv_input = pb_field(
-        pb_push_set.backup_incre_info.Energy1_info.pv_low_charge_watts
-    )
-    channel1_pv_hv_input = pb_field(
-        pb_push_set.backup_incre_info.Energy1_info.pv_height_charge_watts
-    )
-    channel1_error_code = pb_field(
-        pb_push_set.backup_incre_info.Energy1_info.error_code_num
-    )
+    channel_pv_lv_input = _energy_group(_energy.pv_low_charge_watts)
+    channel_pv_hv_input = _energy_group(_energy.pv_height_charge_watts)
+    channel_error_code = _energy_group(_energy.error_code_num)
 
-    ch1_backup_is_ready = pb_field(
-        pb_push_set.backup_incre_info.ch1_info.backup_is_ready
+    ch_backup_is_ready = _channel_group(_channel_pb.backup_is_ready)
+    ch_ctrl_status = _channel_group(
+        _channel_pb.ctrl_sta,
+        transform=ControlStatus.from_value,
     )
-    ch1_ctrl_status = pb_field(
-        pb_push_set.backup_incre_info.ch1_info.ctrl_sta, ControlStatus.from_value
+    ch_force_charge = _channel_group(_channel_pb.force_charge_sta)
+    ch_backup_rly1_cnt = _channel_group(_channel_pb.backup_rly1_cnt)
+    ch_backup_rly2_cnt = _channel_group(_channel_pb.backup_rly2_cnt)
+    ch_wake_up_charge_status = _channel_group(
+        _channel_pb.wake_up_charge_sta,
     )
-    ch1_force_charge = pb_field(pb_push_set.backup_incre_info.ch1_info.force_charge_sta)
-    ch1_backup_rly1_cnt = pb_field(
-        pb_push_set.backup_incre_info.ch1_info.backup_rly1_cnt
-    )
-    ch1_backup_rly2_cnt = pb_field(
-        pb_push_set.backup_incre_info.ch1_info.backup_rly2_cnt
-    )
-    ch1_wake_up_charge_status = pb_field(
-        pb_push_set.backup_incre_info.ch1_info.wake_up_charge_sta
-    )
-    ch1_channel_5p8_type = pb_field(
-        pb_push_set.backup_incre_info.ch1_info.energy_5p8_type
-    )
-
-    # Input 2
-    channel2_sn = pb_field(
-        pb_push_set.backup_incre_info.Energy2_info.dev_info.model_info.sn
-    )
-    channel2_type = pb_field(pb_push_set.backup_incre_info.Energy2_info.dev_info.type)
-    channel2_capacity = pb_field(
-        pb_push_set.backup_incre_info.Energy2_info.dev_info.full_cap
-    )
-    channel2_rate_power = pb_field(
-        pb_push_set.backup_incre_info.Energy2_info.dev_info.rate_power
-    )
-    channel2_is_enabled = pb_field(pb_push_set.backup_incre_info.Energy2_info.is_enable)
-    channel2_is_connected = pb_field(
-        pb_push_set.backup_incre_info.Energy2_info.is_connect
-    )
-    channel2_is_ac_open = pb_field(
-        pb_push_set.backup_incre_info.Energy2_info.is_ac_open
-    )
-    channel2_is_power_output = pb_field(
-        pb_push_set.backup_incre_info.Energy2_info.is_power_output
-    )
-    channel2_is_grid_charge = pb_field(
-        pb_push_set.backup_incre_info.Energy2_info.is_grid_charge
-    )
-    channel2_is_mppt_charge = pb_field(
-        pb_push_set.backup_incre_info.Energy2_info.is_mppt_charge
-    )
-    channel2_battery_percentage = pb_field(
-        pb_push_set.backup_incre_info.Energy2_info.battery_percentage
-    )
-    channel2_output_power = pb_field(
-        pb_push_set.backup_incre_info.Energy2_info.output_power
-    )
-    channel2_ems_charging = pb_field(
-        pb_push_set.backup_incre_info.Energy2_info.ems_chg_flag
-    )
-    channel2_hw_connect = pb_field(
-        pb_push_set.backup_incre_info.Energy2_info.hw_connect
-    )
-    channel2_battery_temp = pb_field(
-        pb_push_set.backup_incre_info.Energy2_info.ems_bat_temp
-    )
-    channel2_lcd_input = pb_field(
-        pb_push_set.backup_incre_info.Energy2_info.lcd_input_watts
-    )
-    channel2_pv_status = pb_field(
-        pb_push_set.backup_incre_info.Energy2_info.pv_charge_watts, PVStatus.from_value
-    )
-    channel2_pv_lv_input = pb_field(
-        pb_push_set.backup_incre_info.Energy2_info.pv_low_charge_watts
-    )
-    channel2_pv_hv_input = pb_field(
-        pb_push_set.backup_incre_info.Energy2_info.pv_height_charge_watts
-    )
-    channel2_error_code = pb_field(
-        pb_push_set.backup_incre_info.Energy2_info.error_code_num
-    )
-
-    ch2_backup_is_ready = pb_field(
-        pb_push_set.backup_incre_info.ch2_info.backup_is_ready
-    )
-    ch2_ctrl_status = pb_field(
-        pb_push_set.backup_incre_info.ch2_info.ctrl_sta, ControlStatus.from_value
-    )
-    ch2_force_charge = pb_field(pb_push_set.backup_incre_info.ch2_info.force_charge_sta)
-    ch2_backup_rly1_cnt = pb_field(
-        pb_push_set.backup_incre_info.ch2_info.backup_rly1_cnt
-    )
-    ch2_backup_rly2_cnt = pb_field(
-        pb_push_set.backup_incre_info.ch2_info.backup_rly2_cnt
-    )
-    ch2_wake_up_charge_status = pb_field(
-        pb_push_set.backup_incre_info.ch2_info.wake_up_charge_sta
-    )
-    ch2_channel_5p8_type = pb_field(
-        pb_push_set.backup_incre_info.ch2_info.energy_5p8_type
-    )
-
-    # Input 3
-    channel3_sn = pb_field(
-        pb_push_set.backup_incre_info.Energy3_info.dev_info.model_info.sn
-    )
-    channel3_type = pb_field(pb_push_set.backup_incre_info.Energy3_info.dev_info.type)
-    channel3_capacity = pb_field(
-        pb_push_set.backup_incre_info.Energy3_info.dev_info.full_cap
-    )
-    channel3_rate_power = pb_field(
-        pb_push_set.backup_incre_info.Energy3_info.dev_info.rate_power
-    )
-    channel3_is_enabled = pb_field(pb_push_set.backup_incre_info.Energy3_info.is_enable)
-    channel3_is_connected = pb_field(
-        pb_push_set.backup_incre_info.Energy3_info.is_connect
-    )
-    channel3_is_ac_open = pb_field(
-        pb_push_set.backup_incre_info.Energy3_info.is_ac_open
-    )
-    channel3_is_power_output = pb_field(
-        pb_push_set.backup_incre_info.Energy3_info.is_power_output
-    )
-    channel3_is_grid_charge = pb_field(
-        pb_push_set.backup_incre_info.Energy3_info.is_grid_charge
-    )
-    channel3_is_mppt_charge = pb_field(
-        pb_push_set.backup_incre_info.Energy3_info.is_mppt_charge
-    )
-    channel3_battery_percentage = pb_field(
-        pb_push_set.backup_incre_info.Energy3_info.battery_percentage
-    )
-    channel3_output_power = pb_field(
-        pb_push_set.backup_incre_info.Energy3_info.output_power
-    )
-    channel3_ems_charging = pb_field(
-        pb_push_set.backup_incre_info.Energy3_info.ems_chg_flag
-    )
-    channel3_hw_connect = pb_field(
-        pb_push_set.backup_incre_info.Energy3_info.hw_connect
-    )
-    channel3_battery_temp = pb_field(
-        pb_push_set.backup_incre_info.Energy3_info.ems_bat_temp
-    )
-    channel3_lcd_input = pb_field(
-        pb_push_set.backup_incre_info.Energy3_info.lcd_input_watts
-    )
-    channel3_pv_status = pb_field(
-        pb_push_set.backup_incre_info.Energy3_info.pv_charge_watts, PVStatus.from_value
-    )
-    channel3_pv_lv_input = pb_field(
-        pb_push_set.backup_incre_info.Energy3_info.pv_low_charge_watts
-    )
-    channel3_pv_hv_input = pb_field(
-        pb_push_set.backup_incre_info.Energy3_info.pv_height_charge_watts
-    )
-    channel3_error_code = pb_field(
-        pb_push_set.backup_incre_info.Energy3_info.error_code_num
-    )
-
-    ch3_backup_is_ready = pb_field(
-        pb_push_set.backup_incre_info.ch3_info.backup_is_ready
-    )
-    ch3_ctrl_status = pb_field(
-        pb_push_set.backup_incre_info.ch3_info.ctrl_sta, ControlStatus.from_value
-    )
-    ch3_force_charge = pb_field(pb_push_set.backup_incre_info.ch3_info.force_charge_sta)
-    ch3_backup_rly1_cnt = pb_field(
-        pb_push_set.backup_incre_info.ch3_info.backup_rly1_cnt
-    )
-    ch3_backup_rly2_cnt = pb_field(
-        pb_push_set.backup_incre_info.ch3_info.backup_rly2_cnt
-    )
-    ch3_wake_up_charge_status = pb_field(
-        pb_push_set.backup_incre_info.ch3_info.wake_up_charge_sta
-    )
-    ch3_5p8_type = pb_field(pb_push_set.backup_incre_info.ch3_info.energy_5p8_type)
+    ch_5p8_type = _channel_group(_channel_pb.energy_5p8_type)
 
     in_use_power = pb_field(pb_time.watt_info.all_hall_watt)
     grid_power = pb_field(
@@ -568,13 +296,14 @@ class Device(DeviceBase, ProtobufProps):
         """Send command to power on / off the specific circuit of the panel"""
         self._logger.debug("setCircuitPower for %d: %s", circuit_id, enable)
 
-        split_link = getattr(self, f"circuit_{circuit_id}_split_link", None)
+        split_link = self.circuit_split_link[circuit_id]
         if split_link is None:
             self._logger.warning(
                 "Cannot set circuit power for circuit %d because split circuit info is not available",
                 circuit_id,
             )
             return None
+
         is_split = split_link != 0
         if is_split and (split_link < 1 or split_link > self.NUM_OF_CIRCUITS):
             self._logger.warning(
@@ -585,22 +314,19 @@ class Device(DeviceBase, ProtobufProps):
             return None
 
         ppas = pd303_pb2.ProtoPushAndSet()
-        sta = getattr(
-            ppas.load_incre_info.hall1_incre_info, "ch" + str(circuit_id) + "_sta"
+        load_sta = pd303_pb2.LOAD_CH_POWER_ON if enable else pd303_pb2.LOAD_CH_POWER_OFF
+        ch_sta = pb_indexed_attr(
+            ppas, pb_push_set.load_incre_info.hall1_incre_info.ch1_sta
         )
-        sta.load_sta = (
-            pd303_pb2.LOAD_CH_POWER_ON if enable else pd303_pb2.LOAD_CH_POWER_OFF
-        )
+
+        sta = ch_sta[circuit_id]
+        sta.load_sta = load_sta
         sta.ctrl_mode = pd303_pb2.RLY_HAND_CTRL_MODE
 
-        # If it's a split circuit, also set the linked circuit to the same state because they will be turned on/off together
+        # If it's a split circuit, also set the linked circuit to the same state
         if is_split:
-            sta2 = getattr(
-                ppas.load_incre_info.hall1_incre_info, "ch" + str(split_link) + "_sta"
-            )
-            sta2.load_sta = (
-                pd303_pb2.LOAD_CH_POWER_ON if enable else pd303_pb2.LOAD_CH_POWER_OFF
-            )
+            sta2 = ch_sta[split_link]
+            sta2.load_sta = load_sta
             sta2.ctrl_mode = pd303_pb2.RLY_HAND_CTRL_MODE
 
         await self._send_config_packet(ppas)

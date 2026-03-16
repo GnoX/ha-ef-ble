@@ -2,6 +2,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from custom_components.ef_ble.eflib.devices.shp2 import Device
+from custom_components.ef_ble.eflib.props import FieldGroup
 
 
 @pytest.fixture
@@ -62,8 +63,8 @@ async def test_shp2_updates_battery_level(device, packet_sequence):
     packet = await device.packet_parse(bytes.fromhex(packet_sequence[1]))
     await device.data_parse(packet)
 
-    assert Device.battery_level in device.updated_fields
-    battery_level = getattr(device, Device.battery_level)
+    assert Device.battery_level.public_name in device.updated_fields
+    battery_level = device.get_value(Device.battery_level)
     assert battery_level is not None
     assert isinstance(battery_level, (int, float))
     assert 0 <= battery_level <= 100, f"Battery level {battery_level} out of range"
@@ -74,16 +75,18 @@ async def test_shp2_updates_channel_fields(device, packet_sequence):
     await device.data_parse(packet)
 
     channel_field_names = [
-        Device.channel1_is_enabled,
-        Device.channel1_is_connected,
-        Device.channel2_is_enabled,
-        Device.channel2_is_connected,
-        Device.channel3_is_enabled,
-        Device.channel3_is_connected,
+        Device.channel_is_enabled[1],
+        Device.channel_is_connected[1],
+        Device.channel_is_enabled[2],
+        Device.channel_is_connected[2],
+        Device.channel_is_enabled[3],
+        Device.channel_is_connected[3],
     ]
 
     updated_channel_fields = [
-        f for f in channel_field_names if f in device.updated_fields
+        f.public_name
+        for f in channel_field_names
+        if f.public_name in device.updated_fields
     ]
     assert len(updated_channel_fields) > 0, "No channel fields were updated"
 
@@ -117,7 +120,7 @@ async def test_shp2_field_types_are_consistent(device, packet_sequence):
     numeric_fields = [Device.battery_level]
 
     for field_name in numeric_fields:
-        value = getattr(device, field_name, None)
+        value = device.get_value(field_name)
         if value is not None:
             assert isinstance(value, (int, float)), (
                 f"Field {field_name} has wrong type: {type(value)}"
@@ -141,27 +144,122 @@ async def test_shp2_field_types_are_consistent(device, packet_sequence):
 
 async def test_shp2_exact_values_from_known_packets(device, packet_sequence):
     """Test that known packet data produces exact expected values"""
-    # Process first two packets
-    for hex_packet in packet_sequence[:2]:
+    for hex_packet in packet_sequence:
         packet = await device.packet_parse(bytes.fromhex(hex_packet))
         await device.data_parse(packet)
 
     expected = {
         Device.battery_level: 46,
-        Device.channel1_is_enabled: 0,
-        Device.channel1_is_connected: 0,
-        Device.ch1_ctrl_status: 0,
-        Device.ch2_ctrl_status: 1,
-        Device.ch3_ctrl_status: 1,
-        Device.ch1_backup_is_ready: False,
-        Device.ch2_backup_is_ready: True,
-        Device.ch3_backup_is_ready: True,
+        Device.in_use_power: 677.0,
+        Device.storm_mode: False,
         Device.error_count: 0,
         Device.error_happened: True,
+        Device.channel_power[1]: 0.0,
+        Device.channel_power[2]: -344.08,
+        Device.channel_power[3]: -294.92,
+        Device.circuit_power[1]: 0.0,
+        Device.circuit_power[2]: 20.0,
+        Device.circuit_power[12]: 366.0,
+        Device.circuit_current[1]: 0.1057,
+        Device.circuit_current[2]: 1.9545,
+        Device.circuit_current[12]: 3.6178,
+        Device.channel_output_power[1]: 0.0,
+        Device.channel_battery_percentage[1]: 0,
+        Device.channel_battery_temp[1]: 0,
+        Device.channel_lcd_input[1]: 0,
+        Device.channel_pv_lv_input[1]: 0,
+        Device.channel_pv_hv_input[1]: 0,
+        Device.channel_error_code[1]: 0,
+        Device.channel_is_enabled[1]: 0,
+        Device.channel_is_connected[1]: 0,
+        Device.channel_is_ac_open[1]: 0,
+        Device.channel_is_power_output[1]: 0,
+        Device.channel_is_grid_charge[1]: 0,
+        Device.channel_is_mppt_charge[1]: 0,
+        Device.channel_ems_charging[1]: 0,
+        Device.channel_hw_connect[1]: 0,
+        Device.ch_ctrl_status[1]: 0,
+        Device.ch_ctrl_status[2]: 1,
+        Device.ch_ctrl_status[3]: 1,
+        Device.ch_backup_is_ready[1]: False,
+        Device.ch_backup_is_ready[2]: True,
+        Device.ch_backup_is_ready[3]: True,
+        Device.ch_force_charge[1]: 0,
+        Device.ch_force_charge[2]: 0,
+        Device.ch_force_charge[3]: 0,
+        Device.ch_backup_rly1_cnt[1]: 7,
+        Device.ch_backup_rly1_cnt[2]: 159,
+        Device.ch_backup_rly1_cnt[3]: 197,
+        Device.ch_backup_rly2_cnt[1]: 7,
+        Device.ch_backup_rly2_cnt[2]: 159,
+        Device.ch_backup_rly2_cnt[3]: 197,
+        Device.ch_wake_up_charge_status[1]: 0,
+        Device.ch_5p8_type[1]: 0,
+        Device.ch_5p8_type[2]: 29,
+        Device.ch_5p8_type[3]: 29,
     }
 
-    for field_name, expected_value in expected.items():
-        actual_value = getattr(device, field_name)
+    for field, expected_value in expected.items():
+        actual_value = device.get_value(field)
         assert actual_value == expected_value, (
-            f"{field_name}: expected {expected_value}, got {actual_value}"
+            f"{field.public_name}: expected {expected_value}, got {actual_value}"
         )
+
+
+def test_shp2_field_group_are_expanded_and_renamed():
+    expected_names = {
+        *(f"circuit_power_{i}" for i in range(1, 13)),
+        *(f"circuit_current_{i}" for i in range(1, 13)),
+        *(f"channel_power_{i}" for i in range(1, 4)),
+        *(f"circuit_{i}" for i in range(1, 13)),
+        *(f"circuit_split_link_{i}" for i in range(1, 13)),
+        *(f"circuit_split_info_loaded_{i}" for i in range(1, 13)),
+        *(
+            f"channel{i}_{suffix}"
+            for i in range(1, 4)
+            for suffix in [
+                "sn",
+                "type",
+                "capacity",
+                "rate_power",
+                "is_enabled",
+                "is_connected",
+                "is_ac_open",
+                "is_power_output",
+                "is_grid_charge",
+                "is_mppt_charge",
+                "battery_percentage",
+                "output_power",
+                "ems_charging",
+                "hw_connect",
+                "battery_temp",
+                "lcd_input",
+                "pv_status",
+                "pv_lv_input",
+                "pv_hv_input",
+                "error_code",
+            ]
+        ),
+        *(
+            f"ch{i}_{suffix}"
+            for i in range(1, 4)
+            for suffix in [
+                "backup_is_ready",
+                "ctrl_status",
+                "force_charge",
+                "backup_rly1_cnt",
+                "backup_rly2_cnt",
+                "wake_up_charge_status",
+                "5p8_type",
+            ]
+        ),
+    }
+
+    actual_names: set[str] = set()
+    for attr_name in dir(Device):
+        attr = getattr(Device, attr_name, None)
+        if isinstance(attr, FieldGroup):
+            for field in attr:
+                actual_names.add(field.public_name)
+
+    assert actual_names == expected_names

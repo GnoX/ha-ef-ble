@@ -279,6 +279,9 @@
       },
       "grid_status": {
         "name": "Grid Status"
+      },
+      "backup_force_charge": {
+        "name": "Channel {channel} Force Charge"
       }
     },
     "sensor": {

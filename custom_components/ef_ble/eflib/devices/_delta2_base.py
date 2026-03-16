@@ -157,27 +157,6 @@ class Delta2Base(DeviceBase, RawDataProps):
     def ac_commands_dst(self) -> int:
         return 0x05
 
-    def _update_extra_batteries(self, kit_data: AllKitDetailData):
-        battery_entity_map = [
-            {
-                "enabled": Delta2Base.battery_1_enabled,
-                "sn": Delta2Base.battery_1_sn,
-                "level": Delta2Base.battery_1_battery_level,
-            },
-            {
-                "enabled": Delta2Base.battery_2_enabled,
-                "sn": Delta2Base.battery_2_sn,
-                "level": Delta2Base.battery_2_battery_level,
-            },
-        ]
-        for i, kit in enumerate(kit_data.kit_base_info):
-            battery_dict = battery_entity_map[i]
-            available = kit.avai_flag
-            setattr(self, battery_dict["enabled"], bool(available))
-            if available:
-                setattr(self, battery_dict["sn"], kit.sn.decode())
-                setattr(self, battery_dict["level"], round(kit.f32_soc, 2))
-
     async def set_ac_charging_speed(self, value: int):
         if self.max_ac_charging_power is None:
             return False
@@ -247,3 +226,24 @@ class Delta2Base(DeviceBase, RawDataProps):
     async def set_battery_charge_limit_min(self, limit: int):
         packet = Packet(0x21, 0x03, 0x20, 0x33, limit.to_bytes(), version=0x02)
         await self._conn.sendPacket(packet)
+
+    def _update_extra_batteries(self, kit_data: AllKitDetailData):
+        battery_entity_map = [
+            {
+                "enabled": Delta2Base.battery_1_enabled,
+                "sn": Delta2Base.battery_1_sn,
+                "level": Delta2Base.battery_1_battery_level,
+            },
+            {
+                "enabled": Delta2Base.battery_2_enabled,
+                "sn": Delta2Base.battery_2_sn,
+                "level": Delta2Base.battery_2_battery_level,
+            },
+        ]
+        for i, kit in enumerate(kit_data.kit_base_info):
+            battery_dict = battery_entity_map[i]
+            available = kit.avai_flag
+            self.set_value(battery_dict["enabled"], bool(available))
+            if available:
+                self.set_value(battery_dict["sn"], kit.sn.decode())
+                self.set_value(battery_dict["level"], round(kit.f32_soc, 2))
