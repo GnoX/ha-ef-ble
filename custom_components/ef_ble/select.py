@@ -16,6 +16,7 @@ from .eflib.devices import (
     river2,
     river3,
     river3_plus,
+    shp2,
     smart_generator,
     stream_ac,
     wave2,
@@ -146,6 +147,15 @@ SELECT_TYPES: list[EcoflowSelectEntityDescription] = [
         set_state=(
             lambda device, value: device.set_supply_priority(
                 powerstream.PowerSupplyPriority[value.upper()]
+            )
+        ),
+    ),
+    EcoflowSelectEntityDescription[shp2.Device](
+        key="smart_backup_mode",
+        options=shp2.SmartBackupMode.options(include_unknown=False),
+        set_state=(
+            lambda device, value: device.set_smart_backup_mode(
+                shp2.SmartBackupMode[value.upper()]
             )
         ),
     ),

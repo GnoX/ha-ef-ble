@@ -56,6 +56,12 @@ def problem(
     return _make_desc(BinarySensorDeviceClass.PROBLEM, key, enabled=enabled, **kwargs)
 
 
+def safety(
+    key: str = "", *, enabled: bool = True, **kwargs: Unpack[_BinarySensorKwargs]
+) -> EcoflowBinarySensorEntityDescription:
+    return _make_desc(BinarySensorDeviceClass.SAFETY, key, enabled=enabled, **kwargs)
+
+
 def plug(
     key: str = "", *, enabled: bool = True, **kwargs: Unpack[_BinarySensorKwargs]
 ) -> EcoflowBinarySensorEntityDescription:
@@ -114,8 +120,9 @@ _BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
     "ch{n}_backup_is_ready": shp2_channel(
         battery, "channel_backup_is_ready", enabled=False
     ),
+    "ch{n}_force_charge": shp2_channel(power, "backup_force_charge", enabled=False),
     # SHP2 energy binary sensors
-    "channel{n}_is_enabled": shp2_channel(power, "channel_is_enabled"),
+    "channel{n}_is_enabled": shp2_channel(power, "channel_is_enabled", enabled=False),
     "channel{n}_is_connected": shp2_channel(connectivity, "channel_is_connected"),
     "channel{n}_is_ac_open": shp2_channel(power, "channel_is_ac_open", enabled=False),
     "channel{n}_is_power_output": shp2_channel(
@@ -133,6 +140,9 @@ _BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
     "channel{n}_hw_connected": shp2_channel(
         connectivity, "channel_hw_connected", enabled=False
     ),
+    # SHP2 generic binary sensors
+    "grid_status": connectivity("grid_status", enabled=True),
+    "storm_mode": safety("storm_mode", enabled=True),
 }
 
 BINARY_SENSOR_TYPES: Final[dict[str, BinarySensorEntityDescription]] = (

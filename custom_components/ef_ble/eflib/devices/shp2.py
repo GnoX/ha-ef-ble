@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
+from enum import IntEnum
 
 from ..commands import TimeCommands
 from ..devicebase import AdvertisementData, BLEDevice, DeviceBase
@@ -29,11 +30,14 @@ class ControlStatus(IntFieldValue):
     STANDBY = 4
 
 
-class ForceChargeStatus(IntFieldValue):
+class PowerStatus(IntFieldValue):
     UNKNOWN = -1
 
-    OFF = 0
-    ON = 1
+    GRID_POWER = 0
+    BATTERY_POWER = 1
+    OIL_POWER = 2
+    EMERGENCY_STOP = 3
+    OFF_POWER = 4
 
 
 class PVStatus(IntFieldValue):
@@ -43,6 +47,24 @@ class PVStatus(IntFieldValue):
     LV = 1
     HV = 2
     LV_AND_HV = 3
+
+
+class SmartBackupMode(IntFieldValue):
+    NONE = 0
+    TIME_OF_USE = 1
+    SELF_POWERED = 2
+    SCHEDULED = 3
+
+
+class ChannelSetStatus(IntEnum):
+    """
+    Enum of values to send in the ch#_enable_set command to enable or disable a channel. Please note that these
+    values ARE NOT the same as the values sent back by the panel in the ch#_enable_set response. The panel
+    looks like it returns a 1 for enabled, but a 0 for all other states including disabled and disconnected.
+    """
+
+    ENABLE = 1
+    DISABLE = 2
 
 
 @dataclass
@@ -93,7 +115,10 @@ class Device(DeviceBase, ProtobufProps):
     NUM_OF_CIRCUITS = 12
     NUM_OF_CHANNELS = 3
 
+    power_status = pb_field(pb_push_set.power_sta, PowerStatus.from_value)
     battery_level = pb_field(pb_push_set.backup_incre_info.backup_bat_per)
+    grid_status = pb_field(pb_push_set.master_incre_info.grid_sta)
+    storm_mode = pb_field(pb_push_set.in_storm_mode)
 
     circuit_power_1 = CircuitPowerField(0)
     circuit_power_2 = CircuitPowerField(1)
@@ -253,10 +278,7 @@ class Device(DeviceBase, ProtobufProps):
     ch1_ctrl_status = pb_field(
         pb_push_set.backup_incre_info.ch1_info.ctrl_sta, ControlStatus.from_value
     )
-    ch1_force_charge = pb_field(
-        pb_push_set.backup_incre_info.ch1_info.force_charge_sta,
-        ForceChargeStatus.from_value,
-    )
+    ch1_force_charge = pb_field(pb_push_set.backup_incre_info.ch1_info.force_charge_sta)
     ch1_backup_rly1_cnt = pb_field(
         pb_push_set.backup_incre_info.ch1_info.backup_rly1_cnt
     )
@@ -334,10 +356,7 @@ class Device(DeviceBase, ProtobufProps):
     ch2_ctrl_status = pb_field(
         pb_push_set.backup_incre_info.ch2_info.ctrl_sta, ControlStatus.from_value
     )
-    ch2_force_charge = pb_field(
-        pb_push_set.backup_incre_info.ch2_info.force_charge_sta,
-        ForceChargeStatus.from_value,
-    )
+    ch2_force_charge = pb_field(pb_push_set.backup_incre_info.ch2_info.force_charge_sta)
     ch2_backup_rly1_cnt = pb_field(
         pb_push_set.backup_incre_info.ch2_info.backup_rly1_cnt
     )
@@ -415,10 +434,7 @@ class Device(DeviceBase, ProtobufProps):
     ch3_ctrl_status = pb_field(
         pb_push_set.backup_incre_info.ch3_info.ctrl_sta, ControlStatus.from_value
     )
-    ch3_force_charge = pb_field(
-        pb_push_set.backup_incre_info.ch3_info.force_charge_sta,
-        ForceChargeStatus.from_value,
-    )
+    ch3_force_charge = pb_field(pb_push_set.backup_incre_info.ch3_info.force_charge_sta)
     ch3_backup_rly1_cnt = pb_field(
         pb_push_set.backup_incre_info.ch3_info.backup_rly1_cnt
     )
@@ -435,6 +451,18 @@ class Device(DeviceBase, ProtobufProps):
         pb_time.watt_info.grid_watt,
         TransformIfMissing(lambda v: v if v is not None else 0.0),
     )
+
+    smart_backup_mode = pb_field(
+        pb_push_set.smart_backup_mode, SmartBackupMode.from_value
+    )
+    backup_enabled = pb_field(pb_push_set.backup_reserve_enable)
+    backup_reserve_level = pb_field(pb_push_set.backup_reserve_soc)
+    backup_charge_limit = pb_field(pb_push_set.foce_charge_hight)
+    eps_mode = pb_field(pb_push_set.eps_mode_info)
+    min_ac_charging_power = 500
+    max_ac_charging_power = 7200
+    ac_charging_speed_step = 100
+    ac_charging_speed = pb_field(pb_push_set.charge_watt_power)
 
     errors = pb_field(pb_push_set.backup_incre_info.errcode, _errors)
     error_count = Field[int]()
@@ -574,6 +602,110 @@ class Device(DeviceBase, ProtobufProps):
                 pd303_pb2.LOAD_CH_POWER_ON if enable else pd303_pb2.LOAD_CH_POWER_OFF
             )
             sta2.ctrl_mode = pd303_pb2.RLY_HAND_CTRL_MODE
+
+        await self._send_config_packet(ppas)
+        return True
+
+    async def set_backup_reserve_level(self, value: int):
+        self._logger.debug("set_backup_reserve_level: %d", value)
+
+        ppas = pd303_pb2.ProtoPushAndSet()
+        value = min(max(10, value), 50)
+        ppas.backup_reserve_soc = value
+
+        await self._send_config_packet(ppas)
+        return True
+
+    async def set_channel_enable(self, channel_id: int, value: bool):
+        self._logger.debug("set_channel_enable: %d %s", channel_id, value)
+
+        ppas = pd303_pb2.ProtoPushAndSet()
+        setattr(
+            ppas,
+            f"ch{channel_id}_enable_set",
+            ChannelSetStatus.ENABLE if value else ChannelSetStatus.DISABLE,
+        )
+
+        await self._send_config_packet(ppas)
+        return True
+
+    async def set_channel_force_charge(self, channel_id: int, value: bool):
+        self._logger.debug("set_channel_force_charge: %d %s", channel_id, value)
+
+        ppas = pd303_pb2.ProtoPushAndSet()
+        setattr(
+            ppas,
+            f"ch{channel_id}_force_charge",
+            pd303_pb2.FORCE_CHARGE_ON if value else pd303_pb2.FORCE_CHARGE_OFF,
+        )
+        # App disables operating mode for force charge, EPS mode is allowed, if enabled
+        if value:
+            ppas.smart_backup_mode = SmartBackupMode.NONE
+
+        await self._send_config_packet(ppas)
+        return True
+
+    async def set_smart_backup_mode(self, mode: SmartBackupMode):
+        self._logger.debug("set_smart_backup_mode: %d", mode.value)
+
+        ppas = pd303_pb2.ProtoPushAndSet()
+        ppas.smart_backup_mode = mode.value
+
+        # App disable EPS Mode and disallows force charge when setting a Smart Backup Mode other than None
+        if mode is not SmartBackupMode.NONE:
+            ppas.eps_mode_info = False
+            for channel_id in range(1, self.NUM_OF_CHANNELS + 1):
+                if getattr(self, f"ch{channel_id}_force_charge"):
+                    setattr(
+                        ppas, f"ch{channel_id}_force_charge", pd303_pb2.FORCE_CHARGE_OFF
+                    )
+
+        await self._send_config_packet(ppas)
+        return True
+
+    async def set_eps_mode(self, value: bool):
+        self._logger.debug("set_eps_mode: %d", value)
+
+        if value and self.smart_backup_mode != SmartBackupMode.NONE:
+            # App forces setting of operating mode to NONE when EPS is enabled.
+            # We set this to NONE first or the SHP2 will sometimes report a grid outage if
+            # we set it all in one PPS command.
+            # Note: unlike operating mode force charge is allowed with EPS mode
+            ppas_sbm = pd303_pb2.ProtoPushAndSet()
+            ppas_sbm.smart_backup_mode = SmartBackupMode.NONE
+            await self._send_config_packet(ppas_sbm)
+
+        ppas = pd303_pb2.ProtoPushAndSet()
+
+        ppas.eps_mode_info = value
+        await self._send_config_packet(ppas)
+        return True
+
+    async def set_backup_charge_limit(self, value: int):
+        self._logger.debug("set_backup_charge_limit: %d", value)
+
+        ppas = pd303_pb2.ProtoPushAndSet()
+
+        value = min(max(80, value), 100)
+        ppas.foce_charge_hight = value  # key is misspelled by ecoflow
+
+        await self._send_config_packet(ppas)
+        return True
+
+    async def set_ac_charging_speed(self, value: int):
+        self._logger.debug("set_ac_charging_speed: %d", value)
+
+        ppas = pd303_pb2.ProtoPushAndSet()
+
+        # Round to nearest 100 and limit to allowed range
+        value = min(
+            max(
+                self.min_ac_charging_power,
+                int(value / self.ac_charging_speed_step) * self.ac_charging_speed_step,
+            ),
+            self.max_ac_charging_power,
+        )
+        ppas.charge_watt_power = value
 
         await self._send_config_packet(ppas)
         return True

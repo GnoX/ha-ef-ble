@@ -273,6 +273,12 @@
       },
       "plugged_in_ac": {
         "name": "AC Plugged In"
+      },
+      "storm_mode": {
+        "name": "Storm Mode"
+      },
+      "grid_status": {
+        "name": "Grid Status"
       }
     },
     "sensor": {
@@ -311,6 +317,16 @@
       },
       "in_use_power": {
         "name": "In Use Power"
+      },
+      "power_status": {
+        "name": "Power Status",
+        "state": {
+          "grid_power": "Grid Power",
+          "battery_power": "Battery Power",
+          "oil_power": "Generator Power",
+          "emergency_stop": "Emergency Stop",
+          "off_power": "Off Power"
+        }
       },
       "port_voltage": {
         "name": "{name} Voltage"
@@ -765,11 +781,40 @@
           "drain_free": "Drain Free",
           "external": "External"
         }
+      },
+      "smart_backup_mode": {
+        "name": "Smart Backup Mode",
+        "state": {
+          "none": "None",
+          "time_of_use": "TOU",
+          "self_powered": "Self Powered",
+          "scheduled": "Scheduled Tasks"
+        }
+      }
+    },
+    "number": {
+      "backup_reserve_level": {
+        "name": "Backup Reserve Level"
+      },
+      "backup_charge_limit": {
+        "name": "Charge Limit"
+      },
+      "ac_charging_speed": {
+        "name": "AC Charging Speed"
       }
     },
     "switch": {
       "circuit_is_enabled": {
         "name": "Circuit {circuit}"
+      },
+      "channel_is_enabled": {
+        "name": "Channel {channel}"
+      },
+      "ch_force_charge": {
+        "name": "Channel {channel} Force Charge"
+      },
+      "eps_mode": {
+        "name": "EPS Mode"
       }
     }
   }
