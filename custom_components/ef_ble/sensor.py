@@ -1,7 +1,7 @@
 """EcoFlow BLE sensor"""
 
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum, EnumType
 from typing import Any, Final, TypedDict, Unpack
 
@@ -18,6 +18,7 @@ from homeassistant.const import (
     UnitOfElectricPotential,
     UnitOfEnergy,
     UnitOfFrequency,
+    UnitOfMass,
     UnitOfPower,
     UnitOfTemperature,
     UnitOfTime,
@@ -110,7 +111,6 @@ def energy(
 def energy_storage(
     key: str = "", enabled: bool = True, **kwargs: Unpack[_SensorKwargs]
 ) -> EcoflowSensorEntityDescription:
-    """Create an energy storage capacity sensor description."""
     return EcoflowSensorEntityDescription(
         key=key,
         native_unit_of_measurement=UnitOfEnergy.WATT_HOUR,
@@ -229,13 +229,29 @@ def frequency(
     )
 
 
+def _liquefied_gas_unit(dev: DeviceBase) -> str:
+    unit = getattr(dev, "liquefied_gas_unit", None)
+    if (
+        unit is not None
+        and getattr(unit, "value", -1) == smart_generator.LiquefiedGasUnit.LB.value
+    ):
+        return UnitOfMass.POUNDS
+    return UnitOfMass.KILOGRAMS
+
+
 def weight(
-    key: str = "", enabled: bool = True, **kwargs: Unpack[_SensorKwargs]
+    key: str = "",
+    enabled: bool = True,
+    unit: str | None = UnitOfMass.KILOGRAMS,
+    unit_field: "str | Callable[[DeviceBase], str] | None" = None,
+    **kwargs: Unpack[_SensorKwargs],
 ) -> EcoflowSensorEntityDescription:
     return EcoflowSensorEntityDescription(
         key=key,
         device_class=SensorDeviceClass.WEIGHT,
         state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=None if unit_field is not None else unit,
+        native_unit_of_measurement_field=unit_field,
         suggested_display_precision=2,
         entity_registry_enabled_default=enabled,
         **kwargs,
@@ -324,12 +340,12 @@ _shp2_channel_range = range(1, shp2.Device.NUM_OF_CHANNELS + 1)
 def shp2_channel(
     fn: Callable[..., EcoflowSensorEntityDescription],
     translation_key: str | None = None,
+    translation_placeholders: dict[str, str] | None = None,
     **kwargs,
 ) -> EcoflowSensorEntityDescription:
-    """Indexed SHP2 channel sensor with channel placeholder pre-filled."""
     return fn(
         translation_key=translation_key,
-        translation_placeholders={"channel": "{n}"},
+        translation_placeholders=translation_placeholders or {"channel": "{n}"},
         indexed_range=_shp2_channel_range,
         **kwargs,
     )
@@ -338,12 +354,12 @@ def shp2_channel(
 def shp2_circuit(
     fn: Callable[..., EcoflowSensorEntityDescription],
     translation_key: str | None = None,
+    translation_placeholders: dict[str, str] | None = None,
     **kwargs,
 ) -> EcoflowSensorEntityDescription:
-    """Indexed SHP2 circuit sensor with zero-padded index placeholder pre-filled."""
     return fn(
         translation_key=translation_key,
-        translation_placeholders={"index": "{n:02d}"},
+        translation_placeholders=translation_placeholders or {"index": "{n:02d}"},
         indexed_range=_shp2_circuit_range,
         **kwargs,
     )
@@ -361,19 +377,27 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     "grid_power": power(precision=1),
     "power_status": enum(options=shp2.PowerStatus),
     "in_use_power": power(precision=2),
-    "circuit_power_{n}": shp2_circuit(power, "circuit_power", precision=2),
+    "circuit_power_{n}": shp2_circuit(
+        power,
+        "circuit_power",
+        precision=2,
+        translation_placeholders={"index": "{n:02d}"},
+    ),
     "circuit_current_{n}": shp2_circuit(
         current, "circuit_current", precision=2, enabled=False, state_class=None
     ),
-    "channel_power_{n}": power(
+    "channel_power_{n}": shp2_channel(
+        power,
+        "channel_power",
         precision=2,
         state_class=None,
-        translation_key="channel_power",
-        translation_placeholders={"index": "{n:02d}"},
-        indexed_range=_shp2_channel_range,
+        translation_placeholders={"index": "{n}"},
     ),
+    # SHP2 ch info (backup channel)
     "ch{n}_ctrl_status": shp2_channel(
-        enum, "backup_ctrl_status", options=shp2.ControlStatus
+        enum,
+        "backup_ctrl_status",
+        options=shp2.ControlStatus,
     ),
     "ch{n}_backup_rly1_cnt": shp2_channel(
         raw,
@@ -390,7 +414,9 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "ch{n}_wake_up_charge_status": shp2_channel(
-        battery, "backup_wakeup_charge", enabled=False
+        battery,
+        "backup_wakeup_charge",
+        enabled=False,
     ),
     "ch{n}_5p8_type": shp2_channel(
         raw,
@@ -398,6 +424,7 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
         enabled=False,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
+    # SHP2 energy info (per-channel)
     "channel{n}_sn": shp2_channel(
         raw,
         "channel_serial_number",
@@ -411,25 +438,47 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "channel{n}_capacity": shp2_channel(
-        energy_storage, "channel_full_capacity", enabled=False
+        energy_storage,
+        "channel_full_capacity",
+        enabled=False,
     ),
     "channel{n}_rate_power": shp2_channel(
-        power, "channel_rated_power", precision=0, enabled=False
+        power,
+        "channel_rated_power",
+        precision=0,
+        enabled=False,
     ),
-    "channel{n}_battery_percentage": shp2_channel(battery, "channel_battery_level"),
-    "channel{n}_output_power": shp2_channel(power, "channel_output_power", precision=1),
-    "channel{n}_battery_temp": shp2_channel(temperature, "channel_battery_temperature"),
+    "channel{n}_battery_percentage": shp2_channel(
+        battery,
+        "channel_battery_level",
+    ),
+    "channel{n}_output_power": shp2_channel(
+        power,
+        "channel_output_power",
+        precision=1,
+    ),
+    "channel{n}_battery_temp": shp2_channel(
+        temperature,
+        "channel_battery_temperature",
+    ),
     "channel{n}_lcd_input": shp2_channel(
-        power, "channel_lcd_input_power", precision=0, enabled=False
+        power,
+        "channel_lcd_input_power",
+        precision=0,
+        enabled=False,
     ),
     "channel{n}_pv_status": shp2_channel(
         enum, "channel_pv_status", enabled=False, options=shp2.PVStatus
     ),
     "channel{n}_pv_lv_input": shp2_channel(
-        power, "channel_pv_lv_input_power", precision=0
+        power,
+        "channel_pv_lv_input_power",
+        precision=0,
     ),
     "channel{n}_pv_hv_input": shp2_channel(
-        power, "channel_pv_hv_input_power", precision=0
+        power,
+        "channel_pv_hv_input_power",
+        precision=0,
     ),
     "channel{n}_error_code": shp2_channel(
         raw,
@@ -492,8 +541,8 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     "xt150_battery_level": battery(),
     "engine_state": enum(options=smart_generator.EngineOpen),
     "liquefied_gas_type": enum(options=smart_generator.LiquefiedGasType),
-    "liquefied_gas_consumption": weight(),
-    "liquefied_gas_remaining": weight(),
+    "liquefied_gas_consumption": weight(unit_field=_liquefied_gas_unit),
+    "liquefied_gas_remaining": weight(unit_field=_liquefied_gas_unit),
     "generator_abnormal_state": enum(options=smart_generator.AbnormalState),
     "sub_battery_soc": battery(),
     "sub_battery_state": enum(options=smart_generator.SubBatteryState),
@@ -602,19 +651,16 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
 }
 
 SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = (
-    resolve_entity_description_keys(_SENSORS, EcoflowSensorEntityDescription)
+    resolve_entity_description_keys(_SENSORS)
 )
 
 
-_BATTERY_ADDON_INDEX_SENSORS: Final = resolve_entity_description_keys(
-    {
-        "battery_{n}_battery_level": battery(translation_key="battery_level"),
-        "battery_{n}_cell_temperature": temperature(translation_key="cell_temperature"),
-        "battery_{n}_input_power": power(precision=0, translation_key="input_power"),
-        "battery_{n}_output_power": power(precision=0, translation_key="output_power"),
-    },
-    EcoflowSensorEntityDescription,
-)
+_BATTERY_ADDON_SENSORS: Final = {
+    "battery_{n}_battery_level": battery(translation_key="battery_level"),
+    "battery_{n}_cell_temperature": temperature(translation_key="cell_temperature"),
+    "battery_{n}_input_power": power(precision=0, translation_key="input_power"),
+    "battery_{n}_output_power": power(precision=0, translation_key="output_power"),
+}
 
 
 async def async_setup_entry(
@@ -671,7 +717,7 @@ def _get_extra_battery_entities(
         if battery_index not in available_indices:
             continue
 
-        for template_key, desc in _BATTERY_ADDON_INDEX_SENSORS.items():
+        for template_key, desc in _BATTERY_ADDON_SENSORS.items():
             attr_name = template_key.replace("{n}", str(battery_index))
             if not hasattr(device, attr_name):
                 continue
@@ -680,7 +726,7 @@ def _get_extra_battery_entities(
                 EcoflowBatteryAddonSensor(
                     device=device,
                     sensor=attr_name,
-                    description=desc,
+                    description=replace(desc, key=attr_name),
                     battery_index=battery_index,
                 )
             )
@@ -761,7 +807,7 @@ class EcoflowBatteryAddonSensor(EcoflowBatteryAddonEntity, SensorEntity):
     ) -> None:
         super().__init__(device=device, battery_index=battery_index)
         self._sensor = sensor
-        self._attr_unique_id = f"ef_{device.serial_number}_{sensor}"
+        self._attr_unique_id = f"ef_{device.serial_number}_{description.key}"
         self._attr_native_value = getattr(device, sensor, None)
         self.entity_description = description
         if self.entity_description.translation_key is None:

@@ -63,7 +63,6 @@ class RawDataField[T](Field[T]):
 
     def __set__(self, instance: "RawDataProps", value: Any):
         value = self._get_value(value)
-        value = self._transform_value(value)
         super().__set__(instance, value)
 
 

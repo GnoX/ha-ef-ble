@@ -1,47 +1,14 @@
 import dataclasses
-from collections.abc import Callable
-from typing import Any
+from collections.abc import Callable, Mapping
+from typing import Any, Protocol, runtime_checkable
 
 from homeassistant.core import callback
 from homeassistant.helpers.device_registry import CONNECTION_BLUETOOTH, DeviceInfo
-from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.entity import Entity, EntityDescription
 
 from .const import DOMAIN, MANUFACTURER
 from .eflib import DeviceBase
 from .eflib.device_mappings import battery_name_from_device
-
-
-def resolve_entity_description_keys(
-    descriptions: dict[str, Any],
-    indexed_type: type,
-) -> dict[str, Any]:
-    """
-    Fill in description keys from dict key, and expand indexed ({n}) descriptions.
-
-    Descriptions with {n} in their key that are instances of indexed_type with
-    indexed_range set are expanded across the range. {n} in translation_placeholder
-    values is also replaced, supporting format specs like {n:02d}.
-    """
-    result = {}
-    for k, v in descriptions.items():
-        if "{n}" in k and isinstance(v, indexed_type) and v.indexed_range is not None:
-            for i in v.indexed_range:
-                actual_key = k.replace("{n}", str(i))
-                placeholders = v.translation_placeholders
-                if placeholders:
-                    placeholders = {
-                        pk: pv.format(n=i) for pk, pv in placeholders.items()
-                    }
-                result[actual_key] = dataclasses.replace(
-                    v,
-                    key=actual_key,
-                    indexed_range=None,
-                    translation_placeholders=placeholders,
-                )
-            continue
-
-        result[k] = dataclasses.replace(v, key=k) if not v.key else v
-    return result
 
 
 class EcoflowEntity(Entity):
@@ -53,7 +20,7 @@ class EcoflowEntity(Entity):
 
     @property
     def device_info(self):
-        """Return information to link this entity with the correct device."""
+        """Return information to link this entity with the correct device"""
         return DeviceInfo(
             identifiers={
                 (DOMAIN, self._device.address),
@@ -69,7 +36,7 @@ class EcoflowEntity(Entity):
 
     @property
     def available(self) -> bool:
-        """Return True if device is connected."""
+        """Return True if device is connected"""
         return self._device.is_connected
 
     class SkipWrite:
@@ -85,8 +52,8 @@ class EcoflowEntity(Entity):
         if prop_name is None:
             return
 
-        if val := getattr(self._device, prop_name, None):
-            setattr(self, entity_attr, get_state(val))
+        if value := getattr(self._device, prop_name, None):
+            setattr(self, entity_attr, get_state(value))
 
         @callback
         def state_updated(state: Any):
@@ -138,3 +105,47 @@ class EcoflowBatteryAddonEntity(EcoflowEntity):
             serial_number=battery_sn,
             via_device=(DOMAIN, self._device.address),
         )
+
+
+@runtime_checkable
+class IndexableDescription(Protocol):
+    """Entity description that supports indexed expansion via `{n}` in keys"""
+
+    key: str
+    indexed_range: range | None
+    translation_placeholders: Mapping[str, str] | None
+
+
+def resolve_entity_description_keys[D: EntityDescription](
+    descriptions: dict[str, D],
+) -> dict[str, D]:
+    """
+    Fill in description keys from dict key, and expand indexed ({n}) descriptions.
+
+    Descriptions with {n} in their key that are instances of indexed_type with
+    indexed_range set are expanded across the range. {n} in translation_placeholder
+    values is also replaced, supporting format specs like {n:02d}.
+    """
+    result: dict[str, D] = {}
+    for k, v in descriptions.items():
+        if not (
+            "{n}" in k
+            and isinstance(v, IndexableDescription)
+            and v.indexed_range is not None
+        ):
+            result[k] = dataclasses.replace(v, key=k) if not v.key else v
+            continue
+
+        for i in v.indexed_range:
+            actual_key = k.replace("{n}", str(i))
+            placeholders = v.translation_placeholders
+            if placeholders:
+                placeholders = {pk: pv.format(n=i) for pk, pv in placeholders.items()}
+            result[actual_key] = dataclasses.replace(
+                v,
+                key=actual_key,
+                indexed_range=None,
+                translation_placeholders=placeholders,
+            )
+
+    return result

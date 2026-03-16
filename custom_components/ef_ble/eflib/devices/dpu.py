@@ -16,7 +16,7 @@ pb_heartbeat = proto_attr_mapper(yj751_sys_pb2.AppShowHeartbeatReport)
 pb_bp_info = proto_attr_mapper(yj751_sys_pb2.BpInfoReport)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class _BatteryLevel(
     repeated_pb_field_type(
         list_field=pb_bp_info.bp_info, value_field=lambda x: x.bp_soc, per_item=True
@@ -28,7 +28,7 @@ class _BatteryLevel(
         return item.bp_soc if item.bp_no == self.battery_no else None
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class _BatteryTemperature(
     repeated_pb_field_type(
         list_field=pb_bp_info.bp_info, value_field=lambda x: x.bp_temp, per_item=True

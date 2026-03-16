@@ -1,10 +1,7 @@
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
-from homeassistant.components.select import (
-    SelectEntity,
-    SelectEntityDescription,
-)
+from homeassistant.components.select import SelectEntity, SelectEntityDescription
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -32,7 +29,6 @@ class EcoflowSelectEntityDescription[T: DeviceBase](SelectEntityDescription):
 
 
 SELECT_TYPES: list[EcoflowSelectEntityDescription] = [
-    # River 3 Plus
     EcoflowSelectEntityDescription[river3_plus.Device](
         key="led_mode",
         options=river3_plus.LedMode.options(include_unknown=False),
@@ -141,7 +137,7 @@ SELECT_TYPES: list[EcoflowSelectEntityDescription] = [
         ),
     ),
     EcoflowSelectEntityDescription[powerstream.Device](
-        key=powerstream.Device.power_supply_priority,
+        key="power_supply_priority",
         name="Power Supply Priority",
         options=powerstream.PowerSupplyPriority.options(include_unknown=False),
         set_state=(
