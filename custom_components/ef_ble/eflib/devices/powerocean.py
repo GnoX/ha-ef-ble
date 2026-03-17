@@ -178,11 +178,6 @@ class _BpHeartbeatBmsRunStaDef(repeated_pb_field_type(pb_bp_heart.bp_heart_beat,
             return None
 
 
-
-
-#bp_sys_state = pb_field(pb_disp.user_temp_unit, BmsSysState.from_mode)
-
-
 class _MpptPv(repeated_pb_field_type(pb_heartbeat.mppt_heart_beat, lambda msg: msg, per_item=True)):
     idx: int
     type: str
@@ -213,8 +208,6 @@ class _MpptPv(repeated_pb_field_type(pb_heartbeat.mppt_heart_beat, lambda msg: m
 
 
 class _EmsErrorCode(repeated_pb_field_type(pb_error_change_report.ems_err_code, lambda msg: msg, per_item=True)):
-    #idx: int
-    #type: str
     def get_value(self, item: jt_s1_sys_pb2.ErrorCode) -> int | None:
         if not item.err_code:
             return None
@@ -224,16 +217,11 @@ class _EmsErrorCode(repeated_pb_field_type(pb_error_change_report.ems_err_code, 
 
 
 class _PcsErrorCode(repeated_pb_field_type(pb_error_change_report.pcs_err_code, lambda msg: msg, per_item=True)):
-    #idx: int
-    #type: str
     def get_value(self, item: jt_s1_sys_pb2.ErrorCode) -> int | None:
         if not item.err_code:
             return None
         else:
             return item.err_code[0]
-
-
-
 
 
 # class _ErrorChangeReport(repeated_pb_field_type(pb_error_change_report, lambda msg: msg, per_item=True)):
@@ -263,7 +251,7 @@ class _PcsErrorCode(repeated_pb_field_type(pb_error_change_report.pcs_err_code, 
 #       - hotrod support
 #       - EV support
 #       - HeatPump support
-#       - split into plus and normal version
+#       OK    - split into plus and normal version
 #
 
 #   Description:
@@ -273,7 +261,7 @@ class _PcsErrorCode(repeated_pb_field_type(pb_error_change_report.pcs_err_code, 
 class Device(DeviceBase, ProtobufProps):
     """Power Ocean"""
 
-    SN_PREFIX = (b"J32",)
+    SN_PREFIX = (b"J32", b"HJ3", b"HC3")  # 1-phase, 3-phase, DC-Fit
     NAME_PREFIX = "EF-J32"
 
 
@@ -316,8 +304,6 @@ class Device(DeviceBase, ProtobufProps):
     bpack1_bp_sys_state = _BpHeartbeatBmsSysState(1) # Diag
     bpack1_bms_run_sta = _BpHeartbeatBmsRunStaDef(1) # Diag
 
-    # temp_unit = pb_field(pb_disp.user_temp_unit, TemperatureUnit.from_mode)
-
     bpack2_bp_amp = _BpHeartbeatFloatValue(2, 'bp_amp')
     bpack2_bp_err_code = _BpHeartbeatIntValue(2, 'bp_err_code')
     bpack2_bp_env_temp = _BpHeartbeatFloatValue(2, 'bp_env_temp')
@@ -346,6 +332,21 @@ class Device(DeviceBase, ProtobufProps):
     bpack3_bp_sys_state = _BpHeartbeatBmsSysState(3) # Diag
     bpack3_bms_run_sta = _BpHeartbeatBmsRunStaDef(3) # Diag
 
+    bpack4_bp_amp = _BpHeartbeatFloatValue(4, 'bp_amp')
+    bpack4_bp_err_code = _BpHeartbeatIntValue(4, 'bp_err_code')
+    bpack4_bp_env_temp = _BpHeartbeatFloatValue(4, 'bp_env_temp')
+    bpack4_bp_max_cell_temp = _BpHeartbeatFloatValue(4, 'bp_max_cell_temp')
+    bpack4_bp_min_cell_temp = _BpHeartbeatFloatValue(4, 'bp_min_cell_temp')
+    bpack4_bp_pwr = _BpHeartbeatFloatValue(4, 'bp_pwr')
+    bpack4_bp_remain_watth = _BpHeartbeatFloatValue(4, 'bp_remain_watth')
+    bpack4_bp_soc = _BpHeartbeatIntValue(4, 'bp_soc')
+    bpack4_bp_soh = _BpHeartbeatIntValue(4, 'bp_soh')
+    bpack4_bp_vol = _BpHeartbeatFloatValue(4, 'bp_vol')
+    bpack4_bp_cycles = _BpHeartbeatIntValue(4, 'bp_cycles')  # Diag
+    bpack4_bp_sys_state = _BpHeartbeatBmsSysState(4) # Diag
+    bpack4_bms_run_sta = _BpHeartbeatBmsRunStaDef(4) # Diag
+
+
     bp_soc = pb_field(pb_ems_change_report.bp_soc)
     #bp_pwr = pb_field(pb_ems_change_report.bp_pwr)
     bp_total_chg_energy = pb_field(pb_ems_change_report.bp_total_chg_energy)
@@ -355,7 +356,7 @@ class Device(DeviceBase, ProtobufProps):
     mppt_pv1_warning_code = pb_field(pb_ems_change_report.mppt1_warning_code)
     mppt_pv2_fault_code = pb_field(pb_ems_change_report.mppt2_fault_code)
     mppt_pv2_warning_code = pb_field(pb_ems_change_report.mppt1_warning_code)
-    ems_work_mode_value = pb_field(pb_ems_change_report.ems_word_mode, WorkMode.from_mode) # TODO enum WORKMODE_SELFUSE
+    #ems_work_mode_value = pb_field(pb_ems_change_report.ems_word_mode, WorkMode.from_mode) # TODO enum WORKMODE_SELFUSE
 
     # temp_unit = pb_field(pb_disp.user_temp_unit, TemperatureUnit.from_mode)
 
@@ -411,7 +412,6 @@ class Device(DeviceBase, ProtobufProps):
     spga_ems_work_mode = pb_field(pb_sys_param_get_ack.ems_work_mode)
     # Test fields trying to see if offgrid is indicated
     power_limit_mode = pb_field(pb_heartbeat.power_limit_mode)
-    #ems_work_mode = pb_field(pb_heartbeat.ems_work_mode)   # WORKMODE_SELFUSE
     pcs_offgrid_para_type = pb_field(pb_heartbeat.pcs_offgrid_para_type)
     pcs_offgrid_para_addr = pb_field(pb_heartbeat.pcs_offgrid_para_addr)
 
@@ -455,7 +455,109 @@ class Device(DeviceBase, ProtobufProps):
     def isPowerOceanPlus(self):
         return False
 
+    # In this method we create ignore list, to prevent any "unsupported" or "new" packets to slip through
+    def isOnIgnoreList(self, packet: Packet):
+        if packet.src == 0x60 and packet.cmdSet == 0x60:  # base power ocean
+            return (packet.cmdId in [10, 11, 12, 13, 14, 24, 25, 26, 34, 35, 36, 41, 50, 98, 99, 100, 101, 102,
+                                     103,105,106.107,109,112,121,124,125,126,127,132,133,137,138,143,144,
+                                     145,147,148,151,152,153])
+        elif packet.src == 0x60 and packet.cmdSet == 0xD1:  # EV  (96,209)
+            return packet.cmdId in [2, 97, 98, 99, 100, 101, 103]
+        elif packet.src == 0x60 and packet.cmdSet == 0xD3:  # Heat Pump  (96,211)
+            return packet.cmdId in [2, 99, 100, 102]
+        elif packet.src == 0x60 and packet.cmdSet == 0xD4:  # Heating Rod  (96,212)
+            return packet.cmdId in [2, 99, 101]
+        elif packet.src == 0x60 and packet.cmdSet == 0xE0:  # ecology_dev (96,224)
+            return packet.cmdId in [1, 36, 106, 107]
+        elif packet.src == 0x60 and packet.cmdSet == 0xE1:  # parallel_lan (96,225)
+            return packet.cmdId in [97, 98]
+        elif packet.src == 0x60 and packet.cmdSet == 0xF0:  # edev (96,240)
+            return packet.cmdId in [2, 97, 98, 99, 0x02]
+        elif packet.src == 0x60 and packet.cmdSet == 0xF1:  # edev (96,241)  Unknown 5, 36
+            return packet.cmdId in [1, 3, 4, 5, 36, 100, 101, 102, 106, 108, 113]
+        elif packet.src == 0x03 and packet.cmdSet == 0x32:  # eco (3,50)
+            return packet.cmdId in [62]
+        elif packet.src == 0x35 and packet.cmdSet == 0x35:  #  53,53
+            return packet.cmdId in [13, 113, 170]
+        elif packet.cmdSet == 0xFE and packet.cmdId == 0x10: # _, 0xFE, 0x10
+            return True
+        else:
+            return False
+
+
     async def data_parse(self, packet: Packet):
+        if not self.connection_state.authenticated:
+            self._conn._set_state(ConnectionState.AUTHENTICATED)
+            self._conn._connected.set()
+
+        processed = False
+        self.reset_updated()
+
+        check_ignore_list = False
+
+        if packet.src == 0x60 and packet.cmdSet == 0x60:  # base power ocean functionality
+            if packet.cmdId == 0x01:  # 1
+                self.update_from_bytes(jt_s1_sys_pb2.HeartbeatReport, packet.payload)
+            elif packet.cmdId == 0x03:  # 3
+                self.update_from_bytes(jt_s1_sys_pb2.ErrorChangeReport, packet.payload)
+            elif packet.cmdId == 0x07:  # 7
+                self.update_from_bytes(jt_s1_sys_pb2.BpHeartbeatReport, packet.payload)
+            elif packet.cmdId == 0x08 or packet.cmdId == 0x11 or packet.cmdId == 0x25:  # 8, 17, 37
+                if not self.isPowerOceanPlus():
+                    self.update_from_bytes(jt_s1_sys_pb2.EmsChangeReport, packet.payload)
+                else:
+                    self.update_from_bytes(re307_sys_pb2.EmsChangeReport, packet.payload)
+            elif packet.cmdId == 0x21:  # 33
+                self.update_from_bytes(jt_s1_sys_pb2.EnergyStreamReport, packet.payload)
+            elif packet.cmdId == 0x27:  # 39
+                self.update_from_bytes(jt_s1_sys_pb2.EmsPVInvEnergyStreamReport, packet.payload)
+            else:
+                check_ignore_list = True
+
+        elif packet.src == 0x60 and packet.cmdSet == 0xD1:  # EV (96,209)
+            if packet.cmdId == 0x08:  # 8
+                self.update_from_bytes(jt_s1_ev_pb2.EVChargingParamReport, packet.payload)
+            elif packet.cmdId == 0x21:  # 33
+                self.update_from_bytes(jt_s1_ev_pb2.EVChargingEnergyStreamReport, packet.payload)
+            else:
+                check_ignore_list = True
+
+        elif packet.src == 0x60 and packet.cmdSet == 0xD3:  # Heat Pump (96,211)
+            if packet.cmdId == 0x01:  # 1
+                self.update_from_bytes(jt_s1_heatpump_pb2.HPUIReport, packet.payload)
+            else:
+                check_ignore_list = True
+
+        elif packet.src == 0x60 and packet.cmdSet == 0xD4:  # Heating Rod  (96,212)
+            if packet.cmdId == 0x08:  # 8
+                self.update_from_bytes(jt_s1_heatingrod_pb2.HRChargingParamReport, packet.payload)
+            elif packet.cmdId == 0x21:  # 33
+                self.update_from_bytes(jt_s1_heatingrod_pb2.HeatingRodEnergyStreamShow, packet.payload)
+            else:
+                check_ignore_list = True
+
+        elif packet.src == 0x60 and packet.cmdSet == 0xF1:  # EDev  (96,241)
+            if packet.cmdId == 0x21:  # 33
+                self.update_from_bytes(jt_s1_edev_pb2.EDevEnergyStreamShow, packet.payload)
+            else:
+                check_ignore_list = True
+
+        else:
+            check_ignore_list = True
+
+        if check_ignore_list:
+            if not self.isOnIgnoreList(packet):
+                self._logger.info("Unknown packet: src=%d,cmdSet=%d,cmdId=%d: \nPacket=%s", packet.src, packet.cmdSet,
+                                  packet.cmdId, packet)
+
+        for field_name in self.updated_fields:
+            self.update_callback(field_name)
+            self.update_state(field_name, getattr(self, field_name))
+
+        return processed
+
+
+    def data_parse_old(self, packet: Packet):
         # TODO temporary solution since PO doesn't return authenticated response and just starts sending data
         if not self.connection_state.authenticated:
             self._conn._set_state(ConnectionState.AUTHENTICATED)
@@ -475,6 +577,7 @@ class Device(DeviceBase, ProtobufProps):
             case 0x35, 0x35, 0x0d: # 13
                 pass   # not sure about this java code call something
             case 0x35, 0x35, 0x71: # 113
+                # self._logger.info("PowerOcean: Module Info")
                 self.update_from_bytes(iot_comm_pb2.ModuleClusterInfo, packet.payload)
             case 0x35, 0x35, 0xaa: # 170
                 pass # self.update_from_bytes(iot_comm_pb2.RefreshTokenAck, packet.payload)
@@ -556,7 +659,7 @@ class Device(DeviceBase, ProtobufProps):
             case 0x60, 0x60, 0x6b: # 107
                 self.update_from_bytes(jt_s1_sys_pb2.EmsEcologyDevBindAck, packet.payload)
             case 0x60, 0x60, 0x6d: # 109
-                self.update_from_bytes(jt_s1_sys_pb2.EmsEcologyDevParamSetAck, packet.payload)
+                pass # self.update_from_bytes(jt_s1_sys_pb2.EmsEcologyDevParamSetAck, packet.payload) this produced error
 
             case 0x60, 0x60, 0x70: # 112
                 self.update_from_bytes(jt_s1_sys_pb2.SysBatChgDsgSetAck, packet.payload)
@@ -696,7 +799,7 @@ class Device(DeviceBase, ProtobufProps):
                 pass # EcoPacket ??
 
             case _:
-                self._logger.info("PowerOcean: Unprocessed packet: src=%d,cmdSet=%d,cmdId=%d: Packet=%s", packet.src, packet.cmdSet, packet.cmdId, packet)
+                self._logger.info("Unprocessed packet sss: src=%d,cmdSet=%d,cmdId=%d: Packet=%s", packet.src, packet.cmdSet, packet.cmdId, packet)
 
         for field_name in self.updated_fields:
             self.update_callback(field_name)
