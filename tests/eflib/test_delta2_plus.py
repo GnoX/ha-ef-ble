@@ -33,7 +33,7 @@ def packet_sequence():
 def device(mocker: MockerFixture):
     ble_dev = mocker.Mock()
     ble_dev.address = "AA:BB:CC:DD:EE:FF"
-    adv_data = mocker.Mock()
+    adv_data = mocker.MagicMock()
     device = Device(ble_dev, adv_data, "D361TEST1234")
     device._conn = mocker.AsyncMock()
     return device
@@ -175,7 +175,6 @@ async def test_delta2_plus_field_types_are_consistent(device, packet_sequence):
         Device.ac_ports,
         Device.usb_ports,
         Device.dc_12v_port,
-        Device.battery_addon,
     ]
 
     for field_name in boolean_fields:
@@ -209,19 +208,6 @@ async def test_delta2_plus_battery_soc_values_are_valid(device, packet_sequence)
             )
 
 
-async def test_delta2_plus_addon_battery_detection(device, packet_sequence):
-    assert device.battery_addon is False
-
-    for hex_packet in packet_sequence:
-        packet = await device.packet_parse(bytes.fromhex(hex_packet))
-        await device.data_parse(packet)
-
-    if device.battery_1_battery_level is not None:
-        assert device.battery_addon is True, (
-            "Addon battery not detected after processing battery_1 data"
-        )
-
-
 async def test_delta2_plus_exact_values_from_known_packets(device, packet_sequence):
     for hex_packet in packet_sequence:
         packet = await device.packet_parse(bytes.fromhex(hex_packet))
@@ -231,6 +217,7 @@ async def test_delta2_plus_exact_values_from_known_packets(device, packet_sequen
         Device.battery_level: 99.08,
         Device.battery_level_main: 98.4,
         Device.battery_1_battery_level: 100.0,
+        Device.battery_1_cell_temperature: 32,
         Device.input_power: 437,
         Device.output_power: 318,
         Device.ac_output_power: 318,
@@ -243,8 +230,12 @@ async def test_delta2_plus_exact_values_from_known_packets(device, packet_sequen
         Device.ac_ports: True,
         Device.usb_ports: False,
         Device.dc_12v_port: False,
-        Device.battery_addon: True,
         Device.max_ac_charging_power: 1500,
+        Device.remaining_time_charging: 5939,
+        Device.remaining_time_discharging: 5939,
+        Device.dc_input_voltage: 1.5,
+        Device.dc_input_current: 0.0,
+        Device.xt60_input_power: 0,
     }
 
     for field_name, expected_value in expected.items():

@@ -24,8 +24,10 @@ from .eflib.devices import (
     delta3_classic,
     delta3_plus,
     delta_pro_3,
+    powerstream,
     river2,
     river3,
+    shp2,
     smart_generator,
     smart_generator_4k,
     stream_ac,
@@ -41,6 +43,7 @@ class EcoflowNumberEntityDescription[Device: DeviceBase](NumberEntityDescription
 
     min_value_prop: str | None = None
     max_value_prop: str | None = None
+    step_value_prop: str | None = None
     availability_prop: str | None = None
 
 
@@ -86,13 +89,18 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
         ),
     ),
     EcoflowNumberEntityDescription[
-        river3.Device | delta3_classic.Device | delta_pro_3.Device | river2.Device
+        river3.Device
+        | delta3_classic.Device
+        | delta_pro_3.Device
+        | river2.Device
+        | shp2.Device
     ](
         key="ac_charging_speed",
         name="AC Charging Speed",
         device_class=NumberDeviceClass.POWER,
         native_unit_of_measurement=UnitOfPower.WATT,
         native_step=1,
+        step_value_prop="ac_charging_speed_step",
         min_value_prop="min_ac_charging_power",
         max_value_prop="max_ac_charging_power",
         async_set_native_value=(
@@ -222,6 +230,16 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
         ),
         availability_prop="load_power_enabled",
     ),
+    EcoflowNumberEntityDescription[powerstream.Device](
+        key="load_power",
+        name="Load Power",
+        device_class=NumberDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        native_step=0.1,
+        native_min_value=0,
+        max_value_prop="load_power_max",
+        async_set_native_value=lambda device, value: device.set_load_power(value),
+    ),
     EcoflowNumberEntityDescription[stream_ac.Device](
         key="grid_in_power_limit",
         name="Grid Input Power Limit",
@@ -284,6 +302,30 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
             lambda device, value: device.set_feed_grid_mode_pow_limit(int(value))
         ),
     ),
+    EcoflowNumberEntityDescription[shp2.Device](
+        key="backup_reserve_level",
+        device_class=NumberDeviceClass.BATTERY,
+        native_unit_of_measurement=PERCENTAGE,
+        native_step=1.0,
+        native_min_value=10,
+        native_max_value=50,
+        async_set_native_value=(
+            lambda device, value: device.set_backup_reserve_level(int(value))
+        ),
+        availability_prop="backup_reserve_level",
+    ),
+    EcoflowNumberEntityDescription[shp2.Device](
+        key="backup_charge_limit",
+        device_class=NumberDeviceClass.BATTERY,
+        native_unit_of_measurement=PERCENTAGE,
+        native_step=1.0,
+        native_min_value=80,
+        native_max_value=100,
+        availability_prop="backup_charge_limit",
+        async_set_native_value=(
+            lambda device, value: device.set_backup_charge_limit(int(value))
+        ),
+    ),
 ]
 
 
@@ -310,17 +352,15 @@ class EcoflowNumber(EcoflowEntity, NumberEntity):
         entity_description: EcoflowNumberEntityDescription[DeviceBase],
     ):
         super().__init__(device)
-        self._attr_unique_id = f"{device.name}_{entity_description.key}"
+        self._attr_unique_id = f"ef_{device.serial_number}_{entity_description.key}"
         self.entity_description = entity_description
         self._min_value_prop = entity_description.min_value_prop
         self._max_value_prop = entity_description.max_value_prop
+        self._step_value_prop = getattr(entity_description, "step_value_prop", None)
         self._availability_prop = entity_description.availability_prop
         self._set_native_value = entity_description.async_set_native_value
         self._prop_name = entity_description.key
         self._attr_native_value = getattr(device, self._prop_name)
-
-        if entity_description.translation_key is None:
-            self._attr_translation_key = self.entity_description.key
 
         if entity_description.translation_key is None:
             self._attr_translation_key = self.entity_description.key
@@ -342,6 +382,13 @@ class EcoflowNumber(EcoflowEntity, NumberEntity):
             self._max_value_prop,
             lambda state: state if state is not None else self.SkipWrite,
         )
+        if self._step_value_prop is not None:
+            self._attr_native_step = getattr(device, self._step_value_prop)
+            self._register_update_callback(
+                "_attr_native_step",
+                self._step_value_prop,
+                lambda state: state if state is not None else self.SkipWrite,
+            )
 
     @property
     def available(self):

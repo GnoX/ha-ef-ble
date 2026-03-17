@@ -71,7 +71,7 @@ class Device(DeviceBase, ProtobufProps):
     dc_input_power = pb_field(pb.pow_get_pv)
     dc_input_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_PV_IN_ENERGY)
 
-    dc12v_output_power = pb_field(pb.pow_get_12v)
+    dc12v_output_power = pb_field(pb.pow_get_12v, _out_power)
     dc12v_output_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_DC12V_OUT_ENERGY)
 
     usbc_output_power = pb_field(pb.pow_get_typec1, _out_power)
@@ -100,6 +100,9 @@ class Device(DeviceBase, ProtobufProps):
     dc_charging_type = pb_field(pb.pv_chg_type, DcChargingType.from_value)
     dc_charging_max_amps = pb_field(pb.plug_in_info_pv_dc_amp_max)
     dc_charging_current_max = Field[int]()
+
+    remaining_time_charging = pb_field(pb.cms_chg_rem_time)
+    remaining_time_discharging = pb_field(pb.cms_dsg_rem_time)
 
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str

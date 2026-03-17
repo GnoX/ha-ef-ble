@@ -12,9 +12,11 @@ from . import DeviceConfigEntry
 from .eflib import DeviceBase
 from .eflib.devices import (
     alternator_charger,
+    powerstream,
     river2,
     river3,
     river3_plus,
+    shp2,
     smart_generator,
     stream_ac,
     wave2,
@@ -138,6 +140,25 @@ SELECT_TYPES: list[EcoflowSelectEntityDescription] = [
             lambda device, value: device.set_drain_mode(wave2.DrainMode[value.upper()])
         ),
     ),
+    EcoflowSelectEntityDescription[powerstream.Device](
+        key=powerstream.Device.power_supply_priority,
+        name="Power Supply Priority",
+        options=powerstream.PowerSupplyPriority.options(include_unknown=False),
+        set_state=(
+            lambda device, value: device.set_supply_priority(
+                powerstream.PowerSupplyPriority[value.upper()]
+            )
+        ),
+    ),
+    EcoflowSelectEntityDescription[shp2.Device](
+        key="smart_backup_mode",
+        options=shp2.SmartBackupMode.options(include_unknown=False),
+        set_state=(
+            lambda device, value: device.set_smart_backup_mode(
+                shp2.SmartBackupMode[value.upper()]
+            )
+        ),
+    ),
 ]
 
 
@@ -167,11 +188,11 @@ class EcoflowSelect(EcoflowEntity, SelectEntity):
     ):
         super().__init__(device)
 
-        self._attr_unique_id = f"{self._device.name}_{description.key}"
+        self._attr_unique_id = f"ef_{self._device.serial_number}_{description.key}"
         self.entity_description = description
         self._prop_name = self.entity_description.key
         self._set_state = description.set_state
-        self._attr_current_option = None
+        self._attr_current_option = getattr(device, self._prop_name, None)
         self._availability_prop = description.availability_prop
 
         if self.entity_description.translation_key is None:

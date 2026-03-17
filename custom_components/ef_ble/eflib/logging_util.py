@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 
 import bleak
 
+from .encryption import Session
 from .packet import Packet
 
 if TYPE_CHECKING:
@@ -134,6 +135,9 @@ class MaskingLogger(logging.Logger):
         level: int = logging.DEBUG,
     ) -> None:
         if options in self._options:
+            args = tuple(
+                _LazyHex(a) if isinstance(a, (bytes, bytearray)) else a for a in args
+            )
             self._logger.log(level, msg, *args)
 
 
@@ -258,10 +262,30 @@ class ConnectionLog:
 class DeviceDiagnostics:
     """Diagnostics data collected from the device connection and packets"""
 
-    last_packets: list[tuple[float, str]]
+    last_packets: list[tuple[float, bytes]]
     last_errors: list[tuple[float, str]]
     connect_times: list[float]
     disconnect_times: list[float]
+    raw_data_connection: list[tuple[float, bytes]]
+    raw_data_messages: list[tuple[float, bytes]]
+    iv: bytes
+    session_key: bytes
+
+    def encrypt(self, session: Session):
+        return dataclasses.replace(
+            self,
+            last_packets=[
+                (t, session.encrypt(v).hex()) for (t, v) in self.last_packets
+            ],
+            raw_data_connection=[
+                (k, session.encrypt(v).hex()) for (k, v) in self.raw_data_connection
+            ],
+            raw_data_messages=[
+                (k, session.encrypt(v).hex()) for (k, v) in self.raw_data_messages
+            ],
+            iv=session.encrypt(self.iv).hex(),
+            session_key=session.encrypt(self.session_key).hex(),
+        )
 
     def as_dict(self):
         """Get diagnostics data as dictionary"""
@@ -276,9 +300,11 @@ class DeviceDiagnosticsCollector:
         self._enabled = False
         self._buffer_size = buffer_size
 
-        self._last_packets: deque[tuple[float, str]] = deque(maxlen=buffer_size)
+        self._last_packets: deque[tuple[float, bytes]] = deque(maxlen=buffer_size)
         self._last_errors: deque[tuple[float, str]] = deque(maxlen=buffer_size)
         self._connect_times: deque[float] = deque(maxlen=buffer_size)
+        self._raw_data_connection: list[tuple[float, bytes]] = []
+        self._raw_data_messages: deque[tuple[float, bytes]] = deque(maxlen=1000)
 
         self._disconnect_times: deque[float] = deque(maxlen=buffer_size)
         self._skip_first_messages: int = 8
@@ -286,9 +312,9 @@ class DeviceDiagnosticsCollector:
 
         self._start_time = time.time()
 
-    def as_dict(self):
+    def as_dict(self, session: Session):
         """Get diagnostics data as dictionary"""
-        return self.diagnostics.as_dict()
+        return self.diagnostics.encrypt(session).as_dict()
 
     @property
     def diagnostics(self):
@@ -298,6 +324,10 @@ class DeviceDiagnosticsCollector:
             last_errors=list(self._last_errors),
             connect_times=list(self._connect_times),
             disconnect_times=list(self._disconnect_times),
+            raw_data_connection=self._raw_data_connection,
+            raw_data_messages=list(self._raw_data_messages),
+            iv=self._device._conn._encryption.iv,
+            session_key=self._device._conn._encryption.session_key,
         )
 
     @property
@@ -326,14 +356,13 @@ class DeviceDiagnosticsCollector:
 
         if enabled:
             self._start_time = time.time()
-            self._unlisten_callbacks.append(
-                self._device.on_disconnect(self._on_disconnect)
-            )
-            self._unlisten_callbacks.append(
-                self._device.on_packet_received(self._on_packet_received)
-            )
-            self._unlisten_callbacks.append(
-                self._device.on_packet_parsed(self._on_packet_parsed)
+            self._unlisten_callbacks.extend(
+                [
+                    self._device.on_disconnect(self._on_disconnect),
+                    self._device.on_packet_received(self._on_packet_received),
+                    self._device.on_packet_parsed(self._on_packet_parsed),
+                    self._device.on_data_received(self._on_data_received),
+                ]
             )
             return self
 
@@ -377,23 +406,57 @@ class DeviceDiagnosticsCollector:
 
         self._unlisten_callbacks.clear()
 
+    def with_buffer_size(self, buffer_size: int):
+        """Set the diagnostics buffer size"""
+
+        self._buffer_size = buffer_size
+        self._last_packets = deque(self._last_packets, maxlen=buffer_size)
+        self._last_errors = deque(self._last_errors, maxlen=buffer_size)
+        self._connect_times = deque(self._connect_times, maxlen=buffer_size)
+        self._disconnect_times = deque(self._disconnect_times, maxlen=buffer_size)
+        return self
+
+    @property
+    def _now(self):
+        return time.time() - self._start_time
+
+    def _with_time[T](self, data: T) -> tuple[float, T]:
+        return (self._now, data)
+
     def _on_disconnect(self, exc: Exception | type[Exception] | None = None):
-        self._disconnect_times.append(time.time() - self._start_time)
+        self._disconnect_times.append(self._now)
 
     def _on_packet_received(self, data: bytes):
-        self._last_packets.append(
-            (time.time() - self._start_time, bytearray(data).hex())
-        )
+        self._last_packets.append(self._with_time(data))
 
     def _on_packet_parsed(self, packet: "Packet"):
         if Packet.is_invalid(packet):
-            self._last_errors.append(
-                (time.time() - self._start_time, packet.error_message)
-            )
+            self._last_errors.append(self._with_time(packet.error_message))
             return
+
+    def _on_data_received(self, data: bytes, state: "ConnectionState"):
+        if not state.authenticated:
+            buffer = self._raw_data_connection
+        else:
+            buffer = self._raw_data_messages
+
+        buffer.append(self._with_time(data))
 
     def _clear_buffers(self):
         self._last_packets.clear()
         self._last_errors.clear()
         self._connect_times.clear()
         self._disconnect_times.clear()
+
+
+class _LazyHex:
+    __slots__ = ("_data",)
+
+    def __init__(self, data: bytes | bytearray) -> None:
+        self._data = data
+
+    def __str__(self) -> str:
+        return bytes(self._data).hex()
+
+    def __repr__(self) -> str:
+        return bytes(self._data).hex()
