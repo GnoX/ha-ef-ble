@@ -266,23 +266,19 @@ class Device(DeviceBase, ProtobufProps):
 
 
     ecr_ems_sn = pb_field(pb_error_change_report.ems_err_code.module_sn)
-    #ecr_ems_error_code = _EmsErrorCode()
-
     pcs_sn = pb_field(pb_error_change_report.pcs_err_code.module_sn)
-    #pcs_error_code = _PcsErrorCode()
 
     sys_load_pwr = pb_field(pb_energy_stream_report.sys_load_pwr)
-    sys_grid_pwr = pb_field(pb_energy_stream_report.sys_grid_pwr)
+    grid_power = pb_field(pb_energy_stream_report.sys_grid_pwr)  # sys_grid_pwr
     mppt_pwr = pb_field(pb_energy_stream_report.mppt_pwr)
     bp_pwr = pb_field(pb_energy_stream_report.bp_pwr)
-    ems_work_mode_value = pb_field(pb_ems_change_report.ems_word_mode, WorkMode.from_mode)
+    ems_work_mode = pb_field(pb_ems_change_report.ems_word_mode, WorkMode.from_mode)
 
-    pv1_pwr = pb_field(pb_energy_stream_report.pv1_pwr)
-    pv2_pwr = pb_field(pb_energy_stream_report.pv2_pwr)
-    pv3_pwr = pb_field(pb_energy_stream_report.pv3_pwr) # on Plus
+    pv_power_1 = pb_field(pb_energy_stream_report.pv1_pwr) # pv1_pwr
+    pv_power_2 = pb_field(pb_energy_stream_report.pv2_pwr) # pv2_pwr
+    pv_power_3 = pb_field(pb_energy_stream_report.pv3_pwr) # on Plus pv3_pwr
     pv_inv_pwr = pb_field(pb_energy_stream_report.pv_inv_pwr)
 
-    bp_remain_watth = pb_field(pb_heartbeat.bp_remain_watth)
     pcs_meter_power = pb_field(pb_heartbeat.pcs_meter_power)
     ems_bp_power = pb_field(pb_heartbeat.ems_bp_power)
     pcs_act_pwr = pb_field(pb_heartbeat.pcs_act_pwr)
@@ -346,19 +342,11 @@ class Device(DeviceBase, ProtobufProps):
     bpack4_bp_sys_state = _BpHeartbeatBmsSysState(4) # Diag
     bpack4_bms_run_sta = _BpHeartbeatBmsRunStaDef(4) # Diag
 
-
+    bp_remain_watth = pb_field(pb_heartbeat.bp_remain_watth)
     bp_soc = pb_field(pb_ems_change_report.bp_soc)
-    #bp_pwr = pb_field(pb_ems_change_report.bp_pwr)
     bp_total_chg_energy = pb_field(pb_ems_change_report.bp_total_chg_energy)
     bp_total_dsg_energy = pb_field(pb_ems_change_report.bp_total_dsg_energy)
-    bp_online_count = pb_field(pb_ems_change_report.bp_online_sum)
-    mppt_pv1_fault_code = pb_field(pb_ems_change_report.mppt1_fault_code)
-    mppt_pv1_warning_code = pb_field(pb_ems_change_report.mppt1_warning_code)
-    mppt_pv2_fault_code = pb_field(pb_ems_change_report.mppt2_fault_code)
-    mppt_pv2_warning_code = pb_field(pb_ems_change_report.mppt1_warning_code)
-    #ems_work_mode_value = pb_field(pb_ems_change_report.ems_word_mode, WorkMode.from_mode) # TODO enum WORKMODE_SELFUSE
-
-    # temp_unit = pb_field(pb_disp.user_temp_unit, TemperatureUnit.from_mode)
+    bp_online_sum = pb_field(pb_ems_change_report.bp_online_sum)
 
     pcs_a_phase_vol = pb_field(pb_heartbeat.pcs_a_phase.vol)
     pcs_a_phase_amp = pb_field(pb_heartbeat.pcs_a_phase.amp)
@@ -377,6 +365,11 @@ class Device(DeviceBase, ProtobufProps):
     pcs_c_phase_act_pwr = pb_field(pb_heartbeat.pcs_c_phase.act_pwr)
     pcs_c_phase_react_pwr = pb_field(pb_heartbeat.pcs_c_phase.react_pwr)
     pcs_c_phase_apparent_pwr = pb_field(pb_heartbeat.pcs_c_phase.apparent_pwr)
+
+    mppt_pv1_fault_code = pb_field(pb_ems_change_report.mppt1_fault_code)
+    mppt_pv1_warning_code = pb_field(pb_ems_change_report.mppt1_warning_code)
+    mppt_pv2_fault_code = pb_field(pb_ems_change_report.mppt2_fault_code)
+    mppt_pv2_warning_code = pb_field(pb_ems_change_report.mppt1_warning_code)
 
     mppt_pv1_vol = _MpptPv(1,'vol')
     mppt_pv1_amp = _MpptPv(1,'amp')
