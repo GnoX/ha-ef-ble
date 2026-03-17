@@ -424,7 +424,7 @@ class Device(DeviceBase, ProtobufProps):
         model = " (Unidentified)"
         match self._sn[:4]:
             case "HJ31":
-                model = ""
+                model = "10 kW"
             case "HJ35":
                 model = "6kW"
             case "HJ36":
@@ -443,6 +443,8 @@ class Device(DeviceBase, ProtobufProps):
                 model = "Single Phase 5kW"
             case "J32E":
                 model = "Single Phase 6kW"
+            case "R372ZD":
+                model = "Plus - 3 phase"
             case "HC31":
                 model = "DC Fit"  # this might work or not
 
