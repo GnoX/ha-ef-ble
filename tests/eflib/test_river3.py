@@ -25,7 +25,7 @@ def packet_sequence():
 def device(mocker: MockerFixture):
     ble_dev = mocker.Mock()
     ble_dev.address = "AA:BB:CC:DD:EE:FF"
-    adv_data = mocker.Mock()
+    adv_data = mocker.MagicMock()
     device = Device(ble_dev, adv_data, "R655TEST1234")
     device._conn = mocker.AsyncMock()
     return device
@@ -214,6 +214,8 @@ async def test_river3_exact_values_from_known_packets(device, packet_sequence):
         Device.dc12v_output_energy: 0,
         Device.input_energy: 5,
         Device.output_energy: 194837,
+        Device.remaining_time_charging: 3827,
+        Device.remaining_time_discharging: 3807,
     }
 
     for field_name, expected_value in expected.items():

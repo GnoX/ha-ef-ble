@@ -54,24 +54,35 @@ Click on any device below to see available sensors, switches, and controls:
 
 <br>
 
-| *Sensors*                                  |
-|--------------------------------------------|
-| Battery Level                              |
-| Input Power                                |
-| Output Power                               |
-| Grid Power                                 |
-| Power In Use                               |
-| Circuit Power (Each Circuit)               |
-| Circuit Current (Each Circuit)             |
-| Channel Power (Each Channel)               |
-| Channel Battery Level (Each Channel)       |
-| Channel Battery Temperature (Each Channel) |
-| Channel Connected (Each Channel)           |
-| Channel Control Status (Each Channel)      |
-| Channel Enabled (Each Channel)             |
-| Channel Output Power (Each Channel)        |
-| Channel PV HV Input Power (Each Channel)   |
-| Channel PV LV Input Power (Each Channel)   |
+| *Sensors*                                  | *Switches*                          | *Sliders*            | *Selects*         |
+|--------------------------------------------|-------------------------------------|----------------------|-------------------|
+| Battery Level                              | Channel On/Off (Each Channel)       | AC Charge Speed      | Smart Backup Mode |
+| Input Power                                | Channel Force Charge (Each Channel) | Backup Reserve Level |                   |
+| Output Power                               | Circuit On/Off (Each Circuit)       | Max Charge Level     |                   |
+| Grid Power                                 |                                     |                      |                   |
+| Power In Use                               |                                     |                      |                   |
+| Power Status (grid, battery, oil, etc.)    |                                     |                      |                   |
+| Grid Status (grid outage)                  |                                     |                      |                   |
+| Storm Made                                 |                                     |                      |                   |
+| Circuit Power (Each Circuit)               |                                     |                      |                   |
+| Circuit Power (Each Circuit)               |                                     |                      |                   |
+| Circuit Current (Each Circuit)             |                                     |                      |                   |
+| Channel Power (Each Channel)               |                                     |                      |                   |
+| Channel Battery Level (Each Channel)       |                                     |                      |                   |
+| Channel Battery Temperature (Each Channel) |                                     |                      |                   |
+| Channel Connected (Each Channel)           |                                     |                      |                   |
+| Channel Control Status (Each Channel)      |                                     |                      |                   |
+| Channel Enabled (Each Channel)             |                                     |                      |                   |
+| Channel Force Charge (Each Channel)        |                                     |                      |                   |
+| Channel Output Power (Each Channel)        |                                     |                      |                   |
+| Channel PV HV Input Power (Each Channel)   |                                     |                      |                   |
+| Channel PV LV Input Power (Each Channel)   |                                     |                      |                   |
+
+> **📝 Note:** Using an ESPHome bluetooth proxy connection with a
+> Smart Home Panel 2 can result in slow performance and dropped
+> packets at this time. Please see the
+> [Issue #221](https://github.com/rabits/ha-ef-ble/issues/221)
+> for tracking.
 
 </details>
 <details>
@@ -79,21 +90,26 @@ Click on any device below to see available sensors, switches, and controls:
 
 <br>
 
-| *Sensors*                            |
-|--------------------------------------|
-| Battery Level                        |
-| Individual Battery Levels (disabled) |
-| Input Power                          |
-| Output Power                         |
-| Low Voltage Solar Power              |
-| High Voltage Solar Power             |
-| AC L1 (1) Output Power               |
-| AC L1 (2) Output Power               |
-| AC L2 (1) Output Power               |
-| AC L2 (2) Output Power               |
-| AC TT-30R Output Power               |
-| AC L14-30P Output Power              |
-| AC I/O Output Power                  |
+| *Sensors*                          |
+|------------------------------------|
+| Battery Level                      |
+| Battery Level (each battery) ¹     |
+| Cell Temperature (each battery)  ¹ |
+| Input Power                        |
+| Output Power                       |
+| Low Voltage Solar Power            |
+| High Voltage Solar Power           |
+| AC L1 (1) Output Power             |
+| AC L1 (2) Output Power             |
+| AC L2 (1) Output Power             |
+| AC L2 (2) Output Power             |
+| AC TT-30R Output Power             |
+| AC L14-30P Output Power            |
+| AC I/O Output Power                |
+
+<sup>¹ Extra batteries are only updated when you set up the device, but has to
+be manually reconfigured if battery is connected/disconnected.</sup>
+
 </details>
 
 <details>
@@ -101,29 +117,31 @@ Click on any device below to see available sensors, switches, and controls:
 
 <br>
 
-| *Sensors*                       | *Switches*     | *Sliders*            | *Selects*        |
-|---------------------------------|----------------|----------------------|------------------|
-| AC Input Energy                 | AC Port        | Backup Reserve Level | Led Mode⁺        |
-| AC Input Power                  | DC Port        | Max Charge Limit     | DC Charging Type |
-| AC Output Energy                | Backup Reserve | Min Discharge Limit  |                  |
-| AC Output Power                 |                | AC Charging Speed    |                  |
-| Main Battery Level ⁺            |                | DC Charging Max Amps |                  |
-| Battery Level                   |                |                      |                  |
-| DC 12V Port Output Energy       |                |                      |                  |
-| DC 12V Port Output Power        |                |                      |                  |
-| DC Input Energy                 |                |                      |                  |
-| DC Input Power                  |                |                      |                  |
-| Input Energy Total              |                |                      |                  |
-| Input Power Total               |                |                      |                  |
-| Output Energy Total             |                |                      |                  |
-| Output Power Total              |                |                      |                  |
-| USB A Output Energy             |                |                      |                  |
-| USB A Output Power              |                |                      |                  |
-| USB C Output Energy             |                |                      |                  |
-| USB C Output Power              |                |                      |                  |
-| Battery Input Power (disabled)  |                |                      |                  |
-| Battery Output Power (disabled) |                |                      |                  |
-| Cell Temperature (disabled)     |                |                      |                  |
+| *Sensors*                           | *Switches*     | *Sliders*            | *Selects*        |
+|-------------------------------------|----------------|----------------------|------------------|
+| AC Input Energy                     | AC Port        | Backup Reserve Level | Led Mode⁺        |
+| AC Input Power                      | DC Port        | Max Charge Limit     | DC Charging Type |
+| AC Output Energy                    | Backup Reserve | Min Discharge Limit  |                  |
+| AC Output Power                     |                | AC Charging Speed    |                  |
+| Main Battery Level ⁺                |                | DC Charging Max Amps |                  |
+| Battery Level                       |                |                      |                  |
+| DC 12V Port Output Energy           |                |                      |                  |
+| DC 12V Port Output Power            |                |                      |                  |
+| DC Input Energy                     |                |                      |                  |
+| DC Input Power                      |                |                      |                  |
+| Input Energy Total                  |                |                      |                  |
+| Input Power Total                   |                |                      |                  |
+| Output Energy Total                 |                |                      |                  |
+| Output Power Total                  |                |                      |                  |
+| USB A Output Energy                 |                |                      |                  |
+| USB A Output Power                  |                |                      |                  |
+| USB C Output Energy                 |                |                      |                  |
+| USB C Output Power                  |                |                      |                  |
+| Battery Input Power (disabled)      |                |                      |                  |
+| Battery Output Power (disabled)     |                |                      |                  |
+| Cell Temperature (disabled)         |                |                      |                  |
+| Charge Time Remaining (disabled)    |                |                      |                  |
+| Discharge Time Remaining (disabled) |                |                      |                  |
 
 <sup>⁺ Only available on Plus variant</sup>
 
@@ -139,41 +157,43 @@ Click on any device below to see available sensors, switches, and controls:
 </details>
 
 <details>
-<summary><b>Delta 3</b> <i>(Classic, Plus, Max, Max Plus, Ultra, Air)</i></summary>
+<summary><b>Delta 3</b> <i>(Classic, Plus, Max, Max Plus, Ultra, Ultra Plus, Air)</i></summary>
 
 <br>
 
-| *Sensors*                       | *Switches*                      | *Sliders*                  |
-|---------------------------------|---------------------------------|----------------------------|
-| Main Battery Level              | AC Ports                        | Backup Reserve Level ²     |
-| Battery Level                   | AC Ports (2) ³                  | Max Charge Limit           |
-| AC Input Power                  | DC Ports ²                      | Min Discharge Limit        |
-| AC Output Power                 | Backup Reserve ²                | AC Charging Speed          |
-| AC (1) Power ³                  | USB Ports ¹²                    | DC Charging Max Amps       |
-| AC (2) Power ³                  | Disable Grid Bypass ²(disabled) | DC (2) Charging Max Amps ⁺ |
-| DC 12V Port Output Power ²      |                                 |                            |
-| DC Port Input Power             |                                 |                            |
-| DC Port Input State             |                                 |                            |
-| DC Port (2) Input Power ⁺       |                                 |                            |
-| DC Port (2) Input State ⁺       |                                 |                            |
-| Solar Power                     |                                 |                            |
-| Solar Power (2) ⁺               |                                 |                            |
-| Input Power Total               |                                 |                            |
-| Output Power Total              |                                 |                            |
-| USB A Output Power              |                                 |                            |
-| USB A (2) Output Power          |                                 |                            |
-| USB C Output Power              |                                 |                            |
-| USB C (2) Output Power          |                                 |                            |
-| USB C (3) Output Power ³        |                                 |                            |
-| AC Plugged In                   |                                 |                            |
-| Battery Input Power (disabled)  |                                 |                            |
-| Battery Output Power (disabled) |                                 |                            |
-| Cell Temperature (disabled)     |                                 |                            |
+| *Sensors*                           | *Switches*                      | *Sliders*                  |
+|-------------------------------------|---------------------------------|----------------------------|
+| Main Battery Level                  | AC Ports                        | Backup Reserve Level ²     |
+| Battery Level                       | AC Ports (2) ³                  | Max Charge Limit           |
+| AC Input Power                      | DC Ports ²                      | Min Discharge Limit        |
+| AC Output Power                     | Backup Reserve ²                | AC Charging Speed          |
+| AC (1) Power ³                      | USB Ports ¹²                    | DC Charging Max Amps       |
+| AC (2) Power ³                      | Disable Grid Bypass ²(disabled) | DC (2) Charging Max Amps ⁺ |
+| DC 12V Port Output Power ²          |                                 |                            |
+| DC Port Input Power                 |                                 |                            |
+| DC Port Input State                 |                                 |                            |
+| DC Port (2) Input Power ⁺           |                                 |                            |
+| DC Port (2) Input State ⁺           |                                 |                            |
+| Solar Power                         |                                 |                            |
+| Solar Power (2) ⁺                   |                                 |                            |
+| Input Power Total                   |                                 |                            |
+| Output Power Total                  |                                 |                            |
+| USB A Output Power                  |                                 |                            |
+| USB A (2) Output Power              |                                 |                            |
+| USB C Output Power                  |                                 |                            |
+| USB C (2) Output Power              |                                 |                            |
+| USB C (3) Output Power ³            |                                 |                            |
+| AC Plugged In                       |                                 |                            |
+| Battery Input Power (disabled)      |                                 |                            |
+| Battery Output Power (disabled)     |                                 |                            |
+| Cell Temperature (disabled)         |                                 |                            |
+| Charge Time Remaining (disabled)    |                                 |                            |
+| Discharge Time Remaining (disabled) |                                 |                            |
 
 <sup>⁺ Only available on Plus variant</sup><br>
 <sup>¹ Not available on Classic</sup><br>
 <sup>² Not available on Air</sup><br>
-<sup>³ Only available on Max Plus</sup>
+<sup>³ Only available on Max Plus and Ultra Plus</sup><br>
 
 > **📝 Note:** Delta 3 models do not expose energy sensors. To use with the Energy
 > dashboard, you must create them yourself. See the
@@ -187,28 +207,30 @@ Click on any device below to see available sensors, switches, and controls:
 
 <br>
 
-| *Sensors*                   | *Switches*     | *Sliders*            |
-|-----------------------------|----------------|----------------------|
-| Main Battery Level          | AC Ports       | Backup Reserve Level |
-| Battery Level               | DC Ports       | Max Charge Limit     |
-| AC Input Power              | Backup Reserve | Min Discharge Limit  |
-| AC LV Output Power          |                | AC Charging Speed    |
-| AC HV Output Power          |                |                      |
-| DC 12V Output Power         |                |                      |
-| DC LV Input Power           |                |                      |
-| DC LV Input State           |                |                      |
-| DC HV Input Power           |                |                      |
-| DC HV Input State           |                |                      |
-| Solar LV Power              |                |                      |
-| Solar HV Power              |                |                      |
-| Input Power Total           |                |                      |
-| Output Power Total          |                |                      |
-| USB A Output Power          |                |                      |
-| USB A (2) Output Power      |                |                      |
-| USB C Output Power          |                |                      |
-| USB C (2) Output Power      |                |                      |
-| AC Plugged In               |                |                      |
-| Cell Temperature (disabled) |                |                      |
+| *Sensors*                           | *Switches*     | *Sliders*            |
+|-------------------------------------|----------------|----------------------|
+| Main Battery Level                  | AC Ports       | Backup Reserve Level |
+| Battery Level                       | DC Ports       | Max Charge Limit     |
+| AC Input Power                      | Backup Reserve | Min Discharge Limit  |
+| AC LV Output Power                  |                | AC Charging Speed    |
+| AC HV Output Power                  |                |                      |
+| DC 12V Output Power                 |                |                      |
+| DC LV Input Power                   |                |                      |
+| DC LV Input State                   |                |                      |
+| DC HV Input Power                   |                |                      |
+| DC HV Input State                   |                |                      |
+| Solar LV Power                      |                |                      |
+| Solar HV Power                      |                |                      |
+| Input Power Total                   |                |                      |
+| Output Power Total                  |                |                      |
+| USB A Output Power                  |                |                      |
+| USB A (2) Output Power              |                |                      |
+| USB C Output Power                  |                |                      |
+| USB C (2) Output Power              |                |                      |
+| AC Plugged In                       |                |                      |
+| Cell Temperature (disabled)         |                |                      |
+| Charge Time Remaining (disabled)    |                |                      |
+| Discharge Time Remaining (disabled) |                |                      |
 
 > **📝 Note:** Delta Pro 3 does not expose energy sensors. To use with the Energy
 > dashboard, you must create them yourself. See the
@@ -258,23 +280,26 @@ Click on any device below to see available sensors, switches, and controls:
 
 <br>
 
-| *Sensors*                   | *Switches*  | *Sliders*               | *Selects*       |
-|-----------------------------|-------------|-------------------------|-----------------|
-| Battery Level               | Feed Grid   | Feed Grid Power Limit   | Energy Strategy |
-| Main Battery Level          | AC (1) ᴬᴹᴾᵁ | Backup Reserve Level    |                 |
-| Grid Power                  | AC (2) ᴬᴾᵁ  | Charge Limit            |                 |
-| Grid Voltage                |             | Discharge Limit         |                 |
-| Grid Frequency              |             | Base Load Power ¹       |                 |
-| Load from Battery           |             | Grid Input Power Limit  |                 |
-| Load from Grid              |             | Charging Power Limit ²ꜝ |                 |
-| Load from PV ᴹᴾᵁ            |             | Charging Target SOC ²ꜝ  |                 |
-| AC (1) Power ᴬᴹᴾᵁ           |             |                         |                 |
-| AC (2) Power ᴬᴾᵁ            |             |                         |                 |
-| PV (1) Power ᴹᴾᵁ            |             |                         |                 |
-| PV (2) Power ᴹᴾᵁ            |             |                         |                 |
-| PV (3) Power ᴾᵁ             |             |                         |                 |
-| PV (4) Power ᵁ              |             |                         |                 |
-| Cell Temperature (disabled) |             |                         |                 |
+| *Sensors*                           | *Switches*  | *Sliders*               | *Selects*       |
+|-------------------------------------|-------------|-------------------------|-----------------|
+| Battery Level                       | Feed Grid   | Feed Grid Power Limit   | Energy Strategy |
+| Main Battery Level                  | AC (1) ᴬᴹᴾᵁ | Backup Reserve Level    |                 |
+| Grid Power                          | AC (2) ᴬᴾᵁ  | Charge Limit            |                 |
+| Grid Voltage                        |             | Discharge Limit         |                 |
+| Grid Frequency                      |             | Base Load Power ¹       |                 |
+| Load from Battery                   |             | Grid Input Power Limit  |                 |
+| Load from Grid                      |             | Charging Power Limit ²ꜝ |                 |
+| Load from PV ᴹᴾᵁ                    |             | Charging Target SOC ²ꜝ  |                 |
+| AC (1) Power ᴬᴹᴾᵁ                   |             |                         |                 |
+| AC (2) Power ᴬᴾᵁ                    |             |                         |                 |
+| PV (1) Poweri ᴹᴾᵁ                   |             |                         |                 |
+| PV (2) Power ᴹᴾᵁ                    |             |                         |                 |
+| PV (3) Power ᴾᵁ                     |             |                         |                 |
+| PV (4) Power ᵁ                      |             |                         |                 |
+| PV Power Total ᴹᴾᵁ                  |             |                         |                 |
+| Cell Temperature (disabled)         |             |                         |                 |
+| Charge Time Remaining (disabled)    |             |                         |                 |
+| Discharge Time Remaining (disabled) |             |                         |                 |
 
 <sup>ᴬ Only available on AC Pro variant</sup><br>
 <sup>ᴹ Only available on Max variant</sup><br>
@@ -311,6 +336,33 @@ first charging task</sup>
 </details>
 
 <details>
+<summary><b>PowerStream</b></summary>
+
+<br>
+
+| *Sensors*            | *Sliders*        | *Selects*             |
+|----------------------|------------------|-----------------------|
+| Battery Level        | Load Power       | Power Supply Priority |
+| Battery Power        | Charge Limit     |                       |
+| Battery Temperature  | Discharge Limit  |                       |
+| PV (1) Power         |                  |                       |
+| PV (1) Voltage       |                  |                       |
+| PV (1) Current       |                  |                       |
+| PV (1) Temperature   |                  |                       |
+| PV (2) Power         |                  |                       |
+| PV (2) Voltage       |                  |                       |
+| PV (2) Current       |                  |                       |
+| PV (2) Temperature   |                  |                       |
+| Inverter Power       |                  |                       |
+| Inverter Voltage     |                  |                       |
+| Inverter Current     |                  |                       |
+| Inverter Frequency   |                  |                       |
+| Inverter Temperature |                  |                       |
+| LLC Temperature      |                  |                       |
+
+</details>
+
+<details>
 <summary><b>Wave 3</b></summary>
 
 <br>
@@ -325,6 +377,8 @@ first charging task</sup>
 | Cell Temperature (disabled)      |                 |            |
 | Fan Level                        |                 |            |
 | Drainage Mode                    |                 |            |
+| In Drainage                      |                 |            |
+| Display Temperature Type         |                 |            |
 | Input Power                      |                 |            |
 | Output Power                     |                 |            |
 | Indoor Supply Air Temperature    |                 |            |
@@ -362,25 +416,74 @@ first charging task</sup>
 </details>
 
 <details>
+<summary><b>Delta Pro</b></summary>
+
+<br>
+
+| *Sensors*              | *Switches*  | *Sliders*         |
+|------------------------|-------------|-------------------|
+| Battery Level          | AC Ports    | AC Charging Speed |
+| Input Power            | DC 12V Port | Backup Reserve    |
+| Output Power           |             | Charge Limit      |
+| AC Input Power         |             | Discharge Limit   |
+| AC Input Voltage       |             |                   |
+| AC Input Current       |             |                   |
+| AC Output Power        |             |                   |
+| DC Output Power        |             |                   |
+| USB C Output Power     |             |                   |
+| USB C (2) Output Power |             |                   |
+| USB A Output Power     |             |                   |
+| USB A (2) Output Power |             |                   |
+| USB A QC (1) Power     |             |                   |
+| USB A QC (2) Power     |             |                   |
+| Extra Battery Level ¹  |             |                   |
+
+<sup>¹ Extra batteries are only updated when you set up the device, but has to
+be manually reconfigured if battery is connected/disconnected.</sup>
+
+</details>
+
+<details>
 <summary><b>Delta 2</b> <i>(Max, Delta 3 1500)</i></summary>
 
 <br>
 
-| *Sensors*                      | *Switches*     | *Sliders*            |
-|--------------------------------|----------------|----------------------|
-| Battery Level                  | AC Ports       | Max Charge Limit     |
-| Main Battery Level             | DC 12V Port    | Min Discharge Limit  |
-| Addon Battery Level (disabled) | USB Ports      | Backup Reserve Level |
-| Input Power                    | Backup Reserve | AC Charging Speed    |
-| Output Power                   |                |                      |
-| AC Input Power                 |                |                      |
-| AC Output Power                |                |                      |
-| DC Output Power                |                |                      |
-| DC 12V Output Voltage          |                |                      |
-| DC 12V Output Current          |                |                      |
-| USB A Output Power             |                |                      |
-| USB C Output Power             |                |                      |
-| Cell Temperature (disabled)    |                |                      |
+| *Sensors*                                 | *Switches*     | *Sliders*           |
+|-------------------------------------------|----------------|---------------------|
+| Battery Level                             | AC Ports       | Max Charge Limit    |
+| Main Battery Level                        | DC 12V Port    | Min Discharge Limit |
+| Extra Battery 1 SOC ¹                     | USB Ports      | Energy Backup       |
+| Extra Battery 1 Temperature ¹             | Backup Reserve | AC Charging Speed   |
+| Input Power                               |                |                     |
+| Output Power                              |                |                     |
+| AC Input Power                            |                |                     |
+| AC Input Voltage (disabled)               |                |                     |
+| AC Input Current (disabled)               |                |                     |
+| AC Output Power                           |                |                     |
+| DC Output Power                           |                |                     |
+| DC 12V Output Voltage (disabled)          |                |                     |
+| DC 12V Output Current (disabled)          |                |                     |
+| XT60 Input Power ¹                        |                |                     |
+| XT60 (1) Input Power ²                    |                |                     |
+| XT60 (2) Input Power ²                    |                |                     |
+| DC Input Voltage (disabled)               |                |                     |
+| DC Input Current (disabled)               |                |                     |
+| USB A (1) Output Power                    |                |                     |
+| USB A (2) Output Power                    |                |                     |
+| USB A QC (1) Output Power                 |                |                     |
+| USB A QC (2) Output Power                 |                |                     |
+| USB C (1) Output Power                    |                |                     |
+| USB C (2) Output Power                    |                |                     |
+| Cell Temperature (disabled)               |                |                     |
+| Addon Battery Cell Temperature (disabled) |                |                     |
+| Charge Time Remaining (disabled)          |                |                     |
+| Discharge Time Remaining (disabled)       |                |                     |
+
+<sup>¹ Extra batteries are only updated when you set up the device, but has to
+be manually reconfigured if battery is connected/disconnected.</sup>
+
+<sup>¹ Only available on Delta 2 and Delta 2 1500</sup><br>
+<sup>² Only available on Delta 2 Max</sup><br>
 
 </details>
 
@@ -389,19 +492,21 @@ first charging task</sup>
 
 <br>
 
-| *Sensors*                   | *Switches*     | *Sliders*            | *Selects* |
-|-----------------------------|----------------|----------------------|-----------|
-| Battery Level               | AC Ports       | Max Charge Limit     | DC Mode   |
-| Input Power                 | DC 12V Port    | Min Discharge Limit  |           |
-| Output Power                | USB Ports      | AC Charging Speed    |           |
-| AC Input Power              | Backup Reserve | DC Charging Max Amps |           |
-| AC Output Power             |                | Backup Reserve Level |           |
-| DC 12V Output Power         |                |                      |           |
-| DC Output Power             |                |                      |           |
-| USB A Output Power          |                |                      |           |
-| USB C Output Power          |                |                      |           |
-| Solar Input Power           |                |                      |           |
-| Cell Temperature (disabled) |                |                      |           |
+| *Sensors*                           | *Switches*     | *Sliders*            | *Selects* |
+|-------------------------------------|----------------|----------------------|-----------|
+| Battery Level                       | AC Ports       | Max Charge Limit     | DC Mode   |
+| Input Power                         | DC 12V Port    | Min Discharge Limit  |           |
+| Output Power                        | USB Ports      | AC Charging Speed    |           |
+| AC Input Power                      | Backup Reserve | DC Charging Max Amps |           |
+| AC Output Power                     |                | Backup Reserve Level |           |
+| DC 12V Output Power                 |                |                      |           |
+| DC Output Power                     |                |                      |           |
+| USB A Output Power                  |                |                      |           |
+| USB C Output Power                  |                |                      |           |
+| Solar Input Power                   |                |                      |           |
+| Cell Temperature (disabled)         |                |                      |           |
+| Charge Time Remaining (disabled)    |                |                      |           |
+| Discharge Time Remaining (disabled) |                |                      |           |
 
 </details>
 

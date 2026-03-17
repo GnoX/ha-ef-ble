@@ -22,6 +22,8 @@ class Device(Delta2Base):
     dc_output_power = raw_field(pb_pd.dc_pv_output_watts)
     ac_charging_speed = raw_field(pb_mppt.cfg_chg_watts)
 
+    xt60_input_power = raw_field(pb_pd.dc_pv_input_watts)
+
     async def packet_parse(self, data: bytes):
         return Packet.fromBytes(data, xor_payload=True)
 
@@ -38,7 +40,7 @@ class Device(Delta2Base):
         self.max_ac_charging_power = 1200
 
     def _after_message_parsed(self):
-        if self.battery_addon:
+        if self.battery_1_enabled or self.battery_2_enabled:
             self.max_ac_charging_power = 1500
         else:
             self.max_ac_charging_power = 1200

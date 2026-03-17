@@ -52,6 +52,12 @@
             "connectable": true
         },
         {
+            "local_name": "EF-D5*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 68, 53, 49, 49],
+            "connectable": true
+        },
+        {
             "local_name": "EF-DP3*",
             "manufacturer_id": 46517,
             "manufacturer_data_start": [19, 77, 82, 53, 49],
@@ -148,6 +154,27 @@
             "connectable": true
         },
         {
+            "local_name": "EF-HW51*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 72, 87, 53, 49],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-DC",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 68, 67]
+        },
+        {
+            "local_name": "EF-DC",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 90, 49]
+        },
+        {
+            "local_name": "EF-DC",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 82, 23, 49, 49]
+        },
+        {
             "local_name": "EF-J32*",
             "manufacturer_id": 46517,
             "manufacturer_data_start": [19, 74, 51, 50],
@@ -189,5 +216,5 @@
         "protobuf"
     ],
 
-    "version": "0.33.0"
+    "version": "0.36.0"
 }
