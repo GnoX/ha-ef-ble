@@ -354,22 +354,31 @@ def _find_indexed_segment(attr: _ProtoAttr) -> tuple[int, str]:
 
 
 @dataclass(slots=True)
-class _PbIndexedView[T]:
+class _PbIndexedAccessor[T]:
     msg: Any
     attrs: list[str]
     match_idx: int
     match: str
 
-    def __getitem__(self, index: int) -> T:
+    def _resolve(self, index: int) -> tuple[Any, list[str]]:
         attrs = list(self.attrs)
         attrs[self.match_idx] = self.match.format(n=index)
-        msg = self.msg
+        return self.msg, attrs
+
+    def __getitem__(self, index: int) -> T:
+        msg, attrs = self._resolve(index)
         for attr_name in attrs:
             msg = getattr(msg, attr_name)
         return msg
 
+    def __setitem__(self, index: int, value: T) -> None:
+        msg, attrs = self._resolve(index)
+        for attr_name in attrs[:-1]:
+            msg = getattr(msg, attr_name)
+        setattr(msg, attrs[-1], value)
 
-def pb_indexed_attr[T](msg: Any, attr: T) -> _PbIndexedView[T]:
+
+def pb_indexed_attr[T](msg: Any, attr: T) -> _PbIndexedAccessor[T]:
     """
     Create an indexed view over a protobuf message using a typed path
 
@@ -391,4 +400,4 @@ def pb_indexed_attr[T](msg: Any, attr: T) -> _PbIndexedView[T]:
             f"`proto_attr_mapper`, got {type(attr)}"
         )
     match_idx, match = _find_indexed_segment(attr)
-    return _PbIndexedView(msg, list(attr.attrs), match_idx, match)
+    return _PbIndexedAccessor(msg, list(attr.attrs), match_idx, match)

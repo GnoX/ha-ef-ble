@@ -61,9 +61,11 @@ class SmartBackupMode(IntFieldValue):
 
 class ChannelSetStatus(IntEnum):
     """
-    Enum of values to send in the ch#_enable_set command to enable or disable a channel. Please note that these
-    values ARE NOT the same as the values sent back by the panel in the ch#_enable_set response. The panel
-    looks like it returns a 1 for enabled, but a 0 for all other states including disabled and disconnected.
+    Enum of values to send in the ch#_enable_set command.
+
+    Please note that these values ARE NOT the same as the values sent back by the panel
+    in the ch#_enable_set response. The panel looks like it returns a 1 for enabled, but
+    a 0 for all other states including disabled and disconnected.
     """
 
     ENABLE = 1
@@ -197,7 +199,7 @@ class Device(DeviceBase, ProtobufProps):
     error_happened = Field[bool]()
 
     @staticmethod
-    def check(sn):
+    def check(sn: bytes):
         return sn.startswith(Device.SN_PREFIX)
 
     def __init__(
@@ -208,7 +210,7 @@ class Device(DeviceBase, ProtobufProps):
         self._time_commands = TimeCommands(self)
 
     async def data_parse(self, packet: Packet) -> bool:
-        """Processing the incoming notifications from the device"""
+        """Proces the incoming notifications from the device"""
         processed = False
         self.reset_updated()
 
@@ -299,7 +301,10 @@ class Device(DeviceBase, ProtobufProps):
         split_link = self.circuit_split_link[circuit_id]
         if split_link is None:
             self._logger.warning(
-                "Cannot set circuit power for circuit %d because split circuit info is not available",
+                (
+                    "Cannot set circuit power for circuit %d because split circuit "
+                    "info is not available"
+                ),
                 circuit_id,
             )
             return None
@@ -307,7 +312,10 @@ class Device(DeviceBase, ProtobufProps):
         is_split = split_link != 0
         if is_split and (split_link < 1 or split_link > self.NUM_OF_CIRCUITS):
             self._logger.warning(
-                "Cannot set circuit power for circuit %d because split link circuit id %d is invalid",
+                (
+                    "Cannot set circuit power for circuit %d because split link "
+                    "circuit id %d is invalid"
+                ),
                 circuit_id,
                 split_link,
             )
@@ -346,10 +354,9 @@ class Device(DeviceBase, ProtobufProps):
         self._logger.debug("set_channel_enable: %d %s", channel_id, value)
 
         ppas = pd303_pb2.ProtoPushAndSet()
-        setattr(
-            ppas,
-            f"ch{channel_id}_enable_set",
-            ChannelSetStatus.ENABLE if value else ChannelSetStatus.DISABLE,
+        ch_enable = pb_indexed_attr(ppas, pb_push_set.ch1_enable_set)
+        ch_enable[channel_id] = (
+            ChannelSetStatus.ENABLE if value else ChannelSetStatus.DISABLE
         )
 
         await self._send_config_packet(ppas)
@@ -359,10 +366,9 @@ class Device(DeviceBase, ProtobufProps):
         self._logger.debug("set_channel_force_charge: %d %s", channel_id, value)
 
         ppas = pd303_pb2.ProtoPushAndSet()
-        setattr(
-            ppas,
-            f"ch{channel_id}_force_charge",
-            pd303_pb2.FORCE_CHARGE_ON if value else pd303_pb2.FORCE_CHARGE_OFF,
+        ch_force = pb_indexed_attr(ppas, pb_push_set.ch1_force_charge)
+        ch_force[channel_id] = (
+            pd303_pb2.FORCE_CHARGE_ON if value else pd303_pb2.FORCE_CHARGE_OFF
         )
         # App disables operating mode for force charge, EPS mode is allowed, if enabled
         if value:
@@ -377,14 +383,16 @@ class Device(DeviceBase, ProtobufProps):
         ppas = pd303_pb2.ProtoPushAndSet()
         ppas.smart_backup_mode = mode.value
 
-        # App disable EPS Mode and disallows force charge when setting a Smart Backup Mode other than None
+        # App disables EPS Mode and disallows force charge when setting a Smart Backup
+        # Mode other than None
         if mode is not SmartBackupMode.NONE:
             ppas.eps_mode_info = False
             for channel_id in range(1, self.NUM_OF_CHANNELS + 1):
-                if getattr(self, f"ch{channel_id}_force_charge"):
-                    setattr(
-                        ppas, f"ch{channel_id}_force_charge", pd303_pb2.FORCE_CHARGE_OFF
+                if self.ch_force_charge[channel_id]:
+                    ch_info = pb_indexed_attr(
+                        ppas, pb_push_set.backup_incre_info.ch1_info
                     )
+                    ch_info[channel_id].force_charge_sta = pd303_pb2.FORCE_CHARGE_OFF
 
         await self._send_config_packet(ppas)
         return True
@@ -393,10 +401,10 @@ class Device(DeviceBase, ProtobufProps):
         self._logger.debug("set_eps_mode: %d", value)
 
         if value and self.smart_backup_mode != SmartBackupMode.NONE:
-            # App forces setting of operating mode to NONE when EPS is enabled.
-            # We set this to NONE first or the SHP2 will sometimes report a grid outage if
-            # we set it all in one PPS command.
-            # Note: unlike operating mode force charge is allowed with EPS mode
+            # App forces setting of operating mode to NONE when EPS is enabled. We set
+            # this to NONE first or the SHP2 will sometimes # report a grid outage if we
+            # set it all in one PPS command.  # Note: unlike operating mode force charge
+            # is allowed with EPS mode
             ppas_sbm = pd303_pb2.ProtoPushAndSet()
             ppas_sbm.smart_backup_mode = SmartBackupMode.NONE
             await self._send_config_packet(ppas_sbm)

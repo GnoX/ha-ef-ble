@@ -38,6 +38,7 @@ packages = ["custom_components.ef_ble"]
 
 [tool.ruff]
 extend-exclude = ["*_pb2.py"]
+line-length = 88
 
 [tool.ruff.lint]
 select = [
@@ -147,7 +148,6 @@ ignore = [
     "D203",     # 1 blank line required before class docstring
     "D406",     # Section name should end with a newline
     "D407",     # Section name underlining
-    "E501",     # line too long
 
     "PLC1901", # {existing} can be simplified to {replacement} as an empty string is falsey; too many false positives
     "PLR0911", # Too many return statements ({returns} > {max_returns})

@@ -59,10 +59,12 @@ async def test_delta2_plus_parses_all_packets_successfully(device, packet_sequen
             f"Packet {i} has unexpected src: {packet.src:#04x} != {expected_src:#04x}"
         )
         assert packet.cmdSet == expected_cmdSet, (
-            f"Packet {i} has unexpected cmdSet: {packet.cmdSet:#04x} != {expected_cmdSet:#04x}"
+            f"Packet {i} has unexpected cmdSet: "
+            f"{packet.cmdSet:#04x} != {expected_cmdSet:#04x}"
         )
         assert packet.cmdId == expected_cmdId, (
-            f"Packet {i} has unexpected cmdId: {packet.cmdId:#04x} != {expected_cmdId:#04x}"
+            f"Packet {i} has unexpected cmdId: "
+            f"{packet.cmdId:#04x} != {expected_cmdId:#04x}"
         )
 
 

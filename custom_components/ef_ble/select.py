@@ -198,9 +198,9 @@ class EcoflowSelect(EcoflowEntity, SelectEntity):
             entity_attr="_attr_current_option",
             prop_name=self._prop_name,
             get_state=(
-                lambda value: value.name.lower()
-                if value is not None
-                else self.SkipWrite
+                lambda value: (
+                    value.name.lower() if value is not None else self.SkipWrite
+                )
             ),
         )
         self._register_update_callback(
@@ -244,9 +244,9 @@ class EcoflowSelect(EcoflowEntity, SelectEntity):
             entity_attr="_attr_current_option",
             prop_name=self._prop_name,
             get_state=(
-                lambda value: value.name.lower()
-                if value is not None
-                else self.SkipWrite
+                lambda value: (
+                    value.name.lower() if value is not None else self.SkipWrite
+                )
             ),
         )
 
