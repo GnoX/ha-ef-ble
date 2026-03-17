@@ -35,7 +35,7 @@ from .eflib.devices import (
     shp2,
     smart_generator,
     wave2,
-    wave3,
+    wave3, powerocean,
 )
 from .eflib.props.enums import IntFieldValue
 from .entity import (
@@ -594,6 +594,15 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
         indexed_range=range(1, 3),
     ),
     "llc_temperature": temperature(),
+    # Power Ocean
+    "sys_load_pwr": power(),
+    "pcs_meter_power": power(),
+    "bp_remain_watth": energy_storage(),
+    "bp_online_count": raw(),
+    "bp_pwr": power(),
+    "ems_work_mode": enum(options=powerocean.WorkMode),
+
+
     # unsupported
     "collecting_data": enum(
         name="Collecting data",

@@ -748,6 +748,24 @@
       },
       "dc_input_current": {
         "name": "DC Input Current"
+      },
+      "sys_load_pwr": {
+        "name": "System Load Power"
+      },
+      "pcs_meter_power": {
+        "name": "Smart Meter Power"
+      },
+      "bp_remain_watth": {
+        "name": "Battery Packs Remaining Power"
+      },
+      "bp_online_count": {
+        "name": "Battery Packs Online Count"
+      },
+      "bp_pwr": {
+        "name": "Battery Packs Power"
+      },
+      "ems_work_mode": {
+        "name": "EMS Work Mode"
       }
     },
     "select": {
