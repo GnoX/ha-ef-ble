@@ -297,9 +297,21 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
         native_unit_of_measurement=UnitOfPower.WATT,
         native_step=1,
         native_min_value=0,
-        max_value_prop="feed_grid_mode_power_max",
+        native_max_value=1200,
         async_set_native_value=(
             lambda device, value: device.set_feed_grid_mode_pow_limit(int(value))
+        ),
+    ),
+    EcoflowNumberEntityDescription[stream_microinverter.Device](
+        key="feed_grid_mode_power_max",
+        name="Feed Grid Power Max",
+        device_class=NumberDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        native_step=1,
+        native_min_value=0,
+        native_max_value=1200,
+        async_set_native_value=(
+            lambda device, value: device.set_feed_grid_mode_pow_max(int(value))
         ),
     ),
     EcoflowNumberEntityDescription[shp2.Device](

@@ -19,6 +19,7 @@ from .eflib.devices import (
     shp2,
     smart_generator,
     stream_ac,
+    stream_microinverter,
     wave2,
 )
 from .entity import EcoflowEntity
@@ -156,6 +157,16 @@ SELECT_TYPES: list[EcoflowSelectEntityDescription] = [
         set_state=(
             lambda device, value: device.set_smart_backup_mode(
                 shp2.SmartBackupMode[value.upper()]
+            )
+        ),
+    ),
+    EcoflowSelectEntityDescription[stream_microinverter.Device](
+        key="grid_code",
+        name="Grid Standard",
+        options=stream_microinverter.GridStdCode.options(include_unknown=False),
+        set_state=(
+            lambda device, value: device.set_grid_code(
+                stream_microinverter.GridStdCode[value.upper()]
             )
         ),
     ),

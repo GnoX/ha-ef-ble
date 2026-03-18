@@ -796,6 +796,9 @@
           "self_powered": "Self Powered",
           "scheduled": "Scheduled Tasks"
         }
+      },
+      "grid_code": {
+        "name": "Grid Standard"
       }
     },
     "number": {

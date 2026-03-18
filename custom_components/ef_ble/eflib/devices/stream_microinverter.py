@@ -4,8 +4,50 @@ from ..devicebase import DeviceBase
 from ..packet import Packet
 from ..pb import bk_series_pb2
 from ..props import ProtobufProps, pb_field, proto_attr_mapper
+from ..props.enums import IntFieldValue
 
 pb = proto_attr_mapper(bk_series_pb2.DisplayPropertyUpload)
+
+
+class GridStdCode(IntFieldValue):
+    UNKNOWN = -1
+
+    AUSTRIA = 1
+    SWITZER = 2
+    POLAND = 3
+    NETHERLANDS = 4
+    VDE_4105 = 5
+    IEEE_1547 = 6
+    USER_DEFINED = 7
+    NORWAY = 8
+    CZECH_REPUBLIC = 9
+    DENMARK = 10
+    IRELAND = 11
+    SWEDEN = 12
+    LATVIA = 13
+    GREECE_A = 14
+    GREECE_B = 15
+    PORTUGAL = 16
+    ROMANIA = 17
+    LITHUANIA = 18
+    HUNGARY = 19
+    ITALY = 20
+    G98 = 21
+    G99 = 22
+    NTS_631 = 23
+    UNE_217001 = 24
+    UNE_217002 = 25
+    UTE_MAINLAND = 26
+    UTE_50HZ_ISLAND = 27
+    UTE_60HZ_ISLAND = 28
+    BELGIUM = 29
+    UKRAINE = 30
+    SLOVENIA = 31
+    BULGARIA = 32
+    EU_GENERAL = 33
+    JAPAN = 34
+    PHILIPPINES = 35
+    NORTH_AMERICA = 1001
 
 
 def _round(precision: int = 2):
@@ -36,6 +78,8 @@ class Device(DeviceBase, ProtobufProps):
 
     feed_grid_mode_power_limit = pb_field(pb.feed_grid_mode_pow_limit)
     feed_grid_mode_power_max = pb_field(pb.feed_grid_mode_pow_max)
+
+    grid_code = pb_field(pb.grid_code_selection, GridStdCode.from_value)
 
     @classmethod
     def check(cls, sn):
@@ -74,14 +118,30 @@ class Device(DeviceBase, ProtobufProps):
         return True
 
     async def set_feed_grid_mode_pow_limit(self, power: int):
-        if (
-            power < 0
-            or self.feed_grid_mode_power_max is None
-            or power > self.feed_grid_mode_power_max
-        ):
+        if power < 0 or power > 1200:
             return False
 
         await self._send_config_packet(
             bk_series_pb2.ConfigWrite(cfg_feed_grid_mode_pow_limit=power)
         )
+        return True
+
+    async def set_feed_grid_mode_pow_max(self, power: int) -> bool:
+        """Set the feed grid mode maximum power."""
+        if power < 0 or power > 1200:
+            return False
+
+        msg = bk_series_pb2.DisplayPropertyUpload(feed_grid_mode_pow_max=power)
+        payload = msg.SerializeToString()
+        packet = Packet(0x20, 0x02, 0xFE, 0x11, payload, 0x01, 0x01, 0x13)
+        await self._conn.sendPacket(packet)
+        return True
+
+    async def set_grid_code(self, code: GridStdCode) -> bool:
+        """Set the grid standard code."""
+        pb_code = getattr(bk_series_pb2, f"GRID_STD_CODE_{code.name}")
+        message = bk_series_pb2.SafetyParamSet(grid_code_selection=pb_code)
+        payload = message.SerializeToString()
+        packet = Packet(0x20, 0x02, 0xFE, 0x1A, payload, 0x01, 0x01, 0x13)
+        await self._conn.sendPacket(packet)
         return True
