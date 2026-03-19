@@ -234,10 +234,10 @@ class Device(DeviceBase, RawDataProps):
         for i, kit in enumerate(kit_data.kit_base_info):
             battery_dict = battery_entity_map[i]
             available = kit.avai_flag
-            setattr(self, battery_dict["enabled"], bool(available))
+            self.set_value(battery_dict["enabled"], bool(available))
             if available:
-                setattr(self, battery_dict["sn"], kit.sn.strip(b"\x00").decode())
-                setattr(self, battery_dict["level"], round(kit.f32_soc, 2))
+                self.set_value(battery_dict["sn"], kit.sn.strip(b"\x00").decode())
+                self.set_value(battery_dict["level"], round(kit.f32_soc, 2))
 
     @cached_property
     def _mppt_dst(self) -> int:

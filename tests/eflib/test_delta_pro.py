@@ -56,10 +56,12 @@ async def test_delta_pro_parses_all_packets_successfully(device, packet_sequence
             f"Packet {i} has unexpected src: {packet.src:#04x} != {expected_src:#04x}"
         )
         assert packet.cmdSet == expected_cmdSet, (
-            f"Packet {i} has unexpected cmdSet: {packet.cmdSet:#04x} != {expected_cmdSet:#04x}"
+            f"Packet {i} has unexpected cmdSet: "
+            f"{packet.cmdSet:#04x} != {expected_cmdSet:#04x}"
         )
         assert packet.cmdId == expected_cmdId, (
-            f"Packet {i} has unexpected cmdId: {packet.cmdId:#04x} != {expected_cmdId:#04x}"
+            f"Packet {i} has unexpected cmdId: "
+            f"{packet.cmdId:#04x} != {expected_cmdId:#04x}"
         )
 
 
@@ -97,7 +99,7 @@ async def test_delta_pro_updates_power_fields(device, packet_sequence):
     ]
 
     for field_name in power_fields:
-        value = getattr(device, field_name)
+        value = device.get_value(field_name)
         assert isinstance(value, (int, float)), (
             f"Power field {field_name} has wrong type: {type(value)}"
         )
@@ -131,7 +133,7 @@ async def test_delta_pro_field_types_are_consistent(device, packet_sequence):
     ]
 
     for field_name in numeric_fields:
-        value = getattr(device, field_name, None)
+        value = device.get_value(field_name)
         if value is not None:
             assert isinstance(value, (int, float)), (
                 f"Field {field_name} has wrong type: {type(value)}"
@@ -146,7 +148,7 @@ async def test_delta_pro_field_types_are_consistent(device, packet_sequence):
     ]
 
     for field_name in boolean_fields:
-        value = getattr(device, field_name, None)
+        value = device.get_value(field_name)
         if value is not None:
             assert isinstance(value, (bool, int)), (
                 f"Field {field_name} has wrong type: {type(value)}"
@@ -203,7 +205,7 @@ async def test_delta_pro_exact_values_from_known_packets(device, packet_sequence
     }
 
     for field_name, expected_value in expected.items():
-        actual_value = getattr(device, field_name)
+        actual_value = device.get_value(field_name)
         assert actual_value == expected_value, (
             f"{field_name}: expected {expected_value!r}, got {actual_value!r}"
         )

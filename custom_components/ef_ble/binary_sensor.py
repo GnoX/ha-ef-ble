@@ -141,14 +141,12 @@ _BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
         connectivity, "channel_hw_connected", enabled=False
     ),
     # SHP2 generic binary sensors
-    "grid_status": connectivity("grid_status", enabled=True),
-    "storm_mode": safety("storm_mode", enabled=True),
+    "grid_status": connectivity(enabled=True),
+    "storm_mode": safety(enabled=True),
 }
 
 BINARY_SENSOR_TYPES: Final[dict[str, BinarySensorEntityDescription]] = (
-    resolve_entity_description_keys(
-        _BINARY_SENSORS, EcoflowBinarySensorEntityDescription
-    )
+    resolve_entity_description_keys(_BINARY_SENSORS)
 )
 
 
