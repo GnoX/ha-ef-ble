@@ -71,7 +71,10 @@ class UnsupportedDevice(DeviceBase):
         if self._diagnostics.packet_target_reached:
             self.collecting_data = "done"
         else:
-            self.collecting_data = f"{self._diagnostics.packets_collected}/{self._diagnostics.packet_buffer_size}"
+            self.collecting_data = (
+                f"{self._diagnostics.packets_collected}"
+                f"/{self._diagnostics.packet_buffer_size}"
+            )
 
         packet = Packet.fromBytes(data)
         if Packet.is_invalid(packet):

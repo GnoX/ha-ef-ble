@@ -27,7 +27,7 @@ class ProtobufRepeatedField[T_ITEM, T_OUT](ProtobufField[T_OUT]):
     """
 
     def __init_subclass__(cls) -> None:
-        dataclass(cls)
+        dataclass(cls, unsafe_hash=True)
 
     def get_list(self, value: Message) -> Sequence[Message]:
         """
