@@ -78,7 +78,7 @@ class Device(DeviceBase, RawDataProps):
     dc_output_power = raw_field(rd_pd.car_watts)
 
     dc_12v_port = raw_field(rd_mppt.car_state, lambda x: x == 1)
-    energy_backup_enabled = raw_field(rd_pd.watth_is_config, lambda x: x == 1)
+    energy_backup = raw_field(rd_pd.watth_is_config, lambda x: x == 1)
     energy_backup_battery_level = raw_field(rd_pd.backup_soc)
 
     # beep_mode: 0 = buzzer on, 1 = buzzer off (inverted in protocol)

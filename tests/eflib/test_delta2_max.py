@@ -156,7 +156,7 @@ async def test_delta2_max_field_types_are_consistent(device, packet_sequence):
         Device.ac_ports,
         Device.usb_ports,
         Device.dc_12v_port,
-        Device.energy_backup_enabled,
+        Device.energy_backup,
     ]
 
     for field_name in boolean_fields:
@@ -202,7 +202,7 @@ async def test_delta2_max_exact_values_from_known_packets(device, packet_sequenc
         Device.usb_ports: False,
         Device.dc_12v_port: False,
         Device.max_ac_charging_power: 1800,
-        Device.energy_backup_enabled: False,
+        Device.energy_backup: False,
         Device.ac_charging_speed: 300,
         Device.remaining_time_charging: 5999,
         Device.remaining_time_discharging: 5601,

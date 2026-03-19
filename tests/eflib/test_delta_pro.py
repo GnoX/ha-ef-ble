@@ -140,7 +140,7 @@ async def test_delta_pro_field_types_are_consistent(device, packet_sequence):
     boolean_fields = [
         Device.ac_ports,
         Device.dc_12v_port,
-        Device.energy_backup_enabled,
+        Device.energy_backup,
         Device.battery_1_enabled,
         Device.battery_2_enabled,
     ]
@@ -194,7 +194,7 @@ async def test_delta_pro_exact_values_from_known_packets(device, packet_sequence
         Device.usbc_output_power: 0,
         Device.usba_output_power: 0,
         Device.dc_12v_port: False,
-        Device.energy_backup_enabled: False,
+        Device.energy_backup: False,
         Device.energy_backup_battery_level: 50,
         Device.battery_1_enabled: True,
         Device.battery_1_battery_level: 89.85,
