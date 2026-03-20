@@ -34,6 +34,7 @@ pb_error_change_report = proto_attr_mapper(jt_s1_sys_pb2.ErrorChangeReport)
 pb_bp_heart = proto_attr_mapper(jt_s1_sys_pb2.BpHeartbeatReport)
 pb_ems_change_report = proto_attr_mapper(jt_s1_sys_pb2.EmsChangeReport)
 pb_sys_param_get_ack = proto_attr_mapper(jt_s1_sys_pb2.SysParamGetAck)
+pb_edev_energy_stream = proto_attr_mapper(jt_s1_edev_pb2.EDevEnergyStreamShow)
 
 
 
@@ -123,7 +124,7 @@ class BmsRunStaDef(IntFieldValue):
     UNKNOWN = -1
 
     @classmethod
-    def from_mode(cls, mode: jt_s1_sys_pb2.bms_SysState):
+    def from_mode(cls, mode: jt_s1_sys_pb2.bms_RunStaDef):
         try:
             return cls(mode)
         except ValueError:
@@ -192,19 +193,28 @@ class _MpptPv(repeated_pb_field_type(pb_heartbeat.mppt_heart_beat, lambda msg: m
         else:
             item_pv = item.mppt_pv[resolved_idx]
 
-        # if self.idx==1:
-        #     item_pv = item.mppt_pv[0]
-        # elif self.idx==2:
-        #     if len(item.mppt_pv)>1:
-        #         item_pv = item.mppt_pv[1]
-        #     else:
-        #         return None
-
         return getattr(item_pv, self.type, None) if item_pv else None
 
 
 # pb_error_change_report.pcs_err_code.err_code
 # ems_err_code
+
+
+class _EDevEnergyStreamShow(repeated_pb_field_type(pb_edev_energy_stream.energy, lambda msg: msg, per_item=True)):
+    idx: int
+    type: str
+    def get_value(self, item: jt_s1_edev_pb2.EDevEnergyStreamShow) -> float | None:
+        if not item.energy:
+            return None
+
+        resolved_idx = self.idx-1
+
+        if (self.idx> len(item.energy)):
+            item_pv = None
+        else:
+            item_pv = item.energy[resolved_idx]
+
+        return getattr(item_pv, self.type, None) if item_pv else None
 
 
 class _EmsErrorCode(repeated_pb_field_type(pb_error_change_report.ems_err_code, lambda msg: msg, per_item=True)):
@@ -241,17 +251,22 @@ class _PcsErrorCode(repeated_pb_field_type(pb_error_change_report.pcs_err_code, 
 #         return getattr(itemPv, self.type, None) if itemPv else None
 
 #      TODO:
-#       - error change report
+#       X  - error change report
 #       - sensor values:
 #           - add sensor values from cloud implementation   DONE
 #           - support for total accumulating values if possible and few missing
 #       - add diagnostic values
-#       - put pass on most of messages (I wouldn't remove implementation, because we have all of there, if we need to
-#          use it we can just uncomment it and use the message)
-#       - hotrod support
-#       - EV support
-#       - HeatPump support
+#       OK - put pass on most of messages (I wouldn't remove implementation, because we have all of there, if we need to
+#       OK   use it we can just uncomment it and use the message)
+#       - hotrod support (v2)
+#       - EV support (v2)
+#       - HeatPump support (v2)
 #       OK    - split into plus and normal version
+#       Integration:
+#                    - add standalone sensors
+#                    - connected devices: Phases (A,B,C)
+#                    - connected devices: PV String (1,2,3)
+#                    - connected devices: Battery packs (1-4)
 #
 
 #   Description:
@@ -261,9 +276,11 @@ class _PcsErrorCode(repeated_pb_field_type(pb_error_change_report.pcs_err_code, 
 class Device(DeviceBase, ProtobufProps):
     """Power Ocean"""
 
+    #SN_PREFIX = (b"J32")
     SN_PREFIX = (b"J32", b"HJ3", b"HC3")  # 1-phase, 3-phase, DC-Fit
     NAME_PREFIX = "EF-J32"
 
+    PO_INTERNAL_VERSION = "0.3.1"
 
     ecr_ems_sn = pb_field(pb_error_change_report.ems_err_code.module_sn)
     pcs_sn = pb_field(pb_error_change_report.pcs_err_code.module_sn)
@@ -282,9 +299,6 @@ class Device(DeviceBase, ProtobufProps):
     pcs_meter_power = pb_field(pb_heartbeat.pcs_meter_power)
     ems_bp_power = pb_field(pb_heartbeat.ems_bp_power)
     pcs_act_pwr = pb_field(pb_heartbeat.pcs_act_pwr)
-
-
-
 
     bpack1_bp_amp = _BpHeartbeatFloatValue(1, 'bp_amp')
     bpack1_bp_err_code = _BpHeartbeatIntValue(1, 'bp_err_code')
@@ -392,10 +406,12 @@ class Device(DeviceBase, ProtobufProps):
     # monthElectricityGeneration     14.48     kWh
     # yearElectricityGeneration      14.48     kWh
 
-    # Diagnostics TODO
 
-    bp_online_sum = pb_field(pb_ems_change_report.bp_online_sum)
-
+    # TODO testing edev
+    edev_1_from_pv = _EDevEnergyStreamShow(1, 'from_pv')
+    edev_1_from_bat = _EDevEnergyStreamShow(1, 'from_bat')
+    edev_1_from_grid = _EDevEnergyStreamShow(1, 'from_grid')
+    edev_1_pwr = _EDevEnergyStreamShow(1, 'pwr')
 
 
     # TODO test code for island mode - remove before production

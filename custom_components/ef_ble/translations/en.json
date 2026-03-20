@@ -764,9 +764,21 @@
       "bp_pwr": {
         "name": "Battery Packs Power"
       },
+      "bp_total_chg_energy": {
+        "name": "Battery Packs Total Charge Energy"
+      },
+      "bp_total_dsg_energy": {
+        "name": "Battery Packs Total Discharge Energy"
+      },
+      "bp_soc": {
+        "name": "Battery Packs State Of Charge"
+      },
       "ems_work_mode": {
         "name": "EMS Work Mode"
       }
+
+
+
     },
     "select": {
       "led_mode": {

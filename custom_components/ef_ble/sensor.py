@@ -601,7 +601,9 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     "bp_online_count": raw(),
     "bp_pwr": power(),
     "ems_work_mode": enum(options=powerocean.WorkMode),
-
+    "bp_total_chg_energy": energy_storage(),
+    "bp_total_dsg_energy": energy_storage(),
+    "bp_soc": percentage(),
 
     # unsupported
     "collecting_data": enum(
