@@ -56,8 +56,8 @@ async def test_river3_updates_battery_level(device, packet_sequence):
     packet = await device.packet_parse(bytes.fromhex(packet_sequence[0]))
     await device.data_parse(packet)
 
-    assert Device.battery_level in device.updated_fields
-    battery_level = getattr(device, Device.battery_level)
+    assert Device.battery_level.public_name in device.updated_fields
+    battery_level = device.get_value(Device.battery_level)
     assert battery_level is not None
     assert isinstance(battery_level, (int, float))
     assert 0 <= battery_level <= 100, f"Battery level {battery_level} out of range"
@@ -76,7 +76,7 @@ async def test_river3_updates_power_fields(device, packet_sequence):
     ]
 
     for field_name in power_field_names:
-        value = getattr(device, field_name)
+        value = device.get_value(field_name)
         assert isinstance(value, (int, float)), (
             f"Power field {field_name} has wrong type: {type(value)}"
         )
@@ -88,7 +88,7 @@ async def test_river3_handles_zero_values_correctly(device, packet_sequence):
         await device.data_parse(packet)
 
     # Check that zero power values are handled correctly
-    if Device.ac_output_power in device.updated_fields:
+    if Device.ac_output_power.public_name in device.updated_fields:
         ac_output = device.ac_output_power
         assert isinstance(ac_output, (int, float))
 
@@ -114,7 +114,7 @@ async def test_river3_field_types_are_consistent(device, packet_sequence):
     ]
 
     for field_name in numeric_fields:
-        value = getattr(device, field_name, None)
+        value = device.get_value(field_name)
         if value is not None:
             assert isinstance(value, (int, float)), (
                 f"Field {field_name} has wrong type: {type(value)}"
@@ -128,7 +128,7 @@ async def test_river3_field_types_are_consistent(device, packet_sequence):
     ]
 
     for field_name in boolean_fields:
-        value = getattr(device, field_name, None)
+        value = device.get_value(field_name)
         assert isinstance(value, (bool, int)), (
             f"Field {field_name} has wrong type: {type(value)}"
         )
@@ -141,7 +141,7 @@ async def test_river3_battery_soc_values_are_valid(device, packet_sequence):
         packet = await device.packet_parse(bytes.fromhex(hex_packet))
         await device.data_parse(packet)
 
-    if Device.battery_level in device.updated_fields:
+    if Device.battery_level.public_name in device.updated_fields:
         battery_level = device.battery_level
         assert battery_level is not None
         assert 0 <= battery_level <= 100, (
@@ -219,7 +219,7 @@ async def test_river3_exact_values_from_known_packets(device, packet_sequence):
     }
 
     for field_name, expected_value in expected.items():
-        actual_value = getattr(device, field_name)
+        actual_value = device.get_value(field_name)
         assert actual_value == expected_value, (
             f"{field_name}: expected {expected_value}, got {actual_value}"
         )
