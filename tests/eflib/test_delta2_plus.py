@@ -236,6 +236,8 @@ async def test_delta2_plus_exact_values_from_known_packets(device, packet_sequen
         Device.dc_input_voltage: 1.5,
         Device.dc_input_current: 0.0,
         Device.xt60_input_power: 0,
+        Device.ac_output_current: 1.81,
+        Device.ac_output_voltage: 224.62,
     }
 
     for field_name, expected_value in expected.items():

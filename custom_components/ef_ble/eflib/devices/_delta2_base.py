@@ -40,6 +40,8 @@ class Delta2Base(DeviceBase, RawDataProps):
     ac_output_power = raw_field(pb_inv.output_watts)
     ac_input_voltage = raw_field(pb_inv.ac_in_vol, lambda x: round(x / 1000, 2))
     ac_input_current = raw_field(pb_inv.ac_in_amp, lambda x: round(x / 1000, 2))
+    ac_output_voltage = raw_field(pb_inv.inv_out_vol, lambda x: round(x / 1000, 2))
+    ac_output_current = raw_field(pb_inv.inv_out_amp, lambda x: round(x / 1000, 2))
 
     battery_level_main = raw_field(pb_bms.f32_show_soc, lambda x: round(x, 2))
 

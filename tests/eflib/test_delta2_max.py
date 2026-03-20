@@ -208,6 +208,8 @@ async def test_delta2_max_exact_values_from_known_packets(device, packet_sequenc
         Device.remaining_time_discharging: 5601,
         Device.dc_input_voltage: 0.0,
         Device.dc_input_current: 0.0,
+        Device.ac_output_current: 0.11,
+        Device.ac_output_voltage: 119.45,
     }
 
     for field_name, expected_value in expected.items():
