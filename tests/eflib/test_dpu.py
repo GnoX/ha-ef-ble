@@ -46,10 +46,12 @@ async def test_dpu_parses_all_packets_successfully(device, packet_sequence):
             f"Packet {i} has unexpected src: {packet.src:#04x} != {expected_src:#04x}"
         )
         assert packet.cmdSet == expected_cmdSet, (
-            f"Packet {i} has unexpected cmdSet: {packet.cmdSet:#04x} != {expected_cmdSet:#04x}"
+            f"Packet {i} has unexpected cmdSet: "
+            f"{packet.cmdSet:#04x} != {expected_cmdSet:#04x}"
         )
         assert packet.cmdId == expected_cmdId, (
-            f"Packet {i} has unexpected cmdId: {packet.cmdId:#04x} != {expected_cmdId:#04x}"
+            f"Packet {i} has unexpected cmdId: "
+            f"{packet.cmdId:#04x} != {expected_cmdId:#04x}"
         )
 
 
@@ -70,11 +72,11 @@ async def test_dpu_updates_battery_pack_fields(device, packet_sequence):
     ]
 
     updated_battery_fields = [
-        f for f in battery_field_names if f in device.updated_fields
+        f for f in battery_field_names if f.public_name in device.updated_fields
     ]
     assert len(updated_battery_fields) > 0, "No battery pack fields were updated"
 
-    battery_1_level = getattr(device, Device.battery_1_battery_level)
+    battery_1_level = device.get_value(Device.battery_1_battery_level)
     assert battery_1_level is not None
     assert isinstance(battery_1_level, (int, float))
     assert 0 <= battery_1_level <= 100, (
@@ -95,8 +97,8 @@ async def test_dpu_updates_power_fields(device, packet_sequence):
     ]
 
     for field_name in power_field_names:
-        if field_name in device.updated_fields:
-            value = getattr(device, field_name)
+        if field_name.public_name in device.updated_fields:
+            value = device.get_value(field_name)
             assert isinstance(value, (int, float)), (
                 f"Power field {field_name} has wrong type: {type(value)}"
             )
@@ -108,7 +110,7 @@ async def test_dpu_handles_zero_values_correctly(device, packet_sequence):
         packet = await device.packet_parse(bytes.fromhex(hex_packet))
         await device.data_parse(packet)
 
-    if Device.input_power in device.updated_fields:
+    if Device.input_power.public_name in device.updated_fields:
         input_power = device.input_power
         if input_power is not None and input_power == 0:
             assert isinstance(input_power, (int, float))
@@ -141,7 +143,7 @@ async def test_dpu_field_types_are_consistent(device, packet_sequence):
     ]
 
     for field_name in numeric_fields:
-        value = getattr(device, field_name, None)
+        value = device.get_value(field_name)
         assert isinstance(value, (int, float)), (
             f"Field {field_name} has wrong type: {type(value)}"
         )
@@ -153,7 +155,7 @@ async def test_dpu_battery_soc_values_are_valid(device, packet_sequence):
 
     for i in range(1, 3):
         field_name = f"battery_{i}_battery_level"
-        value = getattr(device, field_name)
+        value = device.get_value(field_name)
         assert value is not None, f"{field_name} should not be None if updated"
         assert 0 <= value <= 100, (
             f"{field_name} value {value} is out of valid range (0-100)"
@@ -176,7 +178,7 @@ async def test_dpu_exact_values_from_known_packets(device, packet_sequence):
     }
 
     for field_name, expected_value in expected.items():
-        actual_value = getattr(device, field_name)
+        actual_value = device.get_value(field_name)
         assert actual_value == expected_value, (
             f"{field_name}: expected {expected_value}, got {actual_value}"
         )
