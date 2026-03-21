@@ -1,4 +1,4 @@
-"""EcoFlow BLE climate entity for Wave 3."""
+"""EcoFlow BLE climate entities."""
 
 from homeassistant.components.climate import (
     ClimateEntity,
