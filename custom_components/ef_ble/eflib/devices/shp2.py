@@ -124,8 +124,8 @@ class Device(DeviceBase, ProtobufProps):
     grid_status = pb_field(pb_push_set.master_incre_info.grid_sta)
     storm_mode = pb_field(pb_push_set.in_storm_mode)
 
-    circuit_power = field_group(lambda n: CircuitPowerField(n - 1), count=12)
-    circuit_current = field_group(lambda n: CircuitCurrentField(n - 1), count=12)
+    circuit_power = field_group(lambda n: CircuitPowerField(n - 1), 12)
+    circuit_current = field_group(lambda n: CircuitCurrentField(n - 1), 12)
 
     circuit = _circuit_sta_group(_hall1.ch1_sta.load_sta)
     circuit_split_link = _circuit_info_group(_hall1.ch1_info.splitphase.link_ch)
@@ -133,7 +133,7 @@ class Device(DeviceBase, ProtobufProps):
         _hall1.ch1_info.splitphase.link_ch, transform=lambda value: value is not None
     )
 
-    channel_power = field_group(lambda n: ChannelPowerField(n - 1), count=3)
+    channel_power = field_group(lambda n: ChannelPowerField(n - 1), 3)
 
     channel_sn = _energy_group(_energy.dev_info.model_info.sn)
     channel_type = _energy_group(_energy.dev_info.type)

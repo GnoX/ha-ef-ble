@@ -14,6 +14,7 @@ from .updatable_props import (
     Field,
     FieldGroup,
     FieldGroupView,
+    Indices,
     UpdatableProps,
     field_group,
 )
@@ -22,6 +23,7 @@ __all__ = [
     "Field",
     "FieldGroup",
     "FieldGroupView",
+    "Indices",
     "ProtobufProps",
     "RawDataProps",
     "UpdatableProps",

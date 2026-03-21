@@ -1,4 +1,5 @@
-from collections.abc import Callable, Iterator
+import string
+from collections.abc import Callable, Iterable, Iterator
 from typing import Any, ClassVar, overload
 
 
@@ -131,74 +132,110 @@ class Field[T]:
         return getattr(instance, self.private_name, None)
 
 
-class FieldGroupView[T]:
-    """Provides 1-based indexed access to field values on a device instance"""
+class FieldGroupView[T, K: (int, str) = int]:
+    """Provides indexed access to field values on a device instance"""
 
-    __slots__ = ("_fields", "_instance", "_start")
+    __slots__ = ("_fields", "_index_map", "_instance")
 
     def __init__(
         self,
         instance: UpdatableProps,
         fields: "list[Field[T]]",
-        start: int,
+        index_map: dict[K, int],
     ) -> None:
         self._instance = instance
         self._fields = fields
-        self._start = start
+        self._index_map = index_map
 
-    def __getitem__(self, index: int) -> "T | None":
-        field = self._fields[index - self._start]
+    def __getitem__(self, index: K) -> "T | None":
+        field = self._fields[self._index_map[index]]
         return field.__get__(self._instance, type(self._instance))
+
+    def __iter__(self) -> Iterator[K]:
+        return iter(self._index_map)
 
     def __len__(self) -> int:
         return len(self._fields)
 
+    def values(self) -> "Iterator[T | None]":
+        """Iterate over field values"""
+        for key in self._index_map:
+            yield self[key]
 
-class FieldGroup[T]:
+    def items(self) -> "Iterator[tuple[K, T | None]]":
+        """Iterate over (index, value) pairs"""
+        for key in self._index_map:
+            yield key, self[key]
+
+
+class Indices:
+    """Pre-defined index sequences for FieldGroup and pb_indexed_attr"""
+
+    @staticmethod
+    def numeric(count: int, start: int = 1) -> list[int]:
+        """Sequential integers: [1, 2, 3, ...] (or from start)"""
+        return list(range(start, start + count))
+
+    @staticmethod
+    def alpha(count: int) -> list[str]:
+        """Lowercase letters: ["a", "b", "c", ...]"""
+        return list(string.ascii_lowercase[:count])
+
+    @staticmethod
+    def alpha_upper(count: int) -> list[str]:
+        """Uppercase letters: ["A", "B", "C", ...]"""
+        return list(string.ascii_uppercase[:count])
+
+
+class FieldGroup[T, K: (int, str) = int]:
     """
     Descriptor that creates N individually-named fields and provides indexed access
 
-    When assigned as a class attribute with name `name`, it registers N sub-fields
-    as `{name}_{start}` ... `{name}_{start + count - 1}` (or using a custom
-    `name_template` / `name_prefix`).
+    When assigned as a class attribute with name `name`, it registers N sub-fields as
+    `{name}_{key}` for each index key (or a custom `name_template` / `name_prefix`).
 
     Class access returns the FieldGroup itself (iterable over Field descriptors).
-    Instance access returns a FieldGroupView with 1-based __getitem__.
+    Instance access returns a FieldGroupView with indexed __getitem__.
 
     Parameters
     ----------
     factory
-        Callable receiving the 1-based index and returning a Field instance
-    count
-        Number of fields to create
-    start
-        Index of the first field (default 1)
+        Callable receiving the index key and returning a Field instance
+    indices
+        An integer (number of 1-based fields) or an iterable of explicit index keys
+        (e.g. `Indices.numeric(6)`, `Indices.alpha(3)`, `range(1, 7)`, or
+        `["a", "b", "c"]`)
     name_template
         Explicit naming pattern with {n} placeholder, e.g. "ch{n}_status"
     name_prefix
-        Prefix with {n} placeholder — the template is derived automatically
-        from the class attribute name (used by `pb_group`)
+        Prefix with {n} placeholder - the template is derived automatically from the
+        class attribute name (used by `pb_group`)
     """
 
     def __init__(
         self,
-        factory: "Callable[[int], Field[T]]",
-        count: int,
+        factory: "Callable[[K], Field[T]]",
+        indices: "int | Iterable[K]",
         *,
-        start: int = 1,
         name_template: str | None = None,
         name_prefix: str | None = None,
     ) -> None:
-        self._count = count
-        self._start = start
+        self._indices: tuple = (
+            tuple(range(1, 1 + indices)) if isinstance(indices, int) else tuple(indices)
+        )
+
+        self._index_map: dict[K, int] = {
+            key: pos for pos, key in enumerate(self._indices)
+        }
         self._name_template = name_template
         self._name_prefix = name_prefix
-        self._fields: list[Field[T]] = [factory(i) for i in range(start, start + count)]
+        self._fields: list[Field[T]] = [factory(i) for i in self._indices]
         self._name: str = ""
 
     @property
-    def start(self) -> int:
-        return self._start
+    def indices(self) -> tuple[K, ...]:
+        """The index keys for this group"""
+        return self._indices
 
     def _resolve_template(self, name: str) -> str | None:
         if self._name_template is not None:
@@ -211,8 +248,8 @@ class FieldGroup[T]:
     def __set_name__(self, owner: type, name: str) -> None:
         self._name = name
         template = self._resolve_template(name)
-        for i, field in enumerate(self._fields, start=self._start):
-            field_name = template.format(n=i) if template else f"{name}_{i}"
+        for key, field in zip(self._indices, self._fields, strict=True):
+            field_name = template.format(n=key) if template else f"{name}_{key}"
             field.__set_name__(owner, field_name)
             setattr(owner, field_name, field)
 
@@ -221,61 +258,77 @@ class FieldGroup[T]:
         self,
         instance: None,
         owner: type,
-    ) -> "FieldGroup[T]": ...
+    ) -> "FieldGroup[T, K]": ...
 
     @overload
     def __get__(
         self,
         instance: UpdatableProps,
         owner: type,
-    ) -> "FieldGroupView[T]": ...
+    ) -> "FieldGroupView[T, K]": ...
 
     def __get__(
         self,
         instance: UpdatableProps | None,
         owner: type,
-    ) -> "FieldGroup[T] | FieldGroupView[T]":
+    ) -> "FieldGroup[T, K] | FieldGroupView[T, K]":
         if instance is None:
             return self
-        return FieldGroupView(instance, self._fields, self._start)
+        return FieldGroupView(instance, self._fields, self._index_map)
 
     def __iter__(self) -> "Iterator[Field[T]]":
         return iter(self._fields)
 
     def __len__(self) -> int:
-        return self._count
+        return len(self._fields)
 
-    def __getitem__(self, index: int) -> "Field[T]":
-        return self._fields[index - self._start]
+    def __getitem__(self, index: K) -> "Field[T]":
+        return self._fields[self._index_map[index]]
 
 
+@overload
 def field_group[T](
     factory: "Callable[[int], Field[T]]",
-    count: int,
+    indices: int,
     *,
-    start: int = 1,
     name_template: str | None = None,
-) -> "FieldGroup[T]":
+) -> "FieldGroup[T, int]": ...
+
+
+@overload
+def field_group[T, K: (int, str)](
+    factory: "Callable[[K], Field[T]]",
+    indices: "Iterable[K]",
+    *,
+    name_template: str | None = None,
+) -> "FieldGroup[T, K]": ...
+
+
+def field_group(
+    factory: "Callable[[Any], Field[Any]]",
+    indices: "int | Iterable[Any]",
+    *,
+    name_template: str | None = None,
+) -> "FieldGroup[Any, Any]":
     """
-    Create a group of count related fields named `{attr}_{start}` ... `{attr}_{N}`
+    Create a group of related fields
 
     When assigned to a class attribute with name `name`, the individual fields are
-    registered as `{name}_{start}` through `{name}_{start + count - 1}`.
+    registered as `{name}_{key}` for each index key.
 
     Parameters
     ----------
     factory
-        Callable receiving the 1-based index and returning a Field instance
-    count
-        Number of fields to create
-    start
-        Index of the first field (default 1)
+        Callable receiving the index key and returning a Field instance
+    indices
+        An integer (number of 1-based fields) or an iterable of explicit index keys
+        (e.g. `Indices.numeric(6)`, `Indices.alpha(3)`, `range(1, 7)`, or
+        `["a", "b", "c"]`)
     name_template
         Explicit naming pattern with {n} placeholder, e.g. "ch{n}_status"
     """
     return FieldGroup(
         factory,
-        count,
-        start=start,
+        indices,
         name_template=name_template,
     )
