@@ -356,27 +356,30 @@ first charging task</sup>
 
 <br>
 
-| *Sensors*                        | *Sliders*       | *Switches* |
-|----------------------------------|-----------------|------------|
-| Battery Level                    | Charge Limit    | Power      |
-| Ambient Temperature              | Discharge Limit |            |
-| Ambient Humidity                 |                 |            |
-| Operating Mode                   |                 |            |
-| Condensate Water Level           |                 |            |
-| Cell Temperature (disabled)      |                 |            |
-| Fan Level                        |                 |            |
-| Drainage Mode                    |                 |            |
-| In Drainage                      |                 |            |
-| Display Temperature Type         |                 |            |
-| Input Power                      |                 |            |
-| Output Power                     |                 |            |
-| Indoor Supply Air Temperature    |                 |            |
-| Indoor Return Air Temperature    |                 |            |
-| Outdoor Ambient Temperature      |                 |            |
-| Condenser Temperature            |                 |            |
-| Evaporator Temperature           |                 |            |
-| Compressor Discharge Temperature |                 |            |
-| Sleep State                      |                 |            |
+| *Sensors*                        | *Switches*    | *Sliders*       | *Selects*              |
+|----------------------------------|---------------|-----------------|------------------------|
+| Battery Level                    | Power         | Charge Limit    | Temperature Display Type |
+| Ambient Temperature              | Pet Care Mode | Discharge Limit | Fan Speed              |
+| Ambient Humidity                 |               |                 |                        |
+| Operating Mode                   |               |                 |                        |
+| Condensate Water Level           |               |                 |                        |
+| Cell Temperature (disabled)      |               |                 |                        |
+| Sleep State                      |               |                 |                        |
+| In Drainage                      |               |                 |                        |
+| Drainage Mode                    |               |                 |                        |
+| Input Power                      |               |                 |                        |
+| Output Power                     |               |                 |                        |
+| AC Input Power                   |               |                 |                        |
+| Battery Power                    |               |                 |                        |
+| Indoor Supply Air Temperature    |               |                 |                        |
+| Indoor Return Air Temperature    |               |                 |                        |
+| Outdoor Ambient Temperature      |               |                 |                        |
+| Condenser Temperature            |               |                 |                        |
+| Evaporator Temperature           |               |                 |                        |
+| Compressor Discharge Temperature |               |                 |                        |
+
+> **📝 Note:** Wave 3 also provides a **Climate** entity with HVAC modes
+> (Cool, Heat, Fan, Dry, Auto), target temperature, and fan speed control.
 
 </details>
 
