@@ -808,6 +808,12 @@
       "pcs_fan_level": {
         "name": "Fan Level"
       },
+      "self_consume_power": {
+        "name": "Power Consumption"
+      },
+      "battery_power": {
+        "name": "Battery Power"
+      },
       "in_drainage": {
         "name": "In Drainage"
       },
@@ -834,6 +840,9 @@
       },
       "temp_compressor_discharge": {
         "name": "Compressor Discharge Temp"
+      },
+      "en_pet_care": {
+        "name": "Pet Care Mode"
       },
       "battery_charge_limit_min": {
         "name": "Discharge Limit"
@@ -976,6 +985,11 @@
       },
       "dc_charging_max_amps_2": {
         "name": "DC (2) Charging Max Amps"
+      }
+    },
+    "climate": {
+      "climate": {
+        "name": "Climate"
       }
     },
     "switch": {

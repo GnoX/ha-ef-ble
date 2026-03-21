@@ -47,6 +47,7 @@ PLATFORMS: list[Platform] = [
     Platform.SWITCH,
     Platform.NUMBER,
     Platform.SELECT,
+    Platform.CLIMATE,
 ]
 
 type DeviceConfigEntry = ConfigEntry[eflib.DeviceBase]
@@ -156,6 +157,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
 
     _LOGGER.debug("Creating entities")
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    if hasattr(device, "sw_version"):
+        def _update_sw_version(version):
+            dev_reg = dr.async_get(hass)
+            dev_entry = dev_reg.async_get_device(
+                identifiers={(DOMAIN, device.address)}
+            )
+            if dev_entry is not None:
+                dev_reg.async_update_device(
+                    dev_entry.id, sw_version=str(version)
+                )
+
+        if device.sw_version is not None:
+            _update_sw_version(device.sw_version)
+        else:
+            device.register_state_update_callback(
+                _update_sw_version, "pd_firm_ver"
+            )
+
+    if hasattr(device, "request_full_upload"):
+        await device.request_full_upload()
 
     _LOGGER.debug("Setup done")
     entry.async_on_unload(entry.add_update_listener(_update_listener))
