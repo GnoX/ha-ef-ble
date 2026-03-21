@@ -1,6 +1,6 @@
 """EcoFlow BLE sensor"""
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field, replace
 from enum import Enum, EnumType
 from typing import Any, Final, TypedDict, Unpack
@@ -50,13 +50,13 @@ from .entity import (
 class EcoflowSensorEntityDescription[Device: DeviceBase](SensorEntityDescription):
     state_attribute_fields: list[str] = field(default_factory=list)
     native_unit_of_measurement_field: str | Callable[[Device], str] | None = None
-    indexed_range: range | None = None
+    indices: Iterable[int | str] | None = None
 
 
 class _SensorKwargs(TypedDict, total=False):
     translation_key: str
     translation_placeholders: dict[str, str]
-    indexed_range: range
+    indices: Iterable[int | str]
     entity_category: EntityCategory
     state_attribute_fields: list[str]
 
@@ -346,7 +346,7 @@ def shp2_channel(
     return fn(
         translation_key=translation_key,
         translation_placeholders=translation_placeholders or {"channel": "{n}"},
-        indexed_range=_shp2_channel_range,
+        indices=_shp2_channel_range,
         **kwargs,
     )
 
@@ -360,7 +360,7 @@ def shp2_circuit(
     return fn(
         translation_key=translation_key,
         translation_placeholders=translation_placeholders or {"index": "{n:02d}"},
-        indexed_range=_shp2_circuit_range,
+        indices=_shp2_circuit_range,
         **kwargs,
     )
 
@@ -558,35 +558,35 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     "load_from_battery": power(),
     "load_from_grid": power(),
     "load_from_pv": power(),
-    "ac_power_{n}": port_power("AC ({n})", indexed_range=range(3)),
+    "ac_power_{n}": port_power("AC ({n})", indices=range(3)),
     "ac_power_1_1": port_power("AC (1-1)"),
     "ac_power_1_2": port_power("AC (1-2)"),
     "ac_power_1_3": port_power("AC (1-3)"),
     "ac_power_2_1": port_power("AC (2-1)"),
     "ac_power_2_2": port_power("AC (2-2)"),
     "ac_power_2_3": port_power("AC (2-3)"),
-    "pv_power_{n}": port_power("PV ({n})", precision=1, indexed_range=range(5)),
+    "pv_power_{n}": port_power("PV ({n})", precision=1, indices=range(5)),
     "pv_power_sum": power(precision=1, translation_key="pv_power_sum"),
     # Smart Meter
     "grid_energy": energy(),
-    "l{n}_power": port_power("L{n}", enabled=False, indexed_range=range(4)),
+    "l{n}_power": port_power("L{n}", enabled=False, indices=range(4)),
     "l{n}_current": current(
         enabled=False,
         translation_key="port_current",
         translation_placeholders={"name": "L{n}"},
-        indexed_range=range(4),
+        indices=range(4),
     ),
     "l{n}_voltage": voltage(
         enabled=False,
         translation_key="port_voltage",
         translation_placeholders={"name": "L{n}"},
-        indexed_range=range(4),
+        indices=range(4),
     ),
     "l{n}_energy": energy(
         enabled=False,
         translation_key="port_energy",
         translation_placeholders={"name": "L{n}"},
-        indexed_range=range(4),
+        indices=range(4),
     ),
     # Wave 3
     "ambient_temperature": wave_temperature(),
@@ -616,13 +616,13 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
         precision=2,
         translation_key="port_current",
         translation_placeholders={"name": "PV ({n})"},
-        indexed_range=range(1, 3),
+        indices=range(1, 3),
     ),
     "pv_voltage_{n}": voltage(
         precision=1,
         translation_key="port_voltage",
         translation_placeholders={"name": "PV ({n})"},
-        indexed_range=range(1, 3),
+        indices=range(1, 3),
     ),
     # Wave 2
     "outlet_temperature": temperature(),
@@ -640,7 +640,7 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     "pv_temperature_{n}": temperature(
         translation_key="port_temperature",
         translation_placeholders={"name": "PV ({n})"},
-        indexed_range=range(1, 3),
+        indices=range(1, 3),
     ),
     "llc_temperature": temperature(),
     # unsupported
