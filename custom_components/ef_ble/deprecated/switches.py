@@ -128,6 +128,11 @@ DEPRECATED_SWITCH_TYPES = [
         name="Ambient Light",
     ),
     SwitchEntityDescription(
+        key="en_pet_care",
+        name="Pet Care Mode",
+        icon="mdi:paw",
+    ),
+    SwitchEntityDescription(
         key="emergency_reverse_charging",
         name="Emergency Reverse Charging",
     ),
