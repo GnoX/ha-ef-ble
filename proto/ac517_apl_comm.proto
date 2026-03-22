@@ -1,8 +1,7 @@
-/* AUTO-GENERATED FILE. DO NOT MODIFY.
-*/
 syntax = "proto3";
 
 package ac517_apl_comm;
+
 
 enum TIME_TASK_MODE {
   TIME_TASK_MODE_RESV = 0;
@@ -64,7 +63,7 @@ message EventPush {
 
   optional uint32 event_ver = 1;
   optional uint32 event_seq = 2;
-  repeated LogItem event_item = 3;
+  repeated EventPush.LogItem event_item = 3;
 }
 
 message EventAck {
@@ -348,7 +347,6 @@ message DisplayPropertyUpload {
   optional float humi_ambient = 485;
   optional uint32 wave_operating_mode = 486;
   optional float temp_indoor_supply_air = 494;
-  optional float temp_indoor_return_air = 493;
   optional float condensate_water_level = 504;
   optional bool in_drainage = 505;
   optional uint32 drainage_mode = 506;
@@ -402,6 +400,7 @@ message RuntimePropertyUpload {
   optional uint32 bms_high_temp_icon = 278;
   optional uint32 bms_low_temp_icon = 279;
   optional uint32 bms_limit_icon = 280;
+  optional float temp_indoor_return_air = 493;
   optional float temp_outdoor_ambient = 495;
   optional float temp_condenser = 496;
   optional float temp_evaporator = 499;

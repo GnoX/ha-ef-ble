@@ -171,9 +171,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
     _LOGGER.debug("Creating entities")
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    if hasattr(device, "request_full_upload"):
-        await device.request_full_upload()
-
     _LOGGER.debug("Setup done")
     entry.async_on_unload(entry.add_update_listener(_update_listener))
 
