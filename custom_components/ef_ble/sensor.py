@@ -183,6 +183,20 @@ def current(
     )
 
 
+def signal_strength(
+    key: str = "", enabled: bool = False, **kwargs: Unpack[_SensorKwargs]
+) -> EcoflowSensorEntityDescription:
+    return EcoflowSensorEntityDescription(
+        key=key,
+        native_unit_of_measurement=SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
+        device_class=SensorDeviceClass.SIGNAL_STRENGTH,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=enabled,
+        **kwargs,
+    )
+
+
 def temperature(
     key: str = "", enabled: bool = True, **kwargs: Unpack[_SensorKwargs]
 ) -> EcoflowSensorEntityDescription:
@@ -738,12 +752,6 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
         options=stream_microinverter.GridStatus,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    "wifi_rssi": raw(
-        enabled=False,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        native_unit_of_measurement=SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
     "grid_voltage": voltage(precision=1),
     "grid_frequency": frequency(precision=2),
     "grid_current": current(precision=2),
@@ -781,16 +789,7 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
         indexed_range=range(4),
     ),
     # Wave 3
-    "ac_input_power": power(precision=1),
-    "battery_power": power(precision=1),
-    "module_wifi_rssi": EcoflowSensorEntityDescription(
-        key="",
-        native_unit_of_measurement="dBm",
-        device_class=SensorDeviceClass.SIGNAL_STRENGTH,
-        state_class=SensorStateClass.MEASUREMENT,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
-    ),
+    "wifi_rssi": signal_strength(enabled=False),
     "ambient_temperature": wave_temperature(),
     "ambient_humidity": humidity(),
     "operating_mode": enum(options=wave3.OperatingMode),
@@ -804,7 +803,6 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     "temp_condenser": wave_temperature(),
     "temp_evaporator": wave_temperature(),
     "temp_compressor_discharge": wave_temperature(),
-    "pd_firm_ver": raw(enabled=False, entity_category=EntityCategory.DIAGNOSTIC),
     # Delta 2
     "dc12v_output_voltage": voltage(precision=2, enabled=False),
     "dc12v_output_current": current(precision=2, enabled=False),

@@ -29,6 +29,7 @@ from .logging_util import (
 )
 from .packet import Packet
 from .props.raw_data_props import Literal
+from .props.updatable_props import Field
 
 
 class _Listeners(ListenerRegistry):
@@ -353,8 +354,10 @@ class DeviceBase(abc.ABC):
         else:
             self._callbacks_map.get(propname, set()).discard(callback)
 
-    def update_callback(self, propname: str) -> None:
+    def update_callback(self, propname: "str | Field[Any]") -> None:
         """Find the registered callbacks in the map and then calling the callbacks"""
+        if isinstance(propname, Field):
+            propname = propname.public_name
 
         self._props_to_update.add(propname)
 
@@ -391,13 +394,27 @@ class DeviceBase(abc.ABC):
         """Remove previously registered state update callback"""
         self._state_update_callbacks[propname].discard(callback)
 
-    def update_state(self, propname: str, value: Any):
+    def update_state(self, propname: "str | Field[Any]", value: Any):
         """Run callback for updated state"""
+        if isinstance(propname, Field):
+            propname = propname.public_name
+
         if propname not in self._state_update_callbacks:
             return
 
         for update in self._state_update_callbacks[propname]:
             update(value)
+
+    def notify_field[T](self, field: "Field[T]", value: T | None = None) -> None:
+        """Notify listeners that a field has been updated."""
+        name = field.public_name
+        if value is not None:
+            setattr(self, name, value)
+        else:
+            value = getattr(self, name)
+
+        self.update_callback(name)
+        self.update_state(name, value)
 
 
 @dataclass
