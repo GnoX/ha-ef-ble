@@ -1,16 +1,19 @@
 import logging
 
+from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import AdvertisementData
+
 from ..devicebase import DeviceBase
 from ..packet import Packet
 from ..pb import ac517_apl_comm_pb2
-from ..props import Field, ProtobufProps, pb_field
+from ..props import ProtobufProps, pb_field
 from ..props.enums import IntFieldValue
 from ..props.protobuf_field import proto_attr_mapper
 from ..props.utils import pround
 
-# Two mappers: Display and Runtime
 pb_disp = proto_attr_mapper(ac517_apl_comm_pb2.DisplayPropertyUpload)
 pb_run = proto_attr_mapper(ac517_apl_comm_pb2.RuntimePropertyUpload)
+pb_mode = proto_attr_mapper(ac517_apl_comm_pb2.WaveOperatingModeParamItem)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -98,7 +101,9 @@ class Device(DeviceBase, ProtobufProps):
     pcs_fan_level = pb_field(pb_disp.pcs_fan_level)
     in_drainage = pb_field(pb_disp.in_drainage)
     drainage_mode = pb_field(pb_disp.drainage_mode)
-    lcd_show_temp_type = pb_field(pb_disp.lcd_show_temp_type, TemperatureDisplayType.from_value)
+    # lcd_show_temp_type = pb_field(
+    #     pb_disp.lcd_show_temp_type, TemperatureDisplayType.from_value
+    # )
 
     input_power = pb_field(pb_disp.pow_in_sum_w, pround(1))
     output_power = pb_field(pb_disp.pow_out_sum_w, pround(1))
@@ -106,7 +111,7 @@ class Device(DeviceBase, ProtobufProps):
     battery_power = pb_field(pb_disp.pow_get_bms, pround(1))
 
     temp_indoor_supply_air = pb_field(pb_disp.temp_indoor_supply_air, pround(1))
-    temp_indoor_return_air = pb_field(pb_disp.temp_indoor_return_air, pround(1))
+    temp_indoor_return_air = pb_field(pb_run.temp_indoor_return_air, pround(1))
     temp_outdoor_ambient = pb_field(pb_run.temp_outdoor_ambient, pround(1))
     temp_condenser = pb_field(pb_run.temp_condenser, pround(1))
     temp_evaporator = pb_field(pb_run.temp_evaporator, pround(1))
@@ -120,10 +125,20 @@ class Device(DeviceBase, ProtobufProps):
     battery_charge_limit_min = pb_field(pb_disp.cms_min_dsg_soc)
     battery_charge_limit_max = pb_field(pb_disp.cms_max_chg_soc)
     sleep_state = pb_field(pb_disp.dev_sleep_state, SleepState.from_value)
+    power = pb_field(pb_disp.dev_sleep_state, lambda x: x == SleepState.ON)
 
-    power = Field[bool]()
-    target_temperature = Field[float]()
-    fan_speed = Field[FanSpeed]()
+    _wave_mode_info = pb_field(pb_disp.wave_mode_info)
+    target_temperature_climate = pb_field(pb_mode.temp_set, pround(1))
+    fan_speed_climate = pb_field(pb_mode.airflow_speed, FanSpeed.from_value)
+
+    min_temp: float = 16.0
+    max_temp: float = 30.0
+
+    def __init__(
+        self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
+    ) -> None:
+        super().__init__(ble_dev, adv_data, sn)
+        self.add_timer_task(self._request_full_upload, interval=10)
 
     @classmethod
     def check(cls, sn):
@@ -132,21 +147,12 @@ class Device(DeviceBase, ProtobufProps):
     async def packet_parse(self, data: bytes):
         return Packet.fromBytes(data, xor_payload=True)
 
-    async def request_full_upload(self):
-        await self._send_config_packet(
-            ac517_apl_comm_pb2.ConfigWrite(
-                active_display_property_full_upload=True,
-                active_runtime_property_full_upload=True,
-            )
-        )
-
     async def data_parse(self, packet: Packet):
         processed = False
         self.reset_updated()
 
-        msg = None
         if packet.src == 0x42 and packet.cmdSet == 0xFE and packet.cmdId == 0x15:
-            msg = self.update_from_bytes(
+            self.update_from_bytes(
                 ac517_apl_comm_pb2.DisplayPropertyUpload, packet.payload
             )
             processed = True
@@ -157,11 +163,9 @@ class Device(DeviceBase, ProtobufProps):
             )
             processed = True
 
-        if self.sleep_state is not None:
-            self.power = self.sleep_state == SleepState.ON
-
-        if msg is not None:
-            self._extract_mode_params(msg)
+        self.target_temperature_climate = self.fan_speed_climate = (
+            self._current_mode_item
+        )
 
         for field_name in self.updated_fields:
             self.update_callback(field_name)
@@ -197,62 +201,6 @@ class Device(DeviceBase, ProtobufProps):
         )
         return True
 
-    def _extract_mode_params(self, msg: ac517_apl_comm_pb2.DisplayPropertyUpload):
-        if msg.HasField("wave_mode_info"):
-            self._cached_mode_items = [
-                {
-                    "submode": item.submode if item.HasField("submode") else None,
-                    "airflow_speed": item.airflow_speed if item.HasField("airflow_speed") else None,
-                    "temp_set": item.temp_set if item.HasField("temp_set") else None,
-                }
-                for item in msg.wave_mode_info.list_info
-            ]
-            _LOGGER.debug(
-                "wave_mode_info: %d items, values: %s",
-                len(self._cached_mode_items),
-                self._cached_mode_items,
-            )
-
-        if (
-            self.operating_mode is None
-            or self.operating_mode == OperatingMode.NULL
-        ):
-            return
-
-        items = getattr(self, "_cached_mode_items", None)
-        if not items:
-            return
-
-        mode_index = self._mode_list_index(items)
-        if mode_index is None:
-            return
-
-        item = items[mode_index]
-        if item["temp_set"] is not None:
-            self.target_temperature = round(item["temp_set"], 1)
-        if item["airflow_speed"] is not None:
-            self.fan_speed = FanSpeed.from_value(item["airflow_speed"])
-
-    def _mode_list_index(self, items: list) -> int | None:
-        """Map operating_mode to a list index in wave_mode_info.
-
-        The list may contain 5 entries (modes 1-5, no NULL) or 6 entries
-        (modes 0-5, NULL placeholder at index 0).  Use the list length to
-        pick the correct mapping.
-        """
-        mode_value = self.operating_mode.value
-        if len(items) > 5:
-            idx = mode_value
-        else:
-            idx = mode_value - 1
-        if idx < 0 or idx >= len(items):
-            _LOGGER.debug(
-                "mode_index %d out of range (list length %d, mode %s)",
-                idx, len(items), self.operating_mode,
-            )
-            return None
-        return idx
-
     async def enable_power(self, enabled: bool):
         cfg = ac517_apl_comm_pb2.ConfigWrite()
         if enabled:
@@ -270,35 +218,13 @@ class Device(DeviceBase, ProtobufProps):
         await self._send_config_packet(
             ac517_apl_comm_pb2.ConfigWrite(cfg_temp_set=temperature)
         )
-        self.target_temperature = round(temperature, 1)
-        self._update_cached_mode_temp(temperature)
-        self.update_callback("target_temperature")
-        self.update_state("target_temperature", self.target_temperature)
+        self.notify_field(Device.target_temperature_climate, temperature)
 
     async def set_fan_speed(self, speed: FanSpeed):
         await self._send_config_packet(
             ac517_apl_comm_pb2.ConfigWrite(cfg_airflow_speed=speed.value)
         )
-        self.fan_speed = speed
-        self._update_cached_mode_fan_speed(speed.value)
-        self.update_callback("fan_speed")
-        self.update_state("fan_speed", self.fan_speed)
-
-    def _update_cached_mode_temp(self, temperature: float):
-        items = getattr(self, "_cached_mode_items", None)
-        if not items or self.operating_mode is None or self.operating_mode == OperatingMode.NULL:
-            return
-        idx = self._mode_list_index(items)
-        if idx is not None:
-            items[idx]["temp_set"] = round(temperature, 1)
-
-    def _update_cached_mode_fan_speed(self, speed_value: int):
-        items = getattr(self, "_cached_mode_items", None)
-        if not items or self.operating_mode is None or self.operating_mode == OperatingMode.NULL:
-            return
-        idx = self._mode_list_index(items)
-        if idx is not None:
-            items[idx]["airflow_speed"] = speed_value
+        self.notify_field(Device.fan_speed_climate, speed)
 
     async def set_lcd_show_temp_type(self, temp_type: TemperatureDisplayType):
         await self._send_config_packet(
@@ -310,4 +236,37 @@ class Device(DeviceBase, ProtobufProps):
             ac517_apl_comm_pb2.ConfigWrite(cfg_en_pet_care=enabled)
         )
 
+    async def _request_full_upload(self):
+        await self._send_config_packet(
+            ac517_apl_comm_pb2.ConfigWrite(
+                active_display_property_full_upload=True,
+                active_runtime_property_full_upload=True,
+            )
+        )
 
+    @property
+    def _current_mode_item(self):
+        if (
+            self._wave_mode_info is None
+            or self.operating_mode is None
+            or self.operating_mode == OperatingMode.NULL
+        ):
+            return None
+
+        items = self._wave_mode_info.list_info
+        if not items:
+            return None
+
+        # The list may contain 5 entries (modes 1-5) or 6 (modes 0-5 with NULL
+        # placeholder at index 0)
+        idx = self.operating_mode if len(items) > 5 else self.operating_mode - 1
+        if 0 <= idx < len(items):
+            return items[idx]
+
+        self._logger.debug(
+            "mode_index %d out of range (list length %d, mode %s)",
+            idx,
+            len(items),
+            self.operating_mode,
+        )
+        return None

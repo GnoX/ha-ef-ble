@@ -233,6 +233,18 @@
                 }
             }
         },
+        "climate": {
+            "climate": {
+                "state_attributes": {
+                    "fan_mode": {
+                        "state": {
+                            "medium_low": "mdi:fan-speed-1",
+                            "medium_high": "mdi:fan-speed-2"
+                        }
+                    }
+                }
+            }
+        },
         "number": {
             "liquefied_gas_value": {
                 "default": "mdi:storage-tank"

@@ -695,12 +695,6 @@
       "pcs_fan_level": {
         "name": "Fan Level"
       },
-      "self_consume_power": {
-        "name": "Power Consumption"
-      },
-      "battery_power": {
-        "name": "Battery Power"
-      },
       "in_drainage": {
         "name": "In Drainage"
       },
@@ -775,6 +769,9 @@
       },
       "dc_input_current": {
         "name": "DC Input Current"
+      },
+      "wifi_rssi": {
+        "name": "WiFi RSSI"
       }
     },
     "select": {
@@ -829,7 +826,15 @@
     },
     "climate": {
       "climate": {
-        "name": "Climate"
+        "name": "Climate",
+        "state_attributes": {
+          "fan_mode": {
+            "state": {
+              "medium_low": "Medium Low",
+              "medium_high": "Medium High"
+            }
+          }
+        }
       }
     },
     "switch": {

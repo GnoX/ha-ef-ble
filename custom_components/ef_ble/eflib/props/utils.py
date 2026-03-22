@@ -1,9 +1,14 @@
 import functools
 from collections.abc import Callable
+from typing import Protocol
 
 
-def pround(precision: int = 2):
-    def _round(val):
+class _SupportsRound2[T_co](Protocol):
+    def __round__(self, ndigits: int, /) -> T_co: ...
+
+
+def pround[T](precision: int = 2) -> Callable[[_SupportsRound2[T]], T]:
+    def _round(val: _SupportsRound2[T]):
         return round(val, precision)
 
     return _round
