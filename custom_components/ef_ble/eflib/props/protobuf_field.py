@@ -1,5 +1,5 @@
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, overload
 
@@ -175,7 +175,7 @@ def pb_field(
 
 
 def _match_to_regex(match: str) -> re.Pattern[str]:
-    return re.compile("^" + re.escape(match).replace(r"\{n\}", r"(\d+)") + "$")
+    return re.compile("^" + re.escape(match).replace(r"\{n\}", r"(\w+)") + "$")
 
 
 def _find_match_segment(
@@ -192,7 +192,7 @@ def _discover_pb_indices(
     attr: _ProtoAttr,
     pattern: re.Pattern[str],
     match_idx: int,
-) -> tuple[int, int]:
+) -> list[int]:
     descriptor = attr.message_type.DESCRIPTOR
     for attr_name in attr.attrs[:match_idx]:
         field_desc = descriptor.fields_by_name.get(attr_name)
@@ -206,7 +206,7 @@ def _discover_pb_indices(
     indices = sorted(
         int(m.group(1))
         for name in descriptor.fields_by_name
-        if (m := pattern.match(name))
+        if (m := pattern.match(name)) and m.group(1).isdigit()
     )
     if not indices:
         raise ValueError(f"No fields matching '{pattern.pattern}' in {descriptor.name}")
@@ -216,19 +216,18 @@ def _discover_pb_indices(
             f"Non-contiguous indices {indices} for "
             f"'{pattern.pattern}' in {descriptor.name}"
         )
-    return indices[0], len(indices)
+    return indices
 
 
-def pb_field_group[T](
+def pb_field_group[T, K: (int, str) = int](
     attr: T,
     match: str,
-    count: int | None = None,
+    indices: "int | Iterable[K] | None" = None,
     *,
     transform: Callable[[Any], Any] | None = None,
-    start: int | None = None,
     name_template: str | None = None,
     name_prefix: str | None = None,
-) -> "FieldGroup[T]":
+) -> "FieldGroup[T, K]":
     """
     Create a FieldGroup of protobuf fields by indexing one path segment
 
@@ -236,19 +235,17 @@ def pb_field_group[T](
     ----------
     attr
         A fully-typed protobuf path created via `proto_attr_mapper`, e.g.
-        `_hall1.ch1_sta.load_sta`
+        `pb.ch1_sta.load_sta`
     match
         Pattern with {n} placeholder identifying the indexed segment, e.g. "ch{n}_sta"
-    count
-        Number of fields to create; when omitted, the count (and start) are discovered
-        automatically from the protobuf descriptor
+    indices
+        An integer (number of 1-based fields), an iterable of explicit index keys
+        (e.g. `Indices.alpha(3)`), or None to auto-discover from the protobuf
+        descriptor
     transform
         Optional transform passed to `pb_field` for every genertaed field
-    start
-        First index value. Defaults to 1 when *count* is given explicitly, or to the
-        lowest discovered index when count is omitted
     name_template
-        Explicit naming pattern with {n} placeholder, e.g.  "ch{n}_status"
+        Explicit naming pattern with {n} placeholder, e.g. "ch{n}_status"
     name_prefix
         Prefix with {n} placeholder - the template is derived automaticaly from the
         class attribute name (used by `pb_group`)
@@ -262,18 +259,15 @@ def pb_field_group[T](
     regex = _match_to_regex(match)
     seg_idx = _find_match_segment(attr, regex)
 
-    if count is None:
-        discovered_start, count = _discover_pb_indices(
-            attr,
-            regex,
-            seg_idx,
-        )
-        if start is None:
-            start = discovered_start
-    elif start is None:
-        start = 1
+    resolved: Iterable[K]
+    if indices is None:
+        resolved = _discover_pb_indices(attr, regex, seg_idx)  # type: ignore[assignment]
+    elif isinstance(indices, int):
+        resolved = range(1, 1 + indices)
+    else:
+        resolved = indices
 
-    def factory(n: int) -> ProtobufField:
+    def factory(n: K) -> ProtobufField:
         new_attrs = list(attr.attrs)
         new_attrs[seg_idx] = match.format(n=n)
         return pb_field(
@@ -283,23 +277,24 @@ def pb_field_group[T](
 
     return FieldGroup(
         factory,
-        count,
-        start=start,
+        resolved,
         name_template=name_template,
         name_prefix=name_prefix,
     )
 
 
 class _PbGroupFactory:
-    __slots__ = ("_match", "_name_prefix")
+    __slots__ = ("_indices", "_match", "_name_prefix")
 
     def __init__(
         self,
         match: str,
         name_prefix: str | None = None,
+        indices: tuple[Any, ...] | None = None,
     ) -> None:
         self._match = match
         self._name_prefix = name_prefix
+        self._indices = indices
 
     def __call__[T](
         self,
@@ -311,6 +306,7 @@ class _PbGroupFactory:
         return pb_field_group(
             attr,
             match=self._match,
+            indices=self._indices,
             transform=transform,
             name_template=name_template,
             name_prefix=self._name_prefix,
@@ -320,9 +316,10 @@ class _PbGroupFactory:
 def pb_group(
     match: str,
     name_prefix: str | None = None,
+    indices: Iterable[Any] | None = None,
 ) -> _PbGroupFactory:
     """
-    Create a factory for building FieldGroups with a fixed match pattern
+    Create a factory for building FieldGroups with a fixed match pattern.
 
     Parameters
     ----------
@@ -331,36 +328,82 @@ def pb_group(
     name_prefix
         Optional prefix with {n} for automatic field naming, e.g. "channel{n}" - the
         template is derived from the class attribute name at class creation time
+    indices
+        Iterable of explicit index keys (e.g. `Indices.alpha(3)`), or None to
+        auto-discover from the protobuf descriptor
     """
-    return _PbGroupFactory(match, name_prefix=name_prefix)
+    return _PbGroupFactory(
+        match,
+        name_prefix=name_prefix,
+        indices=tuple(indices) if indices is not None else None,
+    )
 
 
 @dataclass(slots=True)
-class _PbIndexedAccessor[T]:
+class _PbIndexedAccessor[T, K: (int, str)]:
     msg: Any
     attrs: list[str]
     match_idx: int
     match: str
+    indices: tuple[K, ...] | None = None
 
-    def _resolve(self, index: int) -> tuple[Any, list[str]]:
+    def _resolve(self, index: K) -> tuple[Any, list[str]]:
         attrs = list(self.attrs)
         attrs[self.match_idx] = self.match.format(n=index)
         return self.msg, attrs
 
-    def __getitem__(self, index: int) -> T:
+    def __getitem__(self, index: K) -> T:
         msg, attrs = self._resolve(index)
         for attr_name in attrs:
             msg = getattr(msg, attr_name)
         return msg
 
-    def __setitem__(self, index: int, value: T) -> None:
+    def __setitem__(self, index: K, value: T) -> None:
         msg, attrs = self._resolve(index)
         for attr_name in attrs[:-1]:
             msg = getattr(msg, attr_name)
         setattr(msg, attrs[-1], value)
 
+    def __iter__(self) -> Iterator[K]:
+        if self.indices is None:
+            raise TypeError(
+                "Cannot iterate _PbIndexedAccessor without explicit indices"
+            )
+        return iter(self.indices)
 
-def pb_indexed_attr[T](msg: Any, attr: T, match: str) -> _PbIndexedAccessor[T]:
+    def __len__(self) -> int:
+        if self.indices is None:
+            raise TypeError(
+                "Cannot get length of _PbIndexedAccessor without explicit indices"
+            )
+        return len(self.indices)
+
+
+@overload
+def pb_indexed_attr[T](
+    msg: Any,
+    attr: T,
+    match: str,
+) -> _PbIndexedAccessor[T, int]: ...
+
+
+@overload
+def pb_indexed_attr[T, K: (int, str)](
+    msg: Any,
+    attr: T,
+    match: str,
+    *,
+    indices: Iterable[K],
+) -> _PbIndexedAccessor[T, K]: ...
+
+
+def pb_indexed_attr(
+    msg: Any,
+    attr: Any,
+    match: str,
+    *,
+    indices: Iterable[Any] | None = None,
+) -> _PbIndexedAccessor:
     """
     Create an indexed view over a protobuf message using a typed path
 
@@ -376,12 +419,22 @@ def pb_indexed_attr[T](msg: Any, attr: T, match: str) -> _PbIndexedAccessor[T]:
         `pb_push_set.load_incre_info.hall1_incre_info.ch1_sta`
     match
         Pattern with {n} placeholder identifying the indexed segment, e.g. "ch{n}_sta"
+    indices
+        Optional iterable of index values (e.g. ["a", "b", "c"], range(1, 7),
+        `Indices.alpha(3)`). When provided, enables iteration and len() on the
+        accessor.
     """
     if not isinstance(attr, _ProtoAttr):
         raise TypeError(
-            "Second argument must be a protobuf path from "
-            f"`proto_attr_mapper`, got {type(attr)}"
+            "Second argument must be a protobuf path from `proto_attr_mapper`, got "
+            f"{type(attr)}"
         )
     regex = _match_to_regex(match)
     match_idx = _find_match_segment(attr, regex)
-    return _PbIndexedAccessor(msg, list(attr.attrs), match_idx, match)
+    return _PbIndexedAccessor(
+        msg=msg,
+        attrs=list(attr.attrs),
+        match_idx=match_idx,
+        match=match,
+        indices=tuple(indices) if indices is not None else None,
+    )
