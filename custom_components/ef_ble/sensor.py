@@ -653,8 +653,146 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     "bp_total_chg_energy": energy_storage(),
     "bp_total_dsg_energy": energy_storage(),
     "bp_soc": percentage(),
+    # PO - CD - Solar Strings
+    "mppt_pv{n}_vol": voltage(
+        precision=2,
+        translation_key="port_voltage",
+        translation_placeholders={"name": "Mppt PV {n}"},
+        indexed_range=range(1, 3),
+    ),
+    "mppt_pv{n}_amp": current(
+        precision=2,
+        translation_key="port_current",
+        translation_placeholders={"name": "Mppt PV {n}"},
+        indexed_range=range(1, 3),
+    ),
+    "mppt_pv{n}_pwr": power(
+        precision=2,
+        translation_key="port_power",
+        translation_placeholders={"name": "Mppt PV {n}"},
+        indexed_range=range(1, 3),
+    ),
+    "mppt_pv{n}_fault_code": raw(
+        translation_key="param_fault_code",
+        translation_placeholders={"name": "Mppt PV {n}"},
+        indexed_range=range(1, 3),
+    ),
+    "mppt_pv{n}_warning_code": raw(
+        translation_key="param_warning_code",
+        translation_placeholders={"name": "Mppt PV {n}"},
+        indexed_range=range(1, 3),
+    ),
+    # PO - CD - Battery Pack
+    "bpack{n}_bp_amp": voltage(
+        precision=4,
+        translation_key="bpack_amp",
+        translation_placeholders={"name": "{n}"},
+        indexed_range=range(1, 4),
+    ),
+    "bpack{n}_err_code": raw(
+        translation_key="bpack_err_code",
+        translation_placeholders={"name": "{n}"},
+        indexed_range=range(1, 4),
+    ),
+    "bpack{n}_env_temp": temperature(
+        precision=1,
+        translation_key="bpack_env_temp",
+        translation_placeholders={"name": "{n}"},
+        indexed_range=range(1, 4),
+    ),
+    "bpack{n}_max_cell_temp": temperature(
+        precision=1,
+        translation_key="bpack_max_cell_temp",
+        translation_placeholders={"name": "{n}"},
+        indexed_range=range(1, 4),
+    ),
+    "bpack{n}_min_cell_temp": temperature(
+        precision=1,
+        translation_key="bpack_min_cell_temp",
+        translation_placeholders={"name": "{n}"},
+        indexed_range=range(1, 4),
+    ),
+    "bpack{n}_bp_pwr": power(
+        precision=2,
+        translation_key="bpack_pwr",
+        translation_placeholders={"name": "{n}"},
+        indexed_range=range(1, 4),
+    ),
+    "bpack{n}_bp_remain_watth": energy_storage(
+        precision=2,
+        translation_key="bpack_remain_watth",
+        translation_placeholders={"name": "{n}"},
+        indexed_range=range(1, 4),
+    ),
+    "bpack{n}_bp_soc": percentage(
+        translation_key="bpack_soc",
+        translation_placeholders={"name": "{n}"},
+        indexed_range=range(1, 4),
+    ),
+    "bpack{n}_bp_soh": percentage(
+        translation_key="bpack_soh",
+        translation_placeholders={"name": "{n}"},
+        indexed_range=range(1, 4),
+    ),
+    "bpack{n}_bp_vol": voltage(
+        precision=2,
+        translation_key="bpack_vol",
+        translation_placeholders={"name": "{n}"},
+        indexed_range=range(1, 4),
+    ),
+    "bpack{n}_bp_cycles": raw(
+        precision=2,
+        translation_key="bpack_cycles",
+        translation_placeholders={"name": "{n}"},
+        indexed_range=range(1, 4),
+    ),
+    "bpack{n}_bp_sys_state": raw(
+        translation_key="bpack_sys_state",
+        translation_placeholders={"name": "{n}"},
+        indexed_range=range(1, 4),
+    ),
+    "bpack{n}_bms_run_sta": raw(
+        translation_key="bpack_bms_run_sta",
+        translation_placeholders={"name": "{n}"},
+        indexed_range=range(1, 4),
+    ),
+    # PO - CD - Phase (different indexes ???)
+    "pcs_{n}_phase_vol": voltage(
+        precision=2,
+        translation_key="bpack_bms_run_sta",
+        translation_placeholders={"name": "{n}"},
+        indexed_range=range(1, 3),
+    ),
+    "pcs_{n}_phase_amp": current(
+        precision=2,
+        translation_key="pcs_phase_amp",
+        translation_placeholders={"name": "{n}"},
+        indexed_range=range(1, 3),
+    ),
+    "pcs_{n}_phase_act_pwr": raw(
+        translation_key="pcs_phase_act_pwr",
+        translation_placeholders={"name": "{n}"},
+        indexed_range=range(1, 3),
+    ),
+    "pcs_{n}_phase_react_pwr": raw(
+        translation_key="pcs_phase_react_pwr",
+        translation_placeholders={"name": "{n}"},
+        indexed_range=range(1, 3),
+    ),
+    "pcs_{n}_phase_apparent_pwr": raw(
+        translation_key="pcs_phase_apparent_pwr",
+        translation_placeholders={"name": "{n}"},
+        indexed_range=range(1, 3),
+    ),
 
-    # unsupported
+#     pcs_a_phase_vol = pb_field(pb_heartbeat.pcs_a_phase.vol)
+# pcs_a_phase_amp = pb_field(pb_heartbeat.pcs_a_phase.amp)
+# pcs_a_phase_act_pwr = pb_field(pb_heartbeat.pcs_a_phase.act_pwr)
+# pcs_a_phase_react_pwr = pb_field(pb_heartbeat.pcs_a_phase.react_pwr)
+# pcs_a_phase_apparent_pwr = pb_field(pb_heartbeat.pcs_a_phase.apparent_pwr)
+
+
+# unsupported
     "collecting_data": enum(
         name="Collecting data",
         entity_category=EntityCategory.DIAGNOSTIC,

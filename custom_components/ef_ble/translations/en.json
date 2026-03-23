@@ -778,10 +778,68 @@
       },
       "ems_work_mode": {
         "name": "EMS Work Mode"
+      },
+      "param_fault_code": {
+        "name": "{name} Fault Code"
+      },
+      "param_warning_code": {
+        "name": "{name} Warning Code"
+      },
+      "bpack_vol": {
+        "name": "Battery Pack {name} Voltage"
+      },
+      "bpack_amp": {
+        "name": "Battery Pack {name} Current"
+      },
+      "bpack_err_code": {
+        "name": "Battery Pack {name} Error Code"
+      },
+      "bpack_env_temp": {
+        "name": "Battery Pack {name} Environment Temperature"
+      },
+      "bpack_max_cell_temp": {
+        "name": "Battery Pack {name} Max Cell Temperature"
+      },
+      "bpack_min_cell_temp": {
+        "name": "Battery Pack {name} Min Cell Temperature"
+      },
+      "bpack_pwr": {
+        "name": "Battery Pack {name} Power"
+      },
+      "bpack_remain_watth": {
+        "name": "Battery Pack {name} Remaining Power"
+      },
+      "bpack_soc": {
+        "name": "Battery Pack {name} State of Charge"
+      },
+      "bpack_soh": {
+        "name": "Battery Pack {name} State of Health"
+      },
+      "bpack_cycles": {
+        "name": "Battery Pack {name} Cycles"
+      },
+      "bpack_sys_state": {
+        "name": "Battery Pack {name} System State"
+      },
+      "bpack_bms_run_sta": {
+        "name": "Battery Pack {name} BMS Run State"
+      },
+
+      "pcs_phase_apparent_pwr": {
+        "name": "PCS Phase {name} Apparent Power"
+      },
+      "pcs_phase_react_pwr": {
+        "name": "PCS Phase {name} Reactive Power"
+      },
+      "pcs_phase_act_pwr": {
+        "name": "PCS Phase {name} Active Power"
+      },
+      "pcs_phase_amp": {
+        "name": "PCS Phase {name} Current"
+      },
+      "pcs_phase_vol": {
+        "name": "PCS Phase {name} Voltage"
       }
-
-
-
     },
     "select": {
       "led_mode": {
