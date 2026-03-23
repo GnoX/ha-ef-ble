@@ -758,28 +758,31 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     ),
     # PO - CD - Phase (different indexes ???)
     "pcs_{n}_phase_vol": voltage(
-        precision=2,
+        precision=4,
         translation_key="bpack_bms_run_sta",
         translation_placeholders={"name": "{n}"},
         indexed_range=range(1, 3),
     ),
     "pcs_{n}_phase_amp": current(
-        precision=2,
+        precision=4,
         translation_key="pcs_phase_amp",
         translation_placeholders={"name": "{n}"},
         indexed_range=range(1, 3),
     ),
-    "pcs_{n}_phase_act_pwr": raw(
+    "pcs_{n}_phase_act_pwr": power(
+        precision=4,
         translation_key="pcs_phase_act_pwr",
         translation_placeholders={"name": "{n}"},
         indexed_range=range(1, 3),
     ),
-    "pcs_{n}_phase_react_pwr": raw(
+    "pcs_{n}_phase_react_pwr": power(
+        precision=4,
         translation_key="pcs_phase_react_pwr",
         translation_placeholders={"name": "{n}"},
         indexed_range=range(1, 3),
     ),
-    "pcs_{n}_phase_apparent_pwr": raw(
+    "pcs_{n}_phase_apparent_pwr": power(
+        precision=4,
         translation_key="pcs_phase_apparent_pwr",
         translation_placeholders={"name": "{n}"},
         indexed_range=range(1, 3),
