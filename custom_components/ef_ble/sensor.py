@@ -756,7 +756,7 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     # PO - CD - Phase
     "pcs_{n}_phase_vol": voltage(
         precision=4,
-        translation_key="bpack_bms_run_sta",
+        translation_key="pcs_phase_vol",
         translation_placeholders={"name": "{n}"},
         indices=["A", "B", "C"],
     ),
