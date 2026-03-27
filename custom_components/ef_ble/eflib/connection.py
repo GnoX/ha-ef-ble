@@ -37,6 +37,7 @@ from .exceptions import (
 )
 from .frame_assembler import (
     EncPacketAssembler,
+    FrameAssembler,
     RawHeaderAssembler,
     SimplePacketAssembler,
 )
@@ -221,6 +222,7 @@ class Connection:
         self._encrypt_type = encrypt_type
         self._encryption: EncryptionStrategy | None = None
         self._simple_assembler = SimplePacketAssembler()
+        self._frame_assembler: FrameAssembler | None = None
 
         self._errors = 0
         self._last_errors = deque(maxlen=10)
@@ -656,11 +658,7 @@ class Connection:
             data,
         )
 
-        frame_assembler = (
-            self._frame_assembler
-            if self._connection_state.received_session_key
-            else self._create_frame_assembler()
-        )
+        frame_assembler = self._frame_assembler or self._create_frame_assembler()
 
         decoded_payloads = await frame_assembler.reassemble(data)
 
@@ -744,11 +742,7 @@ class Connection:
             LogOptions.CONNECTION_DEBUG, "Sending packet: %r", packet
         )
 
-        frame_assembler = (
-            self._frame_assembler
-            if self._connection_state.received_session_key
-            else self._create_frame_assembler()
-        )
+        frame_assembler = self._frame_assembler or self._create_frame_assembler()
 
         to_send = await frame_assembler.encode(packet)
 
@@ -780,6 +774,8 @@ class Connection:
         self._add_task(self.sendPacket(reply_packet))
 
     async def initBleSessionKey(self):
+        self._simple_assembler.reset()
+        self._frame_assembler = None
         if self._encrypt_type == 1:
             await self._type_1_session()
         else:
@@ -789,6 +785,7 @@ class Connection:
         session_key = hashlib.md5(self._dev_sn.encode()).digest()
         iv = hashlib.md5(self._dev_sn[::-1].encode()).digest()
         self._encryption = Type1Encryption(session_key, iv)
+        self._frame_assembler = self._create_frame_assembler()
 
         await self._client.start_notify(
             self._notify_characteristic, self.listenForDataHandler
@@ -893,6 +890,7 @@ class Connection:
         # Parse the data that contains sRand (first 16 bytes) & seed (last 2 bytes)
         session_key = await self.genSessionKey(data[16:18], data[:16])
         self._encryption = Type7Encryption(session_key, self._encryption.iv)
+        self._frame_assembler = self._create_frame_assembler()
 
         await self.getAuthStatus()
 
@@ -1037,10 +1035,6 @@ class Connection:
                 return EncPacketAssembler(self._encryption)
             case _:
                 raise ValueError(f"Unsupported encryption type: {self._encrypt_type}")
-
-    @cached_property
-    def _frame_assembler(self):
-        return self._create_frame_assembler()
 
     def _cancel_tasks(self):
         for task in self._tasks:

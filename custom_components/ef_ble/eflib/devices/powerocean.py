@@ -399,6 +399,7 @@ class Device(DeviceBase, ProtobufProps):
     pv_power_3 = _MpptPv(3, 'pwr')
 
 
+
     # todayElectricityGeneration     4.09     kWh
     # totalElectricityGeneration     14.48     kWh
     # monthElectricityGeneration     14.48     kWh
