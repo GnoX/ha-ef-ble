@@ -15,6 +15,10 @@ class FrameAssembler(ABC):
         self._buffer = b""
         self._encryption = encryption
 
+    def reset(self) -> None:
+        """Discard any buffered partial frame data."""
+        self._buffer = b""
+
     @property
     @abstractmethod
     def write_with_response(self) -> bool:
@@ -163,6 +167,10 @@ class SimplePacketAssembler:
     """Assembler for unencrypted EncPacket command/response frames"""
 
     def __init__(self) -> None:
+        self._buffer = b""
+
+    def reset(self) -> None:
+        """Discard any buffered partial frame data."""
         self._buffer = b""
 
     @staticmethod
