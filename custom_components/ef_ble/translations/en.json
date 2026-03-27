@@ -761,7 +761,7 @@
       "bp_remain_watth": {
         "name": "Battery Packs Remaining Power"
       },
-      "bp_online_count": {
+      "bp_online_sum": {
         "name": "Battery Packs Online Count"
       },
       "bp_pwr": {
@@ -809,9 +809,6 @@
       "bpack_remain_watth": {
         "name": "Battery Pack {name} Remaining Power"
       },
-      "bpack_soc": {
-        "name": "Battery Pack {name} State of Charge"
-      },
       "bpack_soh": {
         "name": "Battery Pack {name} State of Health"
       },
@@ -825,20 +822,14 @@
         "name": "Battery Pack {name} BMS Run State"
       },
 
-      "pcs_phase_apparent_pwr": {
-        "name": "PCS Phase {name} Apparent Power"
+      "phase_apparent_power": {
+        "name": "{name} Apparent Power"
       },
-      "pcs_phase_react_pwr": {
-        "name": "PCS Phase {name} Reactive Power"
+      "phase_reactive_power": {
+        "name": "{name} Reactive Power"
       },
-      "pcs_phase_act_pwr": {
-        "name": "PCS Phase {name} Active Power"
-      },
-      "pcs_phase_amp": {
-        "name": "PCS Phase {name} Current"
-      },
-      "pcs_phase_vol": {
-        "name": "PCS Phase {name} Voltage"
+      "phase_active_pwr": {
+        "name": "{name} Active Power"
       }
     },
     "select": {

@@ -280,10 +280,10 @@ class Device(DeviceBase, ProtobufProps):
     SN_PREFIX = (b"J32", b"HJ3", b"HC3")  # 1-phase, 3-phase, DC-Fit
     NAME_PREFIX = "EF-J32"
 
-    PO_INTERNAL_VERSION = "0.3.1"
+    PO_INTERNAL_VERSION = "0.4.1"
 
-    ecr_ems_sn = pb_field(pb_error_change_report.ems_err_code.module_sn)
-    pcs_sn = pb_field(pb_error_change_report.pcs_err_code.module_sn)
+    #ecr_ems_sn = pb_field(pb_error_change_report.ems_err_code.module_sn)
+    #pcs_sn = pb_field(pb_error_change_report.pcs_err_code.module_sn)
 
     sys_load_pwr = pb_field(pb_energy_stream_report.sys_load_pwr)
     grid_power = pb_field(pb_energy_stream_report.sys_grid_pwr)  # sys_grid_pwr
@@ -291,9 +291,9 @@ class Device(DeviceBase, ProtobufProps):
     bp_pwr = pb_field(pb_energy_stream_report.bp_pwr)
     ems_work_mode = pb_field(pb_ems_change_report.ems_word_mode, WorkMode.from_mode)
 
-    pv_power_1 = pb_field(pb_energy_stream_report.pv1_pwr) # pv1_pwr
-    pv_power_2 = pb_field(pb_energy_stream_report.pv2_pwr) # pv2_pwr
-    pv_power_3 = pb_field(pb_energy_stream_report.pv3_pwr) # on Plus pv3_pwr
+    pv1_main_power = pb_field(pb_energy_stream_report.pv1_pwr) # pv1_pwr
+    pv2_main_power = pb_field(pb_energy_stream_report.pv2_pwr) # pv2_pwr
+    pv3_main_power = pb_field(pb_energy_stream_report.pv3_pwr) # on Plus pv3_pwr
     pv_inv_pwr = pb_field(pb_energy_stream_report.pv_inv_pwr)
 
     pcs_meter_power = pb_field(pb_heartbeat.pcs_meter_power)
@@ -307,7 +307,7 @@ class Device(DeviceBase, ProtobufProps):
     bpack1_bp_min_cell_temp = _BpHeartbeatFloatValue(1, 'bp_min_cell_temp')
     bpack1_bp_pwr = _BpHeartbeatFloatValue(1, 'bp_pwr')
     bpack1_bp_remain_watth = _BpHeartbeatFloatValue(1, 'bp_remain_watth')
-    bpack1_bp_soc = _BpHeartbeatIntValue(1, 'bp_soc')
+    battery_1_battery_level  = _BpHeartbeatIntValue(1, 'bp_soc')  # bpack1_bp_soc
     bpack1_bp_soh = _BpHeartbeatIntValue(1, 'bp_soh')
     bpack1_bp_vol = _BpHeartbeatFloatValue(1, 'bp_vol')
     bpack1_bp_cycles = _BpHeartbeatIntValue(1, 'bp_cycles') # Diag
@@ -321,7 +321,7 @@ class Device(DeviceBase, ProtobufProps):
     bpack2_bp_min_cell_temp = _BpHeartbeatFloatValue(2, 'bp_min_cell_temp')
     bpack2_bp_pwr = _BpHeartbeatFloatValue(2, 'bp_pwr')
     bpack2_bp_remain_watth = _BpHeartbeatFloatValue(2, 'bp_remain_watth')
-    bpack2_bp_soc = _BpHeartbeatIntValue(2, 'bp_soc')
+    battery_2_battery_level = _BpHeartbeatIntValue(2, 'bp_soc')
     bpack2_bp_soh = _BpHeartbeatIntValue(2, 'bp_soh')
     bpack2_bp_vol = _BpHeartbeatFloatValue(2, 'bp_vol')
     bpack2_bp_cycles = _BpHeartbeatIntValue(2, 'bp_cycles') # Diag
@@ -335,7 +335,7 @@ class Device(DeviceBase, ProtobufProps):
     bpack3_bp_min_cell_temp = _BpHeartbeatFloatValue(3, 'bp_min_cell_temp')
     bpack3_bp_pwr = _BpHeartbeatFloatValue(3, 'bp_pwr')
     bpack3_bp_remain_watth = _BpHeartbeatFloatValue(3, 'bp_remain_watth')
-    bpack3_bp_soc = _BpHeartbeatIntValue(3, 'bp_soc')
+    battery_3_battery_level = _BpHeartbeatIntValue(3, 'bp_soc')
     bpack3_bp_soh = _BpHeartbeatIntValue(3, 'bp_soh')
     bpack3_bp_vol = _BpHeartbeatFloatValue(3, 'bp_vol')
     bpack3_bp_cycles = _BpHeartbeatIntValue(3, 'bp_cycles')  # Diag
@@ -349,7 +349,7 @@ class Device(DeviceBase, ProtobufProps):
     bpack4_bp_min_cell_temp = _BpHeartbeatFloatValue(4, 'bp_min_cell_temp')
     bpack4_bp_pwr = _BpHeartbeatFloatValue(4, 'bp_pwr')
     bpack4_bp_remain_watth = _BpHeartbeatFloatValue(4, 'bp_remain_watth')
-    bpack4_bp_soc = _BpHeartbeatIntValue(4, 'bp_soc')
+    battery_4_battery_level = _BpHeartbeatIntValue(4, 'bp_soc')
     bpack4_bp_soh = _BpHeartbeatIntValue(4, 'bp_soh')
     bpack4_bp_vol = _BpHeartbeatFloatValue(4, 'bp_vol')
     bpack4_bp_cycles = _BpHeartbeatIntValue(4, 'bp_cycles')  # Diag
@@ -362,44 +362,42 @@ class Device(DeviceBase, ProtobufProps):
     bp_total_dsg_energy = pb_field(pb_ems_change_report.bp_total_dsg_energy)
     bp_online_sum = pb_field(pb_ems_change_report.bp_online_sum)
 
-    pcs_a_phase_vol = pb_field(pb_heartbeat.pcs_a_phase.vol)
-    pcs_a_phase_amp = pb_field(pb_heartbeat.pcs_a_phase.amp)
-    pcs_a_phase_act_pwr = pb_field(pb_heartbeat.pcs_a_phase.act_pwr)
-    pcs_a_phase_react_pwr = pb_field(pb_heartbeat.pcs_a_phase.react_pwr)
-    pcs_a_phase_apparent_pwr = pb_field(pb_heartbeat.pcs_a_phase.apparent_pwr)
+    l1_voltage = pb_field(pb_heartbeat.pcs_a_phase.vol)  # pcs_a_phase_vol
+    l1_current = pb_field(pb_heartbeat.pcs_a_phase.amp) # pcs_a_phase_amp
+    l1_active_power = pb_field(pb_heartbeat.pcs_a_phase.act_pwr) # pcs_a_phase_act_pwr
+    l1_reactive_power = pb_field(pb_heartbeat.pcs_a_phase.react_pwr) # pcs_a_phase_react_pwr
+    l1_apparent_power = pb_field(pb_heartbeat.pcs_a_phase.apparent_pwr) # pcs_a_phase_apparent_pwr
 
-    pcs_b_phase_vol = pb_field(pb_heartbeat.pcs_b_phase.vol)
-    pcs_b_phase_amp = pb_field(pb_heartbeat.pcs_b_phase.amp)
-    pcs_b_phase_act_pwr = pb_field(pb_heartbeat.pcs_b_phase.act_pwr)
-    pcs_b_phase_react_pwr = pb_field(pb_heartbeat.pcs_b_phase.react_pwr)
-    pcs_b_phase_apparent_pwr = pb_field(pb_heartbeat.pcs_b_phase.apparent_pwr)
+    l2_voltage = pb_field(pb_heartbeat.pcs_b_phase.vol)
+    l2_current = pb_field(pb_heartbeat.pcs_b_phase.amp)
+    l2_active_power = pb_field(pb_heartbeat.pcs_b_phase.act_pwr)
+    l2_reactive_power = pb_field(pb_heartbeat.pcs_b_phase.react_pwr)
+    l2_apparent_power = pb_field(pb_heartbeat.pcs_b_phase.apparent_pwr)
 
-    pcs_c_phase_vol = pb_field(pb_heartbeat.pcs_c_phase.vol)
-    pcs_c_phase_amp = pb_field(pb_heartbeat.pcs_c_phase.amp)
-    pcs_c_phase_act_pwr = pb_field(pb_heartbeat.pcs_c_phase.act_pwr)
-    pcs_c_phase_react_pwr = pb_field(pb_heartbeat.pcs_c_phase.react_pwr)
-    pcs_c_phase_apparent_pwr = pb_field(pb_heartbeat.pcs_c_phase.apparent_pwr)
-
-    mppt_pv1_fault_code = pb_field(pb_ems_change_report.mppt1_fault_code)
-    mppt_pv1_warning_code = pb_field(pb_ems_change_report.mppt1_warning_code)
-    mppt_pv2_fault_code = pb_field(pb_ems_change_report.mppt2_fault_code)
-    mppt_pv2_warning_code = pb_field(pb_ems_change_report.mppt1_warning_code)
-
-    mppt_pv1_vol = _MpptPv(1,'vol')
-    mppt_pv1_amp = _MpptPv(1,'amp')
-    mppt_pv1_pwr = _MpptPv(1,'pwr')
-
-    mppt_pv2_vol = _MpptPv(2, 'vol')
-    mppt_pv2_amp = _MpptPv(2, 'amp')
-    mppt_pv2_pwr = _MpptPv(2, 'pwr')
-
-    mppt_pv3_vol = _MpptPv(3, 'vol')
-    mppt_pv3_amp = _MpptPv(3, 'amp')
-    mppt_pv3_pwr = _MpptPv(3, 'pwr')
+    l3_voltage = pb_field(pb_heartbeat.pcs_c_phase.vol)
+    l3_current = pb_field(pb_heartbeat.pcs_c_phase.amp)
+    l3_active_power = pb_field(pb_heartbeat.pcs_c_phase.act_pwr)
+    l3_reactive_power = pb_field(pb_heartbeat.pcs_c_phase.react_pwr)
+    l3_apparent_power = pb_field(pb_heartbeat.pcs_c_phase.apparent_pwr)
 
 
+    # String data
+    pv_voltage_1 = _MpptPv(1,'vol')
+    pv_current_1 = _MpptPv(1,'amp') # mppt_pv1_amp
+    pv_power_1  = _MpptPv(1,'pwr') # mppt_pv1_pwr
+    pv_fault_code_1 = pb_field(pb_ems_change_report.mppt1_fault_code)  # mppt_pv1_fault_code
+    pv_warning_code_1 = pb_field(pb_ems_change_report.mppt1_warning_code)  # mppt_pv1_warning_code
 
-    # mpptPv_pwrTotal     0.00015777285     W
+    pv_voltage_2 = _MpptPv(2, 'vol')
+    pv_current_2 = _MpptPv(2, 'amp')
+    pv_power_2 = _MpptPv(2, 'pwr')
+    pv_fault_code_2 = pb_field(pb_ems_change_report.mppt2_fault_code)
+    pv_warning_code_2 = pb_field(pb_ems_change_report.mppt2_warning_code)
+
+    pv_voltage_3 = _MpptPv(3, 'vol')
+    pv_current_3 = _MpptPv(3, 'amp')
+    pv_power_3 = _MpptPv(3, 'pwr')
+
 
     # todayElectricityGeneration     4.09     kWh
     # totalElectricityGeneration     14.48     kWh
@@ -470,8 +468,8 @@ class Device(DeviceBase, ProtobufProps):
     def isOnIgnoreList(self, packet: Packet):
         if packet.src == 0x60 and packet.cmdSet == 0x60:  # base power ocean
             return (packet.cmdId in [10, 11, 12, 13, 14, 24, 25, 26, 34, 35, 36, 41, 50, 98, 99, 100, 101, 102,
-                                     103,105,106.107,109,112,121,124,125,126,127,132,133,137,138,143,144,
-                                     145,147,148,151,152,153])
+                                     103, 105, 106, 107, 109, 112, 121, 124, 125, 126, 127, 132, 133, 137, 138,
+                                     143, 144, 145, 147, 148, 151, 152, 153])
         elif packet.src == 0x60 and packet.cmdSet == 0xD1:  # EV  (96,209)
             return packet.cmdId in [2, 97, 98, 99, 100, 101, 103]
         elif packet.src == 0x60 and packet.cmdSet == 0xD3:  # Heat Pump  (96,211)
@@ -483,7 +481,7 @@ class Device(DeviceBase, ProtobufProps):
         elif packet.src == 0x60 and packet.cmdSet == 0xE1:  # parallel_lan (96,225)
             return packet.cmdId in [97, 98]
         elif packet.src == 0x60 and packet.cmdSet == 0xF0:  # edev (96,240)
-            return packet.cmdId in [2, 97, 98, 99, 0x02]
+            return packet.cmdId in [2, 97, 98, 99]
         elif packet.src == 0x60 and packet.cmdSet == 0xF1:  # edev (96,241)  Unknown 5, 36
             return packet.cmdId in [1, 3, 4, 5, 36, 100, 101, 102, 106, 108, 113]
         elif packet.src == 0x03 and packet.cmdSet == 0x32:  # eco (3,50)
@@ -514,10 +512,7 @@ class Device(DeviceBase, ProtobufProps):
             elif packet.cmdId == 0x07:  # 7
                 self.update_from_bytes(jt_s1_sys_pb2.BpHeartbeatReport, packet.payload)
             elif packet.cmdId == 0x08 or packet.cmdId == 0x11 or packet.cmdId == 0x25:  # 8, 17, 37
-                if not self.isPowerOceanPlus():
-                    self.update_from_bytes(jt_s1_sys_pb2.EmsChangeReport, packet.payload)
-                else:
-                    self.update_from_bytes(re307_sys_pb2.EmsChangeReport, packet.payload)
+                self.processEmsChangeReport(packet)
             elif packet.cmdId == 0x21:  # 33
                 self.update_from_bytes(jt_s1_sys_pb2.EnergyStreamReport, packet.payload)
             elif packet.cmdId == 0x27:  # 39
@@ -560,6 +555,13 @@ class Device(DeviceBase, ProtobufProps):
             if not self.isOnIgnoreList(packet):
                 self._logger.info("Unknown packet: src=%d,cmdSet=%d,cmdId=%d: \nPacket=%s", packet.src, packet.cmdSet,
                                   packet.cmdId, packet)
+            # else:
+            #     processed = True
+        else:
+            processed = True
+
+        # TODO temporary
+        #processed = False
 
         for field_name in self.updated_fields:
             self.update_callback(field_name)
@@ -567,6 +569,9 @@ class Device(DeviceBase, ProtobufProps):
 
         return processed
 
+
+    def processEmsChangeReport(self, packet: Packet):
+        self.update_from_bytes(jt_s1_sys_pb2.EmsChangeReport, packet.payload)
 
     def data_parse_old(self, packet: Packet):
         # TODO temporary solution since PO doesn't return authenticated response and just starts sending data
