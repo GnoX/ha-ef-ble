@@ -33,12 +33,10 @@
         "data": {
           "user_id": "EcoFlow User ID",
           "address": "BLE Device",
-          "update_period": "Update Period",
-          "connection_timeout": "Connection Timeout"
+          "update_period": "Update Period"
         },
         "data_description": {
-          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of database writes).",
-          "connection_timeout": "Number of seconds to wait for the device to connect and authenticate."
+          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of database writes)."
         },
         "sections": {
           "login": {
@@ -51,6 +49,18 @@
             },
             "data_description": {
               "region": "If you receive an \"Account does not exist\" message after logging in, or if the connection fails with \"User ID may be incorrect\", try selecting a different region."
+            }
+          },
+          "advanced_connection_options": {
+            "name": "Advanced connection options",
+            "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
+            "data": {
+              "connection_timeout": "Connection timeout",
+              "bluez_start_notify": "Force BlueZ StartNotify"
+            },
+            "data_description": {
+              "connection_timeout": "Number of seconds to wait for the device to connect and authenticate. The default value should work for most setups. Increasing this rarely helps - if the device cannot connect in time, the underlying Bluetooth connection is likely the problem.",
+              "bluez_start_notify": "Force `StartNotify` instead of the default `AcquireNotify` for BLE notifications on Linux. Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
             }
           },
           "log_options": {
@@ -80,12 +90,10 @@
         "data": {
           "user_id": "EcoFlow User ID",
           "address": "BLE Device",
-          "update_period": "Update Period",
-          "connection_timeout": "Connection Timeout"
+          "update_period": "Update Period"
         },
         "data_description": {
-          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of DB writes).",
-          "connection_timeout": "Number of seconds to wait for the device to connect and authenticate."
+          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of DB writes)."
         },
         "sections": {
           "login": {
@@ -98,6 +106,18 @@
             },
             "data_description": {
               "region": "If you receive an \"Account does not exist\" message after logging in, or if the connection fails with \"User ID may be incorrect\", try selecting a different region."
+            }
+          },
+          "advanced_connection_options": {
+            "name": "Advanced connection options",
+            "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
+            "data": {
+              "connection_timeout": "Connection timeout",
+              "bluez_start_notify": "Force BlueZ StartNotify"
+            },
+            "data_description": {
+              "connection_timeout": "Number of seconds to wait for the device to connect and authenticate. The default value should work for most setups. Increasing this rarely helps - if the device cannot connect in time, the underlying Bluetooth connection is likely the problem.",
+              "bluez_start_notify": "Force `StartNotify` instead of the default `AcquireNotify` for BLE notifications on Linux. Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
             }
           },
           "log_options": {
@@ -121,13 +141,11 @@
         "data": {
           "user_id": "EcoFlow User ID",
           "update_period": "Update Period",
-          "packet_version": "Packet Version",
-          "connection_timeout": "Connection Timeout"
+          "packet_version": "Packet Version"
         },
         "data_description": {
           "update_period": "Number of seconds to wait before processing the next device update. A default value of 0 means all updates are processed immediately (may result in a high number of DB writes).",
-          "packet_version": "Version of packets to use - depends on the generation and firmware of this device. Try different version if connection/authentication fails.\nNote that some devices may use packet version that is not yet supported by this integration.",
-          "connection_timeout": "Number of seconds to wait for the device to connect and authenticate."
+          "packet_version": "Version of packets to use - depends on the generation and firmware of this device. Try different version if connection/authentication fails.\nNote that some devices may use packet version that is not yet supported by this integration."
         },
         "sections": {
           "login": {
@@ -142,9 +160,21 @@
               "region": "If you receive an \"Account does not exist\" message after logging in, or if the connection fails with \"User ID may be incorrect\", try selecting a different region."
             }
           },
+          "advanced_connection_options": {
+            "name": "Advanced connection options",
+            "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
+            "data": {
+              "connection_timeout": "Connection timeout",
+              "bluez_start_notify": "Force BlueZ StartNotify"
+            },
+            "data_description": {
+              "connection_timeout": "Number of seconds to wait for the device to connect and authenticate. The default value should work for most setups. Increasing this rarely helps - if the device cannot connect in time, the underlying Bluetooth connection is likely the problem.",
+              "bluez_start_notify": "Force `StartNotify` instead of the default `AcquireNotify` for BLE notifications on Linux. Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
+            }
+          },
           "log_options": {
             "name": "Logging Options",
-            "description": "Advanced logging options. Most of these settings will generate a large volume of log output, so it is recommended not to leave them enabled for extended periods.",
+            "description": "Detailed logging options. Most of these will flood your logs, so avoid leaving them enabled for long periods.",
             "data": {
               "log_masked": "Mask sensitive information (useful when sharing logs publicly)",
               "log_connection": "Log device connection requests and responses",
@@ -187,6 +217,18 @@
           "collect_packets": "Enabling this option will start storing packets for diagnostics info - wait a minute after you enable this option before downloading diagnostics info and don't forget to turn it off.\nSome devices may contain identifying information in their messages such as your exact location so be careful when sharing info with this option enabled."
         },
         "sections": {
+          "advanced_connection_options": {
+            "name": "Advanced connection options",
+            "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
+            "data": {
+              "connection_timeout": "Connection timeout",
+              "bluez_start_notify": "Force BlueZ StartNotify"
+            },
+            "data_description": {
+              "connection_timeout": "Number of seconds to wait for the device to connect and authenticate. The default value should work for most setups. Increasing this rarely helps - if the device cannot connect in time, the underlying Bluetooth connection is likely the problem.",
+              "bluez_start_notify": "Force `StartNotify` instead of the default `AcquireNotify` for BLE notifications on Linux. Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
+            }
+          },
           "log_options": {
             "name": "Logging Options",
             "description": "Detailed logging options. Most of these will flood your logs, so avoid leaving them enabled for long periods.",
