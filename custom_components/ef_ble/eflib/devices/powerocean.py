@@ -400,6 +400,9 @@ class Device(DeviceBase, ProtobufProps):
 
 
 
+
+
+
     # todayElectricityGeneration     4.09     kWh
     # totalElectricityGeneration     14.48     kWh
     # monthElectricityGeneration     14.48     kWh
