@@ -13,10 +13,9 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from custom_components.ef_ble.eflib import DeviceBase
-from custom_components.ef_ble.eflib.devices import shp2
-
 from . import DeviceConfigEntry
+from .eflib import DeviceBase
+from .eflib.devices import shp2
 from .entity import EcoflowEntity, resolve_entity_description_keys
 
 
