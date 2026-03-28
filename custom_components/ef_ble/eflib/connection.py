@@ -8,6 +8,7 @@ import time
 import traceback
 from collections import deque
 from collections.abc import Awaitable, Callable, Collection, Coroutine, MutableSequence
+from dataclasses import dataclass
 from enum import StrEnum, auto
 from functools import cached_property
 from typing import Literal
@@ -197,6 +198,13 @@ class _ConnectionListeners(ListenerRegistry):
 class Connection:
     """Manages client creation, authentification and sends the packets to parse back"""
 
+    @dataclass
+    class Options:
+        """Connection options configurable from HA."""
+
+        timeout: int = 20
+        bluez_start_notify: bool = False
+
     _listeners = _ConnectionListeners.create()
 
     def __init__(
@@ -221,6 +229,7 @@ class Connection:
         self._encrypt_type = encrypt_type
         self._encryption: EncryptionStrategy | None = None
         self._simple_assembler = SimplePacketAssembler()
+        self._options = Connection.Options()
 
         self._errors = 0
         self._last_errors = deque(maxlen=10)
@@ -310,10 +319,14 @@ class Connection:
         self._reconnect = not is_disabled
         return self
 
+    def with_options(self, options: "Connection.Options"):
+        """Set connection options."""
+        self._options = options
+        return self
+
     async def connect(
         self,
         max_attempts: int | None = None,
-        timeout: int = 20,
     ):
         if self._state.is_connecting:
             return
@@ -355,7 +368,7 @@ class Connection:
                 disconnected_callback=self.disconnected,
                 ble_device_callback=self.ble_dev,
                 max_attempts=ble_attempts,
-                timeout=timeout,
+                timeout=self._options.timeout,
             )
         except TimeoutError as e:
             error = e
@@ -467,7 +480,10 @@ class Connection:
 
         if self._client is not None and self._client.is_connected:
             self._set_state(ConnectionState.DISCONNECTING)
-            await self._client.disconnect()
+            try:
+                await self._client.disconnect()
+            except (EOFError, BleakError) as e:
+                self._logger.debug("Disconnect failed (already down): %s", e)
 
         self._client = None
         if self._state == ConnectionState.DISCONNECTING:
@@ -545,7 +561,10 @@ class Connection:
             self._set_state(ConnectionState.ERROR_TOO_MANY_ERRORS, exception)
             if self._client is not None and self._client.is_connected:
                 self._logger.warning("Client disconnected after encountering 5 errors")
-                await self._client.disconnect()
+                try:
+                    await self._client.disconnect()
+                except (EOFError, BleakError) as e:
+                    self._logger.debug("Disconnect failed (already down): %s", e)
 
     def _reset_error_counter(self):
         self._errors = 0
@@ -719,6 +738,12 @@ class Connection:
 
         await self.add_error(err)
 
+    async def _start_notify(self, callback: Callable):
+        kwargs = {}
+        if self._options.bluez_start_notify:
+            kwargs["bluez"] = {"use_start_notify": True}
+        await self._client.start_notify(self._notify_characteristic, callback, **kwargs)
+
     async def _sendRequest(self, send_data: bytes, response_handler=None):
         # Make sure the connection is here, otherwise just skipping
         if self._client is None or not self._client.is_connected:
@@ -730,9 +755,8 @@ class Connection:
             return
 
         if response_handler:
-            await self._client.start_notify(
-                self._notify_characteristic, response_handler
-            )
+            await self._start_notify(response_handler)
+
         await self._client.write_gatt_char(
             self._write_characteristic, bytearray(send_data)
         )
@@ -790,9 +814,7 @@ class Connection:
         iv = hashlib.md5(self._dev_sn[::-1].encode()).digest()
         self._encryption = Type1Encryption(session_key, iv)
 
-        await self._client.start_notify(
-            self._notify_characteristic, self.listenForDataHandler
-        )
+        await self._start_notify(self.listenForDataHandler)
 
         await self.send_auth_status_packet()
         await self.autoAuthentication()
