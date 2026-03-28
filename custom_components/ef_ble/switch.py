@@ -13,13 +13,13 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import DeviceConfigEntry
 from .eflib import DeviceBase
-from .eflib.devices import shp2
+from .eflib.devices import dpu, shp2
 from .entity import EcoflowEntity
 
 
 @dataclass(frozen=True, kw_only=True)
 class EcoflowSwitchEntityDescription[T: DeviceBase](SwitchEntityDescription):
-    set_state: Callable[[T, str], Awaitable] | None = None
+    set_state: Callable[[T, bool], Awaitable] | None = None
     availability_prop: str | None = None
 
 
@@ -30,9 +30,13 @@ SWITCH_TYPES = [
         device_class=SwitchDeviceClass.OUTLET,
     ),
     SwitchEntityDescription(
-        key="ac_ports",
-        name="AC Ports",
+        key="dc_ports",
         device_class=SwitchDeviceClass.OUTLET,
+    ),
+    EcoflowSwitchEntityDescription[dpu.Device](
+        key="ac_ports",
+        device_class=SwitchDeviceClass.OUTLET,
+        availability_prop="ac_ports_availability",
     ),
     SwitchEntityDescription(
         key="ac_ports_2",
@@ -224,20 +228,11 @@ class EcoflowSwitchEntity(EcoflowEntity, SwitchEntity):
     async def async_added_to_hass(self) -> None:
         self._device.register_state_update_callback(self.state_updated, self._prop_name)
         await super().async_added_to_hass()
-        if self._availability_prop is not None:
-            self._device.register_state_update_callback(
-                self.availability_updated,
-                self._availability_prop,
-            )
 
     async def async_will_remove_from_hass(self) -> None:
         """Entity being removed from hass."""
+        self._device.remove_state_update_callback(self.state_updated, self._prop_name)
         await super().async_will_remove_from_hass()
-        if self._availability_prop is not None:
-            self._device.remove_state_update_calback(
-                self.availability_updated,
-                self._availability_prop,
-            )
 
     @callback
     def state_updated(self, state: bool | None):

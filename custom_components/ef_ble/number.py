@@ -24,6 +24,7 @@ from .eflib.devices import (
     delta3_classic,
     delta3_plus,
     delta_pro_3,
+    dpu,
     powerstream,
     river2,
     river3,
@@ -302,28 +303,62 @@ NUMBER_TYPES: list[EcoflowNumberEntityDescription] = [
             lambda device, value: device.set_feed_grid_mode_pow_limit(int(value))
         ),
     ),
-    EcoflowNumberEntityDescription[shp2.Device](
+    EcoflowNumberEntityDescription[dpu.Device | shp2.Device](
         key="backup_reserve_level",
         device_class=NumberDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
         native_step=1.0,
-        native_min_value=10,
-        native_max_value=50,
+        min_value_prop="backup_reserve_level_min",
+        max_value_prop="backup_reserve_level_max",
+        availability_prop="backup_reserve_level_availability",
         async_set_native_value=(
             lambda device, value: device.set_backup_reserve_level(int(value))
         ),
-        availability_prop="backup_reserve_level",
     ),
-    EcoflowNumberEntityDescription[shp2.Device](
+    EcoflowNumberEntityDescription[dpu.Device](
+        key="backup_discharge_limit",
+        device_class=NumberDeviceClass.BATTERY,
+        native_unit_of_measurement=PERCENTAGE,
+        native_step=1.0,
+        min_value_prop="backup_discharge_limit_min",
+        max_value_prop="backup_discharge_limit_max",
+        async_set_native_value=(
+            lambda device, value: device.set_backup_discharge_limit(int(value))
+        ),
+    ),
+    EcoflowNumberEntityDescription[dpu.Device | shp2.Device](
         key="backup_charge_limit",
         device_class=NumberDeviceClass.BATTERY,
         native_unit_of_measurement=PERCENTAGE,
         native_step=1.0,
-        native_min_value=80,
-        native_max_value=100,
-        availability_prop="backup_charge_limit",
+        min_value_prop="backup_charge_limit_min",
+        max_value_prop="backup_charge_limit_max",
+        availability_prop="backup_charge_limit_availability",
         async_set_native_value=(
             lambda device, value: device.set_backup_charge_limit(int(value))
+        ),
+    ),
+    EcoflowNumberEntityDescription[dpu.Device](
+        key="ac_5p8_charging_power",
+        device_class=NumberDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        native_step=100,
+        min_value_prop="ac_5p8_min_charging_power",
+        max_value_prop="ac_5p8_max_charging_power",
+        async_set_native_value=(
+            lambda device, value: device.set_ac_5p8_charging_power(int(value))
+        ),
+    ),
+    EcoflowNumberEntityDescription[dpu.Device](
+        key="ac_c20_charging_power",
+        device_class=NumberDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        native_step=100,
+        min_value_prop="ac_c20_min_charging_power",
+        max_value_prop="ac_c20_max_charging_power",
+        availability_prop="ac_c20_charging_power_availability",
+        async_set_native_value=(
+            lambda device, value: device.set_ac_c20_charging_power(int(value))
         ),
     ),
 ]

@@ -33,12 +33,10 @@
         "data": {
           "user_id": "EcoFlow User ID",
           "address": "BLE Device",
-          "update_period": "Update Period",
-          "connection_timeout": "Connection Timeout"
+          "update_period": "Update Period"
         },
         "data_description": {
-          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of database writes).",
-          "connection_timeout": "Number of seconds to wait for the device to connect and authenticate."
+          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of database writes)."
         },
         "sections": {
           "login": {
@@ -51,6 +49,18 @@
             },
             "data_description": {
               "region": "If you receive an \"Account does not exist\" message after logging in, or if the connection fails with \"User ID may be incorrect\", try selecting a different region."
+            }
+          },
+          "advanced_connection_options": {
+            "name": "Advanced connection options",
+            "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
+            "data": {
+              "connection_timeout": "Connection timeout",
+              "bluez_start_notify": "Force BlueZ StartNotify"
+            },
+            "data_description": {
+              "connection_timeout": "Number of seconds to wait for the device to connect and authenticate. The default value should work for most setups. Increasing this rarely helps - if the device cannot connect in time, the underlying Bluetooth connection is likely the problem.",
+              "bluez_start_notify": "Force `StartNotify` instead of the default `AcquireNotify` for BLE notifications on Linux. Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
             }
           },
           "log_options": {
@@ -80,12 +90,10 @@
         "data": {
           "user_id": "EcoFlow User ID",
           "address": "BLE Device",
-          "update_period": "Update Period",
-          "connection_timeout": "Connection Timeout"
+          "update_period": "Update Period"
         },
         "data_description": {
-          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of DB writes).",
-          "connection_timeout": "Number of seconds to wait for the device to connect and authenticate."
+          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of DB writes)."
         },
         "sections": {
           "login": {
@@ -98,6 +106,18 @@
             },
             "data_description": {
               "region": "If you receive an \"Account does not exist\" message after logging in, or if the connection fails with \"User ID may be incorrect\", try selecting a different region."
+            }
+          },
+          "advanced_connection_options": {
+            "name": "Advanced connection options",
+            "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
+            "data": {
+              "connection_timeout": "Connection timeout",
+              "bluez_start_notify": "Force BlueZ StartNotify"
+            },
+            "data_description": {
+              "connection_timeout": "Number of seconds to wait for the device to connect and authenticate. The default value should work for most setups. Increasing this rarely helps - if the device cannot connect in time, the underlying Bluetooth connection is likely the problem.",
+              "bluez_start_notify": "Force `StartNotify` instead of the default `AcquireNotify` for BLE notifications on Linux. Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
             }
           },
           "log_options": {
@@ -121,13 +141,11 @@
         "data": {
           "user_id": "EcoFlow User ID",
           "update_period": "Update Period",
-          "packet_version": "Packet Version",
-          "connection_timeout": "Connection Timeout"
+          "packet_version": "Packet Version"
         },
         "data_description": {
           "update_period": "Number of seconds to wait before processing the next device update. A default value of 0 means all updates are processed immediately (may result in a high number of DB writes).",
-          "packet_version": "Version of packets to use - depends on the generation and firmware of this device. Try different version if connection/authentication fails.\nNote that some devices may use packet version that is not yet supported by this integration.",
-          "connection_timeout": "Number of seconds to wait for the device to connect and authenticate."
+          "packet_version": "Version of packets to use - depends on the generation and firmware of this device. Try different version if connection/authentication fails.\nNote that some devices may use packet version that is not yet supported by this integration."
         },
         "sections": {
           "login": {
@@ -142,9 +160,21 @@
               "region": "If you receive an \"Account does not exist\" message after logging in, or if the connection fails with \"User ID may be incorrect\", try selecting a different region."
             }
           },
+          "advanced_connection_options": {
+            "name": "Advanced connection options",
+            "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
+            "data": {
+              "connection_timeout": "Connection timeout",
+              "bluez_start_notify": "Force BlueZ StartNotify"
+            },
+            "data_description": {
+              "connection_timeout": "Number of seconds to wait for the device to connect and authenticate. The default value should work for most setups. Increasing this rarely helps - if the device cannot connect in time, the underlying Bluetooth connection is likely the problem.",
+              "bluez_start_notify": "Force `StartNotify` instead of the default `AcquireNotify` for BLE notifications on Linux. Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
+            }
+          },
           "log_options": {
             "name": "Logging Options",
-            "description": "Advanced logging options. Most of these settings will generate a large volume of log output, so it is recommended not to leave them enabled for extended periods.",
+            "description": "Detailed logging options. Most of these will flood your logs, so avoid leaving them enabled for long periods.",
             "data": {
               "log_masked": "Mask sensitive information (useful when sharing logs publicly)",
               "log_connection": "Log device connection requests and responses",
@@ -187,6 +217,18 @@
           "collect_packets": "Enabling this option will start storing packets for diagnostics info - wait a minute after you enable this option before downloading diagnostics info and don't forget to turn it off.\nSome devices may contain identifying information in their messages such as your exact location so be careful when sharing info with this option enabled."
         },
         "sections": {
+          "advanced_connection_options": {
+            "name": "Advanced connection options",
+            "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
+            "data": {
+              "connection_timeout": "Connection timeout",
+              "bluez_start_notify": "Force BlueZ StartNotify"
+            },
+            "data_description": {
+              "connection_timeout": "Number of seconds to wait for the device to connect and authenticate. The default value should work for most setups. Increasing this rarely helps - if the device cannot connect in time, the underlying Bluetooth connection is likely the problem.",
+              "bluez_start_notify": "Force `StartNotify` instead of the default `AcquireNotify` for BLE notifications on Linux. Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
+            }
+          },
           "log_options": {
             "name": "Logging Options",
             "description": "Detailed logging options. Most of these will flood your logs, so avoid leaving them enabled for long periods.",
@@ -240,6 +282,11 @@
     }
   },
   "entity": {
+    "button": {
+      "unpause_solar": {
+        "name": "Unpause Solar"
+      }
+    },
     "binary_sensor": {
       "channel_backup_is_ready": {
         "name": "Channel {channel} Backup Ready"
@@ -282,6 +329,27 @@
       },
       "backup_force_charge": {
         "name": "Channel {channel} Force Charge"
+      },
+      "is_charging": {
+        "name": "Is Charging"
+      },
+      "slow_charging": {
+        "name": "Slow Charging Switch"
+      },
+      "ac_allowed": {
+        "name": "AC Allowed"
+      },
+      "hv_solar_weak": {
+        "name": "Weak HV Solar Source"
+      },
+      "lv_solar_weak": {
+        "name": "Weak LV Solar Source"
+      },
+      "hv_solar_low_voltage": {
+        "name": "HV Solar Voltage Low"
+      },
+      "lv_solar_low_voltage": {
+        "name": "LV Solar Voltage Low"
       }
     },
     "sensor": {
@@ -349,6 +417,12 @@
       "port_temperature": {
         "name": "{name} Temperature"
       },
+      "port_power_factor": {
+        "name": "{name} Power Factor"
+      },
+      "port_error_code": {
+        "name": "{name} Error Code"
+      },
       "grid_energy_today": {
         "name": "Grid Energy Today"
       },
@@ -381,6 +455,12 @@
       },
       "ac_output_power": {
         "name": "AC Output Power"
+      },
+      "ac_output_voltage": {
+        "name": "AC Output Voltage"
+      },
+      "ac_output_current": {
+        "name": "AC Output Current"
       },
       "ac_input_energy": {
         "name": "AC Input Energy"
@@ -570,6 +650,19 @@
       "load_from_pv": {
         "name": "Load From PV"
       },
+      "grid_connection_status": {
+        "name": "Grid Connection Status",
+        "state": {
+          "unknown": "Unknown",
+          "not_valid": "Not Valid",
+          "grid_in": "Grid In",
+          "grid_offline": "Grid Offline",
+          "feed_grid": "Feeding Grid"
+        }
+      },
+      "wifi_rssi": {
+        "name": "WiFi RSSI"
+      },
       "grid_voltage": {
         "name": "Grid Voltage"
       },
@@ -751,6 +844,26 @@
       },
       "dc_input_current": {
         "name": "DC Input Current"
+      },
+      "ac_5p8_in_type": {
+        "name": "AC 5P8 In Type",
+        "state": {
+          "in_idle": "Idle",
+          "in_ac_ev": "EV Charger",
+          "in_pd303": "Smart Home Panel 2",
+          "in_l14_trans": "L14"
+        }
+      },
+      "ac_5p8_out_type": {
+        "name": "AC 5P8 Out Type",
+        "state": {
+          "out_idle": "Idle",
+          "out_parallel_box": "Parallel Box",
+          "out_pd303": "Smart Home Panel 2"
+        }
+      },
+      "ac_c20_in_type": {
+        "name": "AC C20 In Type"
       }
     },
     "select": {
@@ -790,6 +903,15 @@
           "self_powered": "Self Powered",
           "scheduled": "Scheduled Tasks"
         }
+      },
+      "operating_mode_select": {
+        "name": "Operating Mode",
+        "state": {
+          "none": "None",
+          "time_of_use": "TOU",
+          "self_powered": "Self Powered",
+          "scheduled": "Scheduled Tasks"
+        }
       }
     },
     "number": {
@@ -799,8 +921,17 @@
       "backup_charge_limit": {
         "name": "Charge Limit"
       },
+      "backup_discharge_limit": {
+        "name": "Discharge Limit"
+      },
       "ac_charging_speed": {
         "name": "AC Charging Speed"
+      },
+      "ac_c20_charging_power": {
+        "name": "AC C20 Charging Power"
+      },
+      "ac_5p8_charging_power": {
+        "name": "AC 5P8 Charging Power"
       }
     },
     "switch": {
@@ -815,6 +946,12 @@
       },
       "eps_mode": {
         "name": "EPS Mode"
+      },
+      "dc_ports": {
+        "name": "DC Ports"
+      },
+      "ac_ports": {
+        "name": "AC Ports"
       }
     }
   }

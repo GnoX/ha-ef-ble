@@ -13,6 +13,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import (
     PERCENTAGE,
+    SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
     EntityCategory,
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
@@ -33,8 +34,10 @@ from .eflib import DeviceBase
 from .eflib.devices import (
     _delta3_base,
     delta_pro_3,
+    dpu,
     shp2,
     smart_generator,
+    stream_microinverter,
     wave2,
     wave3,
 )
@@ -87,6 +90,25 @@ def power(
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
         state_class=state_class,
+        suggested_display_precision=precision,
+        entity_registry_enabled_default=enabled,
+        **kwargs,
+    )
+
+
+def power_factor(
+    key: str = "",
+    *,
+    enabled: bool = False,
+    precision: int | None = 0,
+    **kwargs: Unpack[_SensorKwargs],
+) -> EcoflowSensorEntityDescription:
+    return EcoflowSensorEntityDescription(
+        key=key,
+        native_unit_of_measurement=PERCENTAGE,
+        device_class=SensorDeviceClass.POWER_FACTOR,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
         suggested_display_precision=precision,
         entity_registry_enabled_default=enabled,
         **kwargs,
@@ -333,6 +355,86 @@ def port_power(
     )
 
 
+def port_voltage(
+    name: str,
+    *,
+    enabled: bool = False,
+    precision: int | None = 2,
+    **kwargs: Unpack[_SensorKwargs],
+) -> EcoflowSensorEntityDescription:
+    return voltage(
+        enabled=enabled,
+        precision=precision,
+        translation_key="port_voltage",
+        translation_placeholders={"name": name},
+        entity_category=EntityCategory.DIAGNOSTIC,
+        **kwargs,
+    )
+
+
+def port_current(
+    name: str,
+    *,
+    enabled: bool = False,
+    precision: int | None = 2,
+    **kwargs: Unpack[_SensorKwargs],
+) -> EcoflowSensorEntityDescription:
+    return current(
+        enabled=enabled,
+        precision=precision,
+        translation_key="port_current",
+        translation_placeholders={"name": name},
+        entity_category=EntityCategory.DIAGNOSTIC,
+        **kwargs,
+    )
+
+
+def port_temperature(
+    name: str,
+    *,
+    enabled: bool = False,
+    **kwargs: Unpack[_SensorKwargs],
+) -> EcoflowSensorEntityDescription:
+    return temperature(
+        enabled=enabled,
+        translation_key="port_temperature",
+        translation_placeholders={"name": name},
+        entity_category=EntityCategory.DIAGNOSTIC,
+        **kwargs,
+    )
+
+
+def port_power_factor(
+    name: str,
+    *,
+    enabled: bool = False,
+    precision: int | None = 0,
+    **kwargs: Unpack[_SensorKwargs],
+) -> EcoflowSensorEntityDescription:
+    return power_factor(
+        enabled=enabled,
+        precision=precision,
+        translation_key="port_power_factor",
+        translation_placeholders={"name": name},
+        **kwargs,
+    )
+
+
+def port_error_code(
+    name: str,
+    *,
+    enabled: bool = False,
+    **kwargs: Unpack[_SensorKwargs],
+) -> EcoflowSensorEntityDescription:
+    return raw(
+        enabled=enabled,
+        translation_key="port_error_code",
+        translation_placeholders={"name": name},
+        entity_category=EntityCategory.DIAGNOSTIC,
+        **kwargs,
+    )
+
+
 _shp2_circuit_range = range(1, shp2.Device.NUM_OF_CIRCUITS + 1)
 _shp2_channel_range = range(1, shp2.Device.NUM_OF_CHANNELS + 1)
 
@@ -488,14 +590,89 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     ),
     # DPU
     "lv_solar_power": port_power("LV Solar", precision=2),
+    "lv_solar_voltage": port_voltage("LV Solar"),
+    "lv_solar_current": port_current("LV Solar"),
+    "lv_solar_temperature": port_temperature("LV Solar"),
+    "lv_solar_error_code": port_error_code("LV Solar"),
     "hv_solar_power": port_power("HV Solar", precision=2),
-    "ac_l1_1_out_power": port_power("AC L1 1 Out", precision=2),
-    "ac_l1_2_out_power": port_power("AC L1 2 Out", precision=2),
-    "ac_l2_1_out_power": port_power("AC L2 1 Out", precision=2),
-    "ac_l2_2_out_power": port_power("AC L2 2 Out", precision=2),
-    "ac_l14_out_power": port_power("AC L14 Out", precision=2),
+    "hv_solar_voltage": port_voltage("HV Solar"),
+    "hv_solar_current": port_current("HV Solar"),
+    "hv_solar_temperature": port_temperature("HV Solar"),
+    "hv_solar_error_code": port_error_code("HV Solar"),
+    "ac_5p8_in_power": port_power("AC 5P8 In", precision=2),
+    "ac_5p8_in_voltage": port_voltage("AC 5P8 In"),
+    "ac_5p8_in_current": port_current("AC 5P8 In"),
+    "ac_5p8_in_type": enum(
+        key="ac_5p8_in_type",
+        enabled=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        options=dpu.Access5p8InputType,
+    ),
+    "ac_c20_in_power": port_power("AC C20 In", precision=2),
+    "ac_c20_in_voltage": port_voltage("AC C20 In"),
+    "ac_c20_in_current": port_current("AC C20 In"),
+    "ac_c20_in_type": raw(
+        key="ac_c20_in_type",
+        enabled=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    "usb1_out_power": port_power("USB (1) Out", precision=2),
+    "usb1_out_voltage": port_voltage("USB (1) Out"),
+    "usb1_out_current": port_current("USB (1) Out"),
+    "usb2_out_power": port_power("USB (2) Out", precision=2),
+    "usb2_out_voltage": port_voltage("USB (2) Out"),
+    "usb2_out_current": port_current("USB (2) Out"),
+    "typec1_out_power": port_power("USB-C (1) Out", precision=2),
+    "typec1_out_voltage": port_voltage("USB-C (1) Out"),
+    "typec1_out_current": port_current("USB-C (1) Out"),
+    "typec2_out_power": port_power("USB-C (2) Out", precision=2),
+    "typec2_out_voltage": port_voltage("USB-C (2) Out"),
+    "typec2_out_current": port_current("USB-C (2) Out"),
+    "anderson_out_power": port_power("Anderson Out", precision=2),
+    "anderson_out_voltage": port_voltage("Anderson Out"),
+    "anderson_out_current": port_current("Anderson Out"),
+    "anderson_out_error_code": port_error_code("Anderson Out"),
+    "ac_l1_1_out_power": port_power("AC L1 (1) Out", precision=2),
+    "ac_l1_1_out_voltage": port_voltage("AC L1 (1) Out"),
+    "ac_l1_1_out_current": port_current("AC L1 (1) Out"),
+    "ac_l1_1_out_power_factor": port_power_factor("AC L1 (1) Out"),
+    "ac_l1_2_out_power": port_power("AC L1 (2) Out", precision=2),
+    "ac_l1_2_out_voltage": port_voltage("AC L1 (2) Out"),
+    "ac_l1_2_out_current": port_current("AC L1 (2) Out"),
+    "ac_l1_2_out_power_factor": port_power_factor("AC L1 (2) Out"),
+    "ac_l2_1_out_power": port_power("AC L2 (1) Out", precision=2),
+    "ac_l2_1_out_voltage": port_voltage("AC L2 (1) Out"),
+    "ac_l2_1_out_current": port_current("AC L2 (1) Out"),
+    "ac_l2_1_out_power_factor": port_power_factor("AC L2 (1) Out"),
+    "ac_l2_2_out_power": port_power("AC L2 (2) Out", precision=2),
+    "ac_l2_2_out_voltage": port_voltage("AC L2 (2) Out"),
+    "ac_l2_2_out_current": port_current("AC L2 (2) Out"),
+    "ac_l2_2_out_power_factor": port_power_factor("AC L2 (2) Out"),
     "ac_tt_out_power": port_power("AC TT Out", precision=2),
+    "ac_tt_out_voltage": port_voltage("AC TT Out"),
+    "ac_tt_out_current": port_current("AC TT Out"),
+    "ac_tt_out_power_factor": port_power_factor("AC TT Out"),
+    "ac_l14_out_power": port_power("AC L14 Out", precision=2),
+    "ac_l14_out_voltage": port_voltage("AC L14 Out"),
+    "ac_l14_out_current": port_current("AC L14 Out"),
+    "ac_l14_out_power_factor": port_power_factor("AC L14 Out"),
     "ac_5p8_out_power": port_power("AC 5P8 Out", precision=2),
+    "ac_5p8_out_voltage": port_voltage("AC 5P8 Out"),
+    "ac_5p8_out_current": port_current("AC 5P8 Out"),
+    "ac_5p8_out_power_factor": port_power_factor("AC 5P8 Out"),
+    "ac_5p8_out_type": enum(
+        key="ac_5p8_out_type",
+        enabled=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        options=dpu.Access5p8OutputType,
+    ),
+    "battery_voltage": port_voltage("Battery"),
+    "battery_current": port_current("Battery"),
+    "dc_inverter_temperature": port_temperature("DC Inverter"),
+    "dc_inverter_error_code": port_error_code("DC Inverter"),
+    "ac_inverter_temperature": port_temperature("AC Inverter"),
+    "ac_inverter_error_code": port_error_code("AC Inverter"),
+    "system_temperature": port_temperature("System"),
     # River 3, Delta 3
     "input_energy": energy(),
     "output_energy": energy(),
@@ -503,6 +680,8 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     "ac_input_voltage": voltage(precision=1, enabled=False),
     "ac_input_current": current(precision=2, enabled=False),
     "ac_output_power": power(precision=2),
+    "ac_output_voltage": voltage(precision=2, enabled=False),
+    "ac_output_current": current(precision=2, enabled=False),
     "ac_input_energy": energy(),
     "ac_output_energy": energy(),
     "dc_input_power": power(precision=2),
@@ -552,6 +731,17 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     "car_battery_voltage": voltage(),
     "dc_power": power(),
     # STREAM
+    "grid_connection_status": enum(
+        enabled=False,
+        options=stream_microinverter.GridStatus,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    "wifi_rssi": raw(
+        enabled=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        native_unit_of_measurement=SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
     "grid_voltage": voltage(precision=1),
     "grid_frequency": frequency(precision=2),
     "grid_current": current(precision=2),
