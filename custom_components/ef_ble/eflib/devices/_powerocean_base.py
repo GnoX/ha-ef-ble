@@ -262,66 +262,63 @@ class PowerOceanBase(DeviceBase, ProtobufProps):
     pcs_act_pwr = pb_field(pb_heartbeat.pcs_act_pwr)
 
     # Connected devices - Battery
-    bpack1_bp_amp = _BpHeartbeatFloatValue(1, 'bp_amp')
-    bpack1_bp_err_code = _BpHeartbeatIntValue(1, 'bp_err_code')
-    bpack1_bp_env_temp = _BpHeartbeatFloatValue(1, 'bp_env_temp')
-
+    battery_1_current = _BpHeartbeatFloatValue(1, 'bp_amp')
+    battery_1_error_code = _BpHeartbeatIntValue(1, 'bp_err_code')
+    battery_1_environment_temperature = _BpHeartbeatFloatValue(1, 'bp_env_temp')
     battery_1_max_cell_temperature = _BpHeartbeatFloatValue(1, 'bp_max_cell_temp')  # bpack1_bp_max_cell_temp
     battery_1_min_cell_temperature = _BpHeartbeatFloatValue(1, 'bp_min_cell_temp')  # bpack1_bp_min_cell_temp
-
-    bpack1_bp_pwr = _BpHeartbeatFloatValue(1, 'bp_pwr')  # bpack1_bp_pwr
-    bpack1_bp_remain_watth = _BpHeartbeatFloatValue(1, 'bp_remain_watth')  # bpack1_bp_remain_watth
-
+    battery_1_power = _BpHeartbeatFloatValue(1, 'bp_pwr')  # bpack1_bp_pwr
+    battery_1_remaining_power = _BpHeartbeatFloatValue(1, 'bp_remain_watth')  # bpack1_bp_remain_watth
     battery_1_battery_level = _BpHeartbeatIntValue(1, 'bp_soc')  # bpack1_bp_soc
-
-    bpack1_bp_soh = _BpHeartbeatIntValue(1, 'bp_soh')  # bpack1_bp_soh
-    bpack1_bp_vol = _BpHeartbeatFloatValue(1, 'bp_vol')  # bpack1_bp_vol
-    bpack1_bp_cycles = _BpHeartbeatIntValue(1, 'bp_cycles')  # Diag  bpack1_bp_cycles
-
+    battery_1_health = _BpHeartbeatIntValue(1, 'bp_soh')  # bpack1_bp_soh
+    battery_1_voltage = _BpHeartbeatFloatValue(1, 'bp_vol')  # bpack1_bp_vol
+    battery_1_cycles = _BpHeartbeatIntValue(1, 'bp_cycles')  # Diag  bpack1_bp_cycles
     battery_1_system_state = _BpHeartbeatBmsSysState(1)  # Diag  bpack1_bp_sys_state
     battery_1_bms_run_state = _BpHeartbeatBmsRunStaDef(1)  # Diag  bpack1_bms_run_sta
 
-    bpack2_bp_amp = _BpHeartbeatFloatValue(2, 'bp_amp')
-    bpack2_bp_err_code = _BpHeartbeatIntValue(2, 'bp_err_code')
-    bpack2_bp_env_temp = _BpHeartbeatFloatValue(2, 'bp_env_temp')
+    battery_2_current = _BpHeartbeatFloatValue(2, 'bp_amp')
+    battery_2_error_code = _BpHeartbeatIntValue(2, 'bp_err_code')
+    battery_2_environment_temperature = _BpHeartbeatFloatValue(2, 'bp_env_temp')
     battery_2_max_cell_temperature = _BpHeartbeatFloatValue(2, 'bp_max_cell_temp')
     battery_2_min_cell_temperature = _BpHeartbeatFloatValue(2, 'bp_min_cell_temp')
-    bpack2_bp_pwr = _BpHeartbeatFloatValue(2, 'bp_pwr')
-    bpack2_bp_remain_watth = _BpHeartbeatFloatValue(2, 'bp_remain_watth')
+    battery_2_power = _BpHeartbeatFloatValue(2, 'bp_pwr')
+    battery_2_remaining_power = _BpHeartbeatFloatValue(2, 'bp_remain_watth')
     battery_2_battery_level = _BpHeartbeatIntValue(2, 'bp_soc')
-    bpack2_bp_soh = _BpHeartbeatIntValue(2, 'bp_soh')
-    bpack2_bp_vol = _BpHeartbeatFloatValue(2, 'bp_vol')
-    bpack2_bp_cycles = _BpHeartbeatIntValue(2, 'bp_cycles')  # Diag
+    battery_2_health = _BpHeartbeatIntValue(2, 'bp_soh')
+    battery_2_voltage = _BpHeartbeatFloatValue(2, 'bp_vol')
+    battery_2_cycles = _BpHeartbeatIntValue(2, 'bp_cycles')  # Diag
     battery_2_system_state = _BpHeartbeatBmsSysState(2)  # Diag
     battery_2_bms_run_state = _BpHeartbeatBmsRunStaDef(2)  # Diag
 
-    bpack3_bp_amp = _BpHeartbeatFloatValue(3, 'bp_amp')
-    bpack3_bp_err_code = _BpHeartbeatIntValue(3, 'bp_err_code')
-    bpack3_bp_env_temp = _BpHeartbeatFloatValue(3, 'bp_env_temp')
+    battery_3_current = _BpHeartbeatFloatValue(3, 'bp_amp')
+    battery_3_error_code = _BpHeartbeatIntValue(3, 'bp_err_code')
+    battery_3_environment_temperature = _BpHeartbeatFloatValue(3, 'bp_env_temp')
     battery_3_max_cell_temperature = _BpHeartbeatFloatValue(3, 'bp_max_cell_temp')
-    bpack3_bp_min_cell_temp = _BpHeartbeatFloatValue(3, 'bp_min_cell_temp')
-    bpack3_bp_pwr = _BpHeartbeatFloatValue(3, 'bp_pwr')
-    bpack3_bp_remain_watth = _BpHeartbeatFloatValue(3, 'bp_remain_watth')
+    battery_3_min_cell_temperature = _BpHeartbeatFloatValue(3, 'bp_min_cell_temp')
+    battery_3_power = _BpHeartbeatFloatValue(3, 'bp_pwr')
+    battery_3_remaining_power = _BpHeartbeatFloatValue(3, 'bp_remain_watth')
     battery_3_battery_level = _BpHeartbeatIntValue(3, 'bp_soc')
-    bpack3_bp_soh = _BpHeartbeatIntValue(3, 'bp_soh')
-    bpack3_bp_vol = _BpHeartbeatFloatValue(3, 'bp_vol')
-    bpack3_bp_cycles = _BpHeartbeatIntValue(3, 'bp_cycles')  # Diag
+    battery_3_health = _BpHeartbeatIntValue(3, 'bp_soh')
+    battery_3_voltage = _BpHeartbeatFloatValue(3, 'bp_vol')
+    battery_3_cycles = _BpHeartbeatIntValue(3, 'bp_cycles')  # Diag
     battery_3_system_state = _BpHeartbeatBmsSysState(3)  # Diag
     battery_3_bms_run_state = _BpHeartbeatBmsRunStaDef(3)  # Diag
 
-    bpack4_bp_amp = _BpHeartbeatFloatValue(4, 'bp_amp')
-    bpack4_bp_err_code = _BpHeartbeatIntValue(4, 'bp_err_code')
-    bpack4_bp_env_temp = _BpHeartbeatFloatValue(4, 'bp_env_temp')
+    battery_4_current = _BpHeartbeatFloatValue(4, 'bp_amp')
+    battery_4_error_code = _BpHeartbeatIntValue(4, 'bp_err_code')
+    battery_4_environment_temperature = _BpHeartbeatFloatValue(4, 'bp_env_temp')
     battery_4_max_cell_temperature = _BpHeartbeatFloatValue(4, 'bp_max_cell_temp')
-    bpack4_bp_min_cell_temp = _BpHeartbeatFloatValue(4, 'bp_min_cell_temp')
-    bpack4_bp_pwr = _BpHeartbeatFloatValue(4, 'bp_pwr')
-    bpack4_bp_remain_watth = _BpHeartbeatFloatValue(4, 'bp_remain_watth')
+    battery_4_min_cell_temperature = _BpHeartbeatFloatValue(4, 'bp_min_cell_temp')
+    battery_4_power = _BpHeartbeatFloatValue(4, 'bp_pwr')
+    battery_4_remaining_power = _BpHeartbeatFloatValue(4, 'bp_remain_watth')
     battery_4_battery_level = _BpHeartbeatIntValue(4, 'bp_soc')
-    bpack4_bp_soh = _BpHeartbeatIntValue(4, 'bp_soh')
-    bpack4_bp_vol = _BpHeartbeatFloatValue(4, 'bp_vol')
-    bpack4_bp_cycles = _BpHeartbeatIntValue(4, 'bp_cycles')  # Diag
+    battery_4_health = _BpHeartbeatIntValue(4, 'bp_soh')
+    battery_4_voltage = _BpHeartbeatFloatValue(4, 'bp_vol')
+    battery_4_cycles = _BpHeartbeatIntValue(4, 'bp_cycles')  # Diag
     battery_4_system_state = _BpHeartbeatBmsSysState(4)  # Diag
     battery_4_bms_run_state = _BpHeartbeatBmsRunStaDef(4)  # Diag
+
+
 
     bp_remain_watth = pb_field(pb_heartbeat.bp_remain_watth)
 
@@ -420,7 +417,7 @@ class PowerOceanBase(DeviceBase, ProtobufProps):
         return Packet.fromBytes(data, xor_payload=True)
 
     # In this method we create ignore list, to prevent any "unsupported" or "new" packets to slip through
-    def isOnIgnoreList(self, packet: Packet):
+    def is_on_ignore_list(self, packet: Packet):
         if packet.src == 0x60 and packet.cmdSet == 0x60:  # base power ocean
             return (packet.cmdId in [10, 11, 12, 13, 14, 24, 25, 26, 34, 35, 36, 41, 50, 98, 99, 100, 101, 102,
                                      103, 105, 106, 107, 109, 112, 121, 124, 125, 126, 127, 132, 133, 137, 138,
@@ -468,7 +465,7 @@ class PowerOceanBase(DeviceBase, ProtobufProps):
             elif packet.cmdId == 0x07:  # 7
                 self.update_from_bytes(jt_s1_sys_pb2.BpHeartbeatReport, packet.payload)
             elif packet.cmdId == 0x08 or packet.cmdId == 0x11 or packet.cmdId == 0x25:  # 8, 17, 37
-                self.processEmsChangeReport(packet)
+                self.process_ems_change_report(packet)
             elif packet.cmdId == 0x21:  # 33
                 self.update_from_bytes(jt_s1_sys_pb2.EnergyStreamReport, packet.payload)
             elif packet.cmdId == 0x27:  # 39
@@ -508,7 +505,7 @@ class PowerOceanBase(DeviceBase, ProtobufProps):
             check_ignore_list = True
 
         if check_ignore_list:
-            if not self.isOnIgnoreList(packet):
+            if not self.is_on_ignore_list(packet):
                 self._logger.info("Unknown packet: src=%d,cmdSet=%d,cmdId=%d: \nPacket=%s", packet.src, packet.cmdSet,
                                   packet.cmdId, packet)
             # else:
@@ -526,5 +523,5 @@ class PowerOceanBase(DeviceBase, ProtobufProps):
         return processed
 
 
-    def processEmsChangeReport(self, packet: Packet):
+    def process_ems_change_report(self, packet: Packet):
         pass

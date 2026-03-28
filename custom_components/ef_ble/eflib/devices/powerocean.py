@@ -29,21 +29,6 @@ _LOGGER = logging.getLogger(__name__)
 pb_ems_change_report = proto_attr_mapper(jt_s1_sys_pb2.EmsChangeReport)
 
 
-# class _ErrorChangeReport(repeated_pb_field_type(pb_error_change_report, lambda msg: msg, per_item=True)):
-#     type: str
-#     def get_value(self, item: jt_s1_sys_pb2.MpptStaReport) -> float | None:
-#         if not item.mppt_pv:
-#             return None
-#
-#         if self.idx==1:
-#             itemPv = item.mppt_pv[0]
-#         elif self.idx==2:
-#             if len(item.mppt_pv)>1:
-#                 itemPv = item.mppt_pv[1]
-#             else:
-#                 return None
-#
-#         return getattr(itemPv, self.type, None) if itemPv else None
 
 #      TODO:
 #       X  - error change report
@@ -71,7 +56,6 @@ pb_ems_change_report = proto_attr_mapper(jt_s1_sys_pb2.EmsChangeReport)
 class Device(PowerOceanBase):
     """PowerOcean"""
 
-    # SN_PREFIX = (b"J32")
     SN_PREFIX = (b"J32", b"HJ3", b"HC3")  # 1-phase, 3-phase, DC-Fit
     NAME_PREFIX = "EF-J32"
 
@@ -89,10 +73,6 @@ class Device(PowerOceanBase):
     pv_fault_code_2 = pb_field(pb_ems_change_report.mppt2_fault_code)
     pv_warning_code_2 = pb_field(pb_ems_change_report.mppt2_warning_code)
 
-    def __init__(
-        self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
-    ) -> None:
-        super().__init__(ble_dev, adv_data, sn)
 
-    def processEmsChangeReport(self, packet: Packet):
+    def process_ems_change_report(self, packet: Packet):
         self.update_from_bytes(jt_s1_sys_pb2.EmsChangeReport, packet.payload)

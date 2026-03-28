@@ -672,17 +672,17 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
         precision=4,
         translation_key="phase_active_pwr",
         translation_placeholders={"name": "L{n}"},
-        indices=range(4)),
+        indices=range(1, 4)),
     "l{n}_reactive_power": power(
         precision=4,
         translation_key="phase_reactive_power",
         translation_placeholders={"name": "L{n}"},
-        indices=range(4)),
+        indices=range(1, 4)),
     "l{n}_apparent_power": power(
         precision=4,
         translation_key="phase_apparent_power",
         translation_placeholders={"name": "L{n}"},
-        indices=range(4)),
+        indices=range(1, 4)),
 
 
 # unsupported
@@ -702,50 +702,22 @@ _BATTERY_ADDON_SENSORS: Final = {
     "battery_{n}_cell_temperature": temperature(translation_key="cell_temperature"),
     "battery_{n}_input_power": power(precision=0, translation_key="input_power"),
     "battery_{n}_output_power": power(precision=0, translation_key="output_power"),
-    # PO - NO translations
+    # PowerOcean 
     "battery_{n}_min_cell_temperature": temperature(translation_key="min_cell_temperature"),
     "battery_{n}_max_cell_temperature": temperature(translation_key="max_cell_temperature"),
-    
-    "bpack{n}_bp_pwr": power(
-        precision=4,
-        translation_key="power",
-    ),
-    "bpack{n}_bp_remain_watth": energy_storage(
-        translation_key="remaining_power",
-    ),
-
-    "battery_{n}_system_state": enum(
-        translation_key="system_state",
-        options=BmsSysState,
+    "battery_{n}_power": power(precision=4, translation_key="power"),
+    "battery_{n}_remaining_power": energy_storage(translation_key="remaining_power"),
+    "battery_{n}_voltage": voltage(precision=4, translation_key="voltage"),
+    "battery_{n}_current": current(precision=4, translation_key="current"),
+    "battery_{n}_environment_temperature": temperature(translation_key="environment_temperature"),
+    "battery_{n}_system_state": enum(translation_key="system_state", options=BmsSysState,
+		entity_category=EntityCategory.DIAGNOSTIC),
+    "battery_{n}_bms_run_state": enum(translation_key="bms_run_state", options=BmsRunStaDef,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    "battery_{n}_bms_run_state": enum(
-        translation_key="bms_run_state",
-        options=BmsRunStaDef,
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    "bpack{n}_bp_vol": voltage(
-        precision=4,
-        translation_key="voltage",
-    ),
-    "bpack{n}_bp_cycles": raw(
-        translation_key="cycles",
-    ),
-    "bpack{n}_bp_amp": current(
-        precision=4,
-        translation_key="current",
-    ),
-    "bpack{n}_err_code": raw(
-        translation_key="error_code",
-    ),
-    "bpack{n}_env_temp": temperature(
-        translation_key="environment_temperature",
-    ),
-    "bpack{n}_bp_soh": percentage(
-        translation_key="health",
-    ),
-
-
+    "battery_{n}_cycles": raw(translation_key="cycles", entity_category=EntityCategory.DIAGNOSTIC),
+    "battery_{n}_error_code": raw(translation_key="error_code", entity_category=EntityCategory.DIAGNOSTIC),
+    "battery_{n}_health": percentage(translation_key="health", entity_category=EntityCategory.DIAGNOSTIC)
 }
 
 
