@@ -900,7 +900,11 @@ class EcoflowBatteryAddonSensor(EcoflowBatteryAddonEntity, SensorEntity):
 
     @property
     def native_value(self):
-        return getattr(self._device, self._sensor, None)
+        """Return the value of the sensor."""
+        value = getattr(self._device, self._sensor, None)
+        if isinstance(value, Enum):
+            return value.name.lower()
+        return value
 
     async def async_added_to_hass(self):
         await super().async_added_to_hass()
