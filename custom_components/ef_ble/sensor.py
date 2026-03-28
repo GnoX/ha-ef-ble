@@ -645,99 +645,27 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     "llc_temperature": temperature(),
     # Power Ocean
     "sys_load_pwr": power(),
-    "pcs_meter_power": power(),
+    "pcs_meter_power": power(precision=4),
     "bp_remain_watth": energy_storage(),
     "bp_online_sum": raw(),
     "bp_pwr": power(),
-    "ems_work_mode": enum(options=powerocean.WorkMode),
+    "ems_work_mode": enum(options=powerocean.WorkMode, entity_category=EntityCategory.DIAGNOSTIC),
     "bp_total_chg_energy": energy_storage(),
     "bp_total_dsg_energy": energy_storage(),
     "bp_soc": percentage(),
     # PO - CD - Solar Strings (just missing sensors)
     "pv_fault_code_{n}": raw(
         translation_key="param_fault_code",
-        translation_placeholders={"name": "PV {n}"},
+        translation_placeholders={"name": "PV ({n})"},
         indices=range(1, 4),
     ),
     "pv_warning_code_{n}": raw(
         translation_key="param_warning_code",
-        translation_placeholders={"name": "PV {n}"},
+        translation_placeholders={"name": "PV ({n})"},
         indices=range(1, 4),
     ),
 
     # PO - CD - Battery Pack
-    "bpack{n}_bp_amp": current(
-        precision=4,
-        translation_key="bpack_amp",
-        translation_placeholders={"name": "{n}"},
-        indices=range(1, 5),
-    ),
-    "bpack{n}_err_code": raw(
-        translation_key="bpack_err_code",
-        translation_placeholders={"name": "{n}"},
-        indices=range(1, 5),
-    ),
-    "bpack{n}_env_temp": temperature(
-        translation_key="bpack_env_temp",
-        translation_placeholders={"name": "{n}"},
-        indices=range(1, 5),
-    ),
-    "bpack{n}_max_cell_temp": temperature(
-        translation_key="bpack_max_cell_temp",
-        translation_placeholders={"name": "{n}"},
-        indices=range(1, 5),
-    ),
-    "bpack{n}_min_cell_temp": temperature(
-        translation_key="bpack_min_cell_temp",
-        translation_placeholders={"name": "{n}"},
-        indices=range(1, 5),
-    ),
-    "bpack{n}_bp_pwr": power(
-        precision=4,
-        translation_key="bpack_pwr",
-        translation_placeholders={"name": "{n}"},
-        indices=range(1, 5),
-    ),
-    "bpack{n}_bp_remain_watth": energy_storage(
-        translation_key="bpack_remain_watth",
-        translation_placeholders={"name": "{n}"},
-        indices=range(1, 5),
-    ),
-    "bpack{n}_bp_soc": percentage(
-        translation_key="bpack_soc",
-        translation_placeholders={"name": "{n}"},
-        indices=range(1, 5),
-    ),
-    "bpack{n}_bp_soh": percentage(
-        translation_key="bpack_soh",
-        translation_placeholders={"name": "{n}"},
-        indices=range(1, 5),
-    ),
-    "bpack{n}_bp_vol": voltage(
-        precision=4,
-        translation_key="bpack_vol",
-        translation_placeholders={"name": "{n}"},
-        indices=range(1, 5),
-    ),
-    "bpack{n}_bp_cycles": raw(
-        translation_key="bpack_cycles",
-        translation_placeholders={"name": "{n}"},
-        indices=range(1, 5),
-    ),
-    "bpack{n}_bp_sys_state": enum(
-        translation_key="bpack_sys_state",
-        translation_placeholders={"name": "{n}"},
-        indices=range(1, 5),
-        options=powerocean.BmsSysState,
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
-    "bpack{n}_bms_run_sta": enum(
-        translation_key="bpack_bms_run_sta",
-        translation_placeholders={"name": "{n}"},
-        indices=range(1, 5),
-        options=powerocean.BmsRunStaDef,
-        entity_category=EntityCategory.DIAGNOSTIC,
-    ),
     # PO - CD - Phase
     "l{n}_active_power": power(
         precision=4,
@@ -773,6 +701,50 @@ _BATTERY_ADDON_SENSORS: Final = {
     "battery_{n}_cell_temperature": temperature(translation_key="cell_temperature"),
     "battery_{n}_input_power": power(precision=0, translation_key="input_power"),
     "battery_{n}_output_power": power(precision=0, translation_key="output_power"),
+    # PO - NO translations
+    "battery_{n}_min_cell_temperature": temperature(translation_key="min_cell_temperature"),
+    "battery_{n}_max_cell_temperature": temperature(translation_key="max_cell_temperature"),
+    
+    "bpack{n}_bp_pwr": power(
+        precision=4,
+        translation_key="power",
+    ),
+    "bpack{n}_bp_remain_watth": energy_storage(
+        translation_key="remaining_power",
+    ),
+
+    "battery_{n}_system_state": enum(
+        translation_key="system_state",
+        options=powerocean.BmsSysState,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    "battery_{n}_bms_run_state": enum(
+        translation_key="bms_run_state",
+        options=powerocean.BmsRunStaDef,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    "bpack{n}_bp_vol": voltage(
+        precision=4,
+        translation_key="voltage",
+    ),
+    "bpack{n}_bp_cycles": raw(
+        translation_key="cycles",
+    ),
+    "bpack{n}_bp_amp": current(
+        precision=4,
+        translation_key="current",
+    ),
+    "bpack{n}_err_code": raw(
+        translation_key="error_code",
+    ),
+    "bpack{n}_env_temp": temperature(
+        translation_key="environment_temperature",
+    ),
+    "bpack{n}_bp_soh": percentage(
+        translation_key="health",
+    ),
+
+
 }
 
 
