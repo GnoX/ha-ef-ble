@@ -385,7 +385,7 @@ class DeviceBase(abc.ABC):
         """Register a callback called that receives value of updated property"""
         self._state_update_callbacks[propname].add(state_update_callback)
 
-    def remove_state_update_calback(
+    def remove_state_update_callback(
         self, callback: Callable[[Any], None], propname: str
     ):
         """Remove previously registered state update callback"""

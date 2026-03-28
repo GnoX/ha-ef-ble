@@ -183,7 +183,17 @@ class Device(DeviceBase, ProtobufProps):
     )
     backup_enabled = pb_field(pb_push_set.backup_reserve_enable)
     backup_reserve_level = pb_field(pb_push_set.backup_reserve_soc)
+    backup_reserve_level_min = 10
+    backup_reserve_level_max = 50
+    backup_reserve_level_availability = pb_field(
+        pb_push_set.backup_reserve_soc, lambda v: v is not None
+    )
     backup_charge_limit = pb_field(pb_push_set.foce_charge_hight)
+    backup_charge_limit_min = 80
+    backup_charge_limit_max = 100
+    backup_charge_limit_availability = pb_field(
+        pb_push_set.foce_charge_hight, lambda v: v is not None
+    )
     eps_mode = pb_field(pb_push_set.eps_mode_info)
     min_ac_charging_power = 500
     max_ac_charging_power = 7200
@@ -340,7 +350,9 @@ class Device(DeviceBase, ProtobufProps):
         self._logger.debug("set_backup_reserve_level: %d", value)
 
         ppas = pd303_pb2.ProtoPushAndSet()
-        value = min(max(10, value), 50)
+        value = min(
+            max(self.backup_reserve_level_min, value), self.backup_reserve_level_max
+        )
         ppas.backup_reserve_soc = value
 
         await self._send_config_packet(ppas)
@@ -422,7 +434,9 @@ class Device(DeviceBase, ProtobufProps):
 
         ppas = pd303_pb2.ProtoPushAndSet()
 
-        value = min(max(80, value), 100)
+        value = min(
+            max(self.backup_charge_limit_min, value), self.backup_charge_limit_max
+        )
         ppas.foce_charge_hight = value  # key is misspelled by ecoflow
 
         await self._send_config_packet(ppas)

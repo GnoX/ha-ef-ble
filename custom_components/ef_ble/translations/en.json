@@ -282,6 +282,11 @@
     }
   },
   "entity": {
+    "button": {
+      "unpause_solar": {
+        "name": "Unpause Solar"
+      }
+    },
     "binary_sensor": {
       "channel_backup_is_ready": {
         "name": "Channel {channel} Backup Ready"
@@ -324,6 +329,27 @@
       },
       "backup_force_charge": {
         "name": "Channel {channel} Force Charge"
+      },
+      "is_charging": {
+        "name": "Is Charging"
+      },
+      "slow_charging": {
+        "name": "Slow Charging Switch"
+      },
+      "ac_allowed": {
+        "name": "AC Allowed"
+      },
+      "hv_solar_weak": {
+        "name": "Weak HV Solar Source"
+      },
+      "lv_solar_weak": {
+        "name": "Weak LV Solar Source"
+      },
+      "hv_solar_low_voltage": {
+        "name": "HV Solar Voltage Low"
+      },
+      "lv_solar_low_voltage": {
+        "name": "LV Solar Voltage Low"
       }
     },
     "sensor": {
@@ -390,6 +416,12 @@
       },
       "port_temperature": {
         "name": "{name} Temperature"
+      },
+      "port_power_factor": {
+        "name": "{name} Power Factor"
+      },
+      "port_error_code": {
+        "name": "{name} Error Code"
       },
       "grid_energy_today": {
         "name": "Grid Energy Today"
@@ -821,6 +853,26 @@
       },
       "dc_input_current": {
         "name": "DC Input Current"
+      },
+      "ac_5p8_in_type": {
+        "name": "AC 5P8 In Type",
+        "state": {
+          "in_idle": "Idle",
+          "in_ac_ev": "EV Charger",
+          "in_pd303": "Smart Home Panel 2",
+          "in_l14_trans": "L14"
+        }
+      },
+      "ac_5p8_out_type": {
+        "name": "AC 5P8 Out Type",
+        "state": {
+          "out_idle": "Idle",
+          "out_parallel_box": "Parallel Box",
+          "out_pd303": "Smart Home Panel 2"
+        }
+      },
+      "ac_c20_in_type": {
+        "name": "AC C20 In Type"
       }
     },
     "select": {
@@ -860,6 +912,15 @@
           "self_powered": "Self Powered",
           "scheduled": "Scheduled Tasks"
         }
+      },
+      "operating_mode_select": {
+        "name": "Operating Mode",
+        "state": {
+          "none": "None",
+          "time_of_use": "TOU",
+          "self_powered": "Self Powered",
+          "scheduled": "Scheduled Tasks"
+        }
       }
     },
     "number": {
@@ -869,8 +930,17 @@
       "backup_charge_limit": {
         "name": "Charge Limit"
       },
+      "backup_discharge_limit": {
+        "name": "Discharge Limit"
+      },
       "ac_charging_speed": {
         "name": "AC Charging Speed"
+      },
+      "ac_c20_charging_power": {
+        "name": "AC C20 Charging Power"
+      },
+      "ac_5p8_charging_power": {
+        "name": "AC 5P8 Charging Power"
       }
     },
     "switch": {
@@ -885,6 +955,12 @@
       },
       "eps_mode": {
         "name": "EPS Mode"
+      },
+      "dc_ports": {
+        "name": "DC Ports"
+      },
+      "ac_ports": {
+        "name": "AC Ports"
       }
     }
   }
