@@ -50,6 +50,12 @@ def _make_desc(
     )
 
 
+def lock(
+    key: str = "", *, enabled: bool = True, **kwargs: Unpack[_BinarySensorKwargs]
+) -> EcoflowBinarySensorEntityDescription:
+    return _make_desc(BinarySensorDeviceClass.LOCK, key, enabled=enabled, **kwargs)
+
+
 def problem(
     key: str = "", *, enabled: bool = True, **kwargs: Unpack[_BinarySensorKwargs]
 ) -> EcoflowBinarySensorEntityDescription:
@@ -143,6 +149,20 @@ _BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
     # SHP2 generic binary sensors
     "grid_status": connectivity(enabled=True),
     "storm_mode": safety(enabled=True),
+    # DPU
+    "is_charging": battery_charging(
+        enabled=False, entity_category=EntityCategory.DIAGNOSTIC
+    ),
+    "slow_charging": power(enabled=False, entity_category=EntityCategory.DIAGNOSTIC),
+    "ac_allowed": lock(enabled=False, entity_category=EntityCategory.DIAGNOSTIC),
+    "hv_solar_weak": problem(enabled=False, entity_category=EntityCategory.DIAGNOSTIC),
+    "lv_solar_weak": problem(enabled=False, entity_category=EntityCategory.DIAGNOSTIC),
+    "hv_solar_low_voltage": problem(
+        enabled=False, entity_category=EntityCategory.DIAGNOSTIC
+    ),
+    "lv_solar_low_voltage": problem(
+        enabled=False, entity_category=EntityCategory.DIAGNOSTIC
+    ),
 }
 
 BINARY_SENSOR_TYPES: Final[dict[str, BinarySensorEntityDescription]] = (
@@ -188,10 +208,12 @@ class EcoflowBinarySensor(EcoflowEntity, BinarySensorEntity):
     async def async_added_to_hass(self):
         """Run when this Entity has been added to HA."""
         self._device.register_state_update_callback(self.state_updated, self._prop_name)
+        await super().async_added_to_hass()
 
     async def async_will_remove_from_hass(self):
         """Entity being removed from hass."""
-        self._device.remove_state_update_calback(self.state_updated, self._prop_name)
+        self._device.remove_state_update_callback(self.state_updated, self._prop_name)
+        await super().async_will_remove_from_hass()
 
     @callback
     def state_updated(self, state: bool):

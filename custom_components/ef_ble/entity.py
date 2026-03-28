@@ -77,7 +77,7 @@ class EcoflowEntity(Entity):
 
     async def async_will_remove_from_hass(self) -> None:
         for prop, state_callback in self._update_callbacks:
-            self._device.remove_state_update_calback(state_callback, prop)
+            self._device.remove_state_update_callback(state_callback, prop)
         await super().async_will_remove_from_hass()
 
 
