@@ -751,6 +751,109 @@
       },
       "dc_input_current": {
         "name": "DC Input Current"
+      },
+      "sys_load_pwr": {
+        "name": "System Load Power"
+      },
+      "pcs_meter_power": {
+        "name": "Smart Meter Power"
+      },
+      "bp_remain_watth": {
+        "name": "Battery Packs Remaining Power"
+      },
+      "bp_online_sum": {
+        "name": "Battery Packs Online Count"
+      },
+      "bp_pwr": {
+        "name": "Battery Packs Power"
+      },
+      "bp_total_chg_energy": {
+        "name": "Battery Packs Total Charge Energy"
+      },
+      "bp_total_dsg_energy": {
+        "name": "Battery Packs Total Discharge Energy"
+      },
+      "bp_soc": {
+        "name": "Battery Packs State Of Charge"
+      },
+      "ems_work_mode": {
+        "name": "EMS Work Mode",
+        "state": {
+          "idle": "Idle",
+          "no_input": "No Input",
+          "discharging": "Discharging",
+          "charging": "Charging",
+          "normal_full": "Full",
+          "normal_low_pressure": "Normal Low Pressure"
+        }
+      },
+      "param_fault_code": {
+        "name": "{name} Fault Code"
+      },
+      "param_warning_code": {
+        "name": "{name} Warning Code"
+      },
+      "voltage": {
+        "name": "Voltage"
+      },
+      "current": {
+        "name": "Current"
+      },
+      "error_code": {
+        "name": "Error Code"
+      },
+      "environment_temperature": {
+        "name": "Environment Temperature"
+      },
+      "max_cell_temperature": {
+        "name": "Max Cell Temperature"
+      },
+      "min_cell_temperature": {
+        "name": "Min Cell Temperature"
+      },
+      "bpack_pwr": {
+        "name": "Battery Pack {name} Power"
+      },
+      "remaining_power": {
+        "name": "Remaining Power"
+      },
+      "health": {
+        "name": "Health"
+      },
+      "cycles": {
+        "name": "Cycles"
+      },
+      "system_state": {
+        "name": "System State",
+        "state": {
+          "pre_power_on_state": "Pre-Power On",
+          "cfm_power_on_state": "CFM Power On",
+          "normal_state": "Normal",
+          "power_off_state": "Power Off",
+          "sleep_state": "Sleep",
+          "unknown": "Unknown"
+        }
+      },
+      "bms_run_state": {
+        "name": "BMS Run State",
+        "state": {
+          "pb_bms_state_shutdown": "Shutdown",
+          "pb_bms_state_normal": "Normal",
+          "pb_bms_state_chargeable": "Charging",
+          "pb_bms_state_dischargeable": "Discharging",
+          "pb_bms_state_fault": "Fault",
+          "unknown": "Unknown"
+        }
+      },
+
+      "phase_apparent_power": {
+        "name": "{name} Apparent Power"
+      },
+      "phase_reactive_power": {
+        "name": "{name} Reactive Power"
+      },
+      "phase_active_pwr": {
+        "name": "{name} Active Power"
       }
     },
     "select": {

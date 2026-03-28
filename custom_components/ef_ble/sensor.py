@@ -36,7 +36,7 @@ from .eflib.devices import (
     shp2,
     smart_generator,
     wave2,
-    wave3,
+    wave3, powerocean,
 )
 from .eflib.props.enums import IntFieldValue
 from .entity import (
@@ -643,7 +643,48 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
         indices=range(1, 3),
     ),
     "llc_temperature": temperature(),
-    # unsupported
+    # Power Ocean
+    "sys_load_pwr": power(),
+    "pcs_meter_power": power(precision=4),
+    "bp_remain_watth": energy_storage(),
+    "bp_online_sum": raw(),
+    "bp_pwr": power(),
+    "ems_work_mode": enum(options=powerocean.WorkMode, entity_category=EntityCategory.DIAGNOSTIC),
+    "bp_total_chg_energy": energy_storage(),
+    "bp_total_dsg_energy": energy_storage(),
+    "bp_soc": percentage(),
+    # PO - CD - Solar Strings (just missing sensors)
+    "pv_fault_code_{n}": raw(
+        translation_key="param_fault_code",
+        translation_placeholders={"name": "PV ({n})"},
+        indices=range(1, 4),
+    ),
+    "pv_warning_code_{n}": raw(
+        translation_key="param_warning_code",
+        translation_placeholders={"name": "PV ({n})"},
+        indices=range(1, 4),
+    ),
+
+    # PO - CD - Battery Pack
+    # PO - CD - Phase
+    "l{n}_active_power": power(
+        precision=4,
+        translation_key="phase_active_pwr",
+        translation_placeholders={"name": "L{n}"},
+        indices=range(4)),
+    "l{n}_reactive_power": power(
+        precision=4,
+        translation_key="phase_reactive_power",
+        translation_placeholders={"name": "L{n}"},
+        indices=range(4)),
+    "l{n}_apparent_power": power(
+        precision=4,
+        translation_key="phase_apparent_power",
+        translation_placeholders={"name": "L{n}"},
+        indices=range(4)),
+
+
+# unsupported
     "collecting_data": enum(
         name="Collecting data",
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -660,6 +701,50 @@ _BATTERY_ADDON_SENSORS: Final = {
     "battery_{n}_cell_temperature": temperature(translation_key="cell_temperature"),
     "battery_{n}_input_power": power(precision=0, translation_key="input_power"),
     "battery_{n}_output_power": power(precision=0, translation_key="output_power"),
+    # PO - NO translations
+    "battery_{n}_min_cell_temperature": temperature(translation_key="min_cell_temperature"),
+    "battery_{n}_max_cell_temperature": temperature(translation_key="max_cell_temperature"),
+    
+    "bpack{n}_bp_pwr": power(
+        precision=4,
+        translation_key="power",
+    ),
+    "bpack{n}_bp_remain_watth": energy_storage(
+        translation_key="remaining_power",
+    ),
+
+    "battery_{n}_system_state": enum(
+        translation_key="system_state",
+        options=powerocean.BmsSysState,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    "battery_{n}_bms_run_state": enum(
+        translation_key="bms_run_state",
+        options=powerocean.BmsRunStaDef,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    "bpack{n}_bp_vol": voltage(
+        precision=4,
+        translation_key="voltage",
+    ),
+    "bpack{n}_bp_cycles": raw(
+        translation_key="cycles",
+    ),
+    "bpack{n}_bp_amp": current(
+        precision=4,
+        translation_key="current",
+    ),
+    "bpack{n}_err_code": raw(
+        translation_key="error_code",
+    ),
+    "bpack{n}_env_temp": temperature(
+        translation_key="environment_temperature",
+    ),
+    "bpack{n}_bp_soh": percentage(
+        translation_key="health",
+    ),
+
+
 }
 
 
