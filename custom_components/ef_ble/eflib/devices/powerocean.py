@@ -1,11 +1,13 @@
 import logging
 
-from ._powerocean_base import PowerOceanBase
+from bleak import BLEDevice, AdvertisementData
+
+from ._powerocean_base import PowerOceanBase, WorkMode
 from ..packet import Packet
 from ..pb import (
     jt_s1_sys_pb2,
 )
-from ..pb.jt_s1_sys_pb2 import bms_SysState, WorkMode
+#from ..pb.jt_s1_sys_pb2 import WorkMode
 from ..props import (
     pb_field,
     proto_attr_mapper,
@@ -67,7 +69,7 @@ pb_ems_change_report = proto_attr_mapper(jt_s1_sys_pb2.EmsChangeReport)
 #   "Standard" models available and they all should be handled by this implementation.
 
 class Device(PowerOceanBase):
-    """Power Ocean"""
+    """PowerOcean"""
 
     # SN_PREFIX = (b"J32")
     SN_PREFIX = (b"J32", b"HJ3", b"HC3")  # 1-phase, 3-phase, DC-Fit
@@ -86,6 +88,11 @@ class Device(PowerOceanBase):
 
     pv_fault_code_2 = pb_field(pb_ems_change_report.mppt2_fault_code)
     pv_warning_code_2 = pb_field(pb_ems_change_report.mppt2_warning_code)
+
+    def __init__(
+        self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
+    ) -> None:
+        super().__init__(ble_dev, adv_data, sn)
 
     def processEmsChangeReport(self, packet: Packet):
         self.update_from_bytes(jt_s1_sys_pb2.EmsChangeReport, packet.payload)

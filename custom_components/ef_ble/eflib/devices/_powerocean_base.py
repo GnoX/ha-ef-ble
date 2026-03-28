@@ -1,7 +1,9 @@
 import logging
+from typing import Sequence
+
 from bleak import AdvertisementData, BLEDevice
 from ..packet import Packet
-from custom_components.ef_ble.eflib import DeviceBase
+from ..devicebase import DeviceBase
 from ..connection import ConnectionState
 from ..pb import (
     iot_comm_pb2,
@@ -239,7 +241,7 @@ class _PcsErrorCode(repeated_pb_field_type(pb_error_change_report.pcs_err_code, 
 
 
 class PowerOceanBase(DeviceBase, ProtobufProps):
-
+    SN_PREFIX: Sequence[bytes]
     PO_INTERNAL_VERSION = "0.5.1"
 
     # ecr_ems_sn = pb_field(pb_error_change_report.ems_err_code.module_sn)

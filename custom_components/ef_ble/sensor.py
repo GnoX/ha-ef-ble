@@ -38,6 +38,7 @@ from .eflib.devices import (
     wave2,
     wave3, powerocean,
 )
+from .eflib.devices._powerocean_base import WorkMode, BmsRunStaDef, BmsSysState
 from .eflib.props.enums import IntFieldValue
 from .entity import (
     EcoflowBatteryAddonEntity,
@@ -649,7 +650,7 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     "bp_remain_watth": energy_storage(),
     "bp_online_sum": raw(),
     "bp_pwr": power(),
-    "ems_work_mode": enum(options=powerocean.WorkMode, entity_category=EntityCategory.DIAGNOSTIC),
+    "ems_work_mode": enum(options=WorkMode, entity_category=EntityCategory.DIAGNOSTIC),
     "bp_total_chg_energy": energy_storage(),
     "bp_total_dsg_energy": energy_storage(),
     "bp_soc": percentage(),
@@ -715,12 +716,12 @@ _BATTERY_ADDON_SENSORS: Final = {
 
     "battery_{n}_system_state": enum(
         translation_key="system_state",
-        options=powerocean.BmsSysState,
+        options=BmsSysState,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "battery_{n}_bms_run_state": enum(
         translation_key="bms_run_state",
-        options=powerocean.BmsRunStaDef,
+        options=BmsRunStaDef,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "bpack{n}_bp_vol": voltage(
