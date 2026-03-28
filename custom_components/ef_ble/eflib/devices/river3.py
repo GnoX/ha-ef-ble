@@ -1,10 +1,9 @@
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
-from custom_components.ef_ble.eflib.entity import controls
-
 from ..commands import TimeCommands
 from ..devicebase import DeviceBase
+from ..entity import controls
 from ..entity.base import dynamic
 from ..packet import Packet
 from ..pb import pr705_pb2
@@ -205,7 +204,7 @@ class Device(DeviceBase, ProtobufProps):
             pr705_pb2.ConfigWrite(cfg_dc_12v_out_open=enabled)
         )
 
-    @controls.switch(ac_ports, enabled=False)
+    @controls.outlet(ac_ports, enabled=False)
     async def enable_ac_ports(self, enabled: bool):
         await self._send_config_packet(pr705_pb2.ConfigWrite(cfg_ac_out_open=enabled))
 
@@ -246,8 +245,6 @@ class Device(DeviceBase, ProtobufProps):
         max=dynamic(max_ac_charging_power),
     )
     async def set_ac_charging_speed(self, value: float):
-        await self.set_battery_charge_limit_max(12)
-
         if (
             self.max_ac_charging_power is None
             or value > self.max_ac_charging_power
