@@ -968,6 +968,12 @@
       },
       "ac_ports": {
         "name": "AC Ports"
+      },
+      "dc_12v_port": {
+        "name": "DC 12V Port"
+      },
+      "energy_backup": {
+        "name": "Backup Reserve"
       }
     }
   }
