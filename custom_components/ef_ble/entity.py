@@ -1,5 +1,5 @@
 import dataclasses
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from typing import Any, Protocol, runtime_checkable
 
 from homeassistant.core import callback
@@ -112,7 +112,7 @@ class IndexableDescription(Protocol):
     """Entity description that supports indexed expansion via `{n}` in keys"""
 
     key: str
-    indexed_range: range | None
+    indices: Iterable[int | str] | None
     translation_placeholders: Mapping[str, str] | None
 
 
@@ -120,31 +120,30 @@ def resolve_entity_description_keys[D: EntityDescription](
     descriptions: dict[str, D],
 ) -> dict[str, D]:
     """
-    Fill in description keys from dict key, and expand indexed ({n}) descriptions.
+    Fill in description keys from dict key, and expand indexed ({n}) descriptions
 
-    Descriptions with {n} in their key that are instances of indexed_type with
-    indexed_range set are expanded across the range. {n} in translation_placeholder
-    values is also replaced, supporting format specs like {n:02d}.
+    Descriptions with {n} in their key that are instances of IndexableDescription
+    with indices set are expanded across the iterable. {n} in translation_placeholder
+    values is also replaced, supporting format specs like {n:02d}. Case of fields does
+    not matter - `field_A` is equivalent to `field_a`.
     """
     result: dict[str, D] = {}
     for k, v in descriptions.items():
         if not (
-            "{n}" in k
-            and isinstance(v, IndexableDescription)
-            and v.indexed_range is not None
+            "{n}" in k and isinstance(v, IndexableDescription) and v.indices is not None
         ):
             result[k] = dataclasses.replace(v, key=k) if not v.key else v
             continue
 
-        for i in v.indexed_range:
-            actual_key = k.replace("{n}", str(i))
+        for i in v.indices:
+            actual_key = k.replace("{n}", str(i)).lower()
             placeholders = v.translation_placeholders
             if placeholders:
                 placeholders = {pk: pv.format(n=i) for pk, pv in placeholders.items()}
             result[actual_key] = dataclasses.replace(
                 v,
                 key=actual_key,
-                indexed_range=None,
+                indices=None,
                 translation_placeholders=placeholders,
             )
 

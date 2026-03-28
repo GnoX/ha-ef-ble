@@ -1,6 +1,6 @@
 """EcoFlow BLE binary sensor"""
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import Final, TypedDict, Unpack
 
@@ -25,13 +25,13 @@ class EcoflowBinarySensorEntityDescription(BinarySensorEntityDescription):
     """Binary sensor entity description with optional indexed expansion support."""
 
     update_state: Callable[[bool], None] | None = None
-    indexed_range: range | None = None
+    indices: Iterable[int | str] | None = None
 
 
 class _BinarySensorKwargs(TypedDict, total=False):
     translation_key: str
     translation_placeholders: dict[str, str]
-    indexed_range: range
+    indices: Iterable[int | str]
     entity_category: EntityCategory
 
 
@@ -114,7 +114,7 @@ def shp2_channel(
     return fn(
         translation_key=translation_key,
         translation_placeholders={"channel": "{n}"},
-        indexed_range=_shp2_channel_range,
+        indices=_shp2_channel_range,
         **kwargs,
     )
 
