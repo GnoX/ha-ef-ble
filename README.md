@@ -23,8 +23,8 @@ No internet connection required • Real-time status updates • Full local cont
 
 ## Overview
 
-This integration enables local communication with EcoFlow power stations and accessories
-through **Bluetooth LE**, allowing you to:
+This integration enables local communication with EcoFlow power stations, EV chargers,
+and accessories through **Bluetooth LE**, allowing you to:
 
 - **Monitor** battery levels, power flow, and device status
 - **Control** outputs, charging parameters, and device settings
@@ -421,6 +421,20 @@ first charging task</sup>
 | Inverter Frequency   |                  |                       |
 | Inverter Temperature |                  |                       |
 | LLC Temperature      |                  |                       |
+
+</details>
+
+<details>
+<summary><b>PowerPulse EV Charger</b> <i>(7-22 kW)</i></summary>
+
+<br>
+
+| *Sensors*                    |
+|------------------------------|
+| Output Power                 |
+| AC Output Voltage (disabled) |
+| AC Output Current (disabled) |
+| AC Plug State                |
 
 </details>
 
