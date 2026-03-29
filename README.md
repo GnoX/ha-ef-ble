@@ -186,6 +186,8 @@ Click on any device below to see available sensors, switches, and controls:
 | AC Output Power                     |                | AC Charging Speed    |                  |
 | Main Battery Level ⁺                |                | DC Charging Max Amps |                  |
 | Battery Level                       |                |                      |                  |
+| Extra Battery Level ¹               |                |                      |                  |
+| Extra Battery Temperature ¹         |                |                      |                  |
 | DC 12V Port Output Energy           |                |                      |                  |
 | DC 12V Port Output Power            |                |                      |                  |
 | DC Input Energy                     |                |                      |                  |
@@ -204,7 +206,12 @@ Click on any device below to see available sensors, switches, and controls:
 | Charge Time Remaining (disabled)    |                |                      |                  |
 | Discharge Time Remaining (disabled) |                |                      |                  |
 
-<sup>⁺ Only available on Plus variant</sup>
+<sup>⁺ Only available on Plus variant</sup><br>
+<sup>¹ Per extra battery (up to 2)</sup>
+
+> **📝 Note:** Extra batteries are detected when the integration is set up. If you
+> connect or disconnect a battery, you can reconfigure the integration to update
+> the registered devices.
 
 > **📝 Note:** **AC Input Energy sensor** is not working as intended - this is a firmware
 > bug. If you need this sensor, create an integral helper from AC Input Power instead. See
