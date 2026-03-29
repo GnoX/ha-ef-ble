@@ -13,6 +13,7 @@ from ..props import (
     proto_attr_mapper,
 )
 from ..props.enums import IntFieldValue
+from ..props.resv_info_parser import resv_soc, resv_temperature
 
 
 def _out_power(x) -> float:
@@ -88,6 +89,20 @@ class Device(DeviceBase, ProtobufProps):
 
     solar_lv_power = Field[float]()
     solar_hv_power = Field[float]()
+
+    battery_1_enabled = pb_field(pb.plug_in_info_4p8_1_in_flag, bool)
+    battery_1_battery_level = pb_field(pb.plug_in_info_4p8_1_resv, resv_soc)
+    battery_1_cell_temperature = pb_field(pb.plug_in_info_4p8_1_resv, resv_temperature)
+    battery_1_input_power = pb_field(pb.pow_get_4p8_1, lambda v: max(0, round(v)))
+    battery_1_output_power = pb_field(pb.pow_get_4p8_1, lambda v: max(0, round(-v)))
+    battery_1_sn = pb_field(pb.plug_in_info_dcp_sn)
+
+    battery_2_enabled = pb_field(pb.plug_in_info_4p8_2_in_flag, bool)
+    battery_2_battery_level = pb_field(pb.plug_in_info_4p8_2_resv, resv_soc)
+    battery_2_cell_temperature = pb_field(pb.plug_in_info_4p8_2_resv, resv_temperature)
+    battery_2_input_power = pb_field(pb.pow_get_4p8_2, lambda v: max(0, round(v)))
+    battery_2_output_power = pb_field(pb.pow_get_4p8_2, lambda v: max(0, round(-v)))
+    battery_2_sn = pb_field(pb.plug_in_info_dcp2_sn)
 
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
