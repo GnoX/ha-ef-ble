@@ -154,12 +154,7 @@ class _BpHeartbeatFloatValue(repeated_pb_field_type(pb_bp_heart.bp_heart_beat, l
 
     def get_value(self, item: jt_s1_sys_pb2.BpStaReport) -> float | None:
         if item.bp_dsrc == self.idx:
-            if type == "bp_temp":
-                array = getattr(item, self.type, None)
-                if array is not None:
-                    return array[0]
-            else:
-                return getattr(item, self.type, None)
+            return getattr(item, self.type, None)
         else:
             return None
 
@@ -242,24 +237,26 @@ class _PcsErrorCode(repeated_pb_field_type(pb_error_change_report.pcs_err_code, 
 
 class PowerOceanBase(DeviceBase, ProtobufProps):
     SN_PREFIX: Sequence[bytes]
-    PO_INTERNAL_VERSION = "0.5.1"
+
+    driver_version = "0.5.4"
 
     # ecr_ems_sn = pb_field(pb_error_change_report.ems_err_code.module_sn)
     # pcs_sn = pb_field(pb_error_change_report.pcs_err_code.module_sn)
 
-    sys_load_pwr = pb_field(pb_energy_stream_report.sys_load_pwr)
+    total_load = pb_field(pb_energy_stream_report.sys_load_pwr) # sys_load_pwr
     grid_power = pb_field(pb_energy_stream_report.sys_grid_pwr)  # sys_grid_pwr
-    mppt_pwr = pb_field(pb_energy_stream_report.mppt_pwr)
-    bp_pwr = pb_field(pb_energy_stream_report.bp_pwr)
+    power_mppt = pb_field(pb_energy_stream_report.mppt_pwr) # mppt_pwr
+    batteries_power = pb_field(pb_energy_stream_report.bp_pwr)  # bp_pwr
+    batteries_remaining_power = pb_field(pb_heartbeat.bp_remain_watth)  # bp_remain_watth
 
     pv1_main_power = pb_field(pb_energy_stream_report.pv1_pwr)  # pv1_pwr
     pv2_main_power = pb_field(pb_energy_stream_report.pv2_pwr)  # pv2_pwr
     pv3_main_power = pb_field(pb_energy_stream_report.pv3_pwr)  # on Plus pv3_pwr
-    pv_inv_pwr = pb_field(pb_energy_stream_report.pv_inv_pwr)
+    pv_inverter_power = pb_field(pb_energy_stream_report.pv_inv_pwr)  ## ignore (this is used when we have partial EF setup
 
     pcs_meter_power = pb_field(pb_heartbeat.pcs_meter_power)
-    ems_bp_power = pb_field(pb_heartbeat.ems_bp_power)
-    pcs_act_pwr = pb_field(pb_heartbeat.pcs_act_pwr)
+    batteries_ems_power  = pb_field(pb_heartbeat.ems_bp_power) # ems_bp_power
+    pcs_active_power = pb_field(pb_heartbeat.pcs_act_pwr) # pcs_act_pwr
 
     # Connected devices - Battery
     battery_1_current = _BpHeartbeatFloatValue(1, 'bp_amp')
@@ -318,10 +315,6 @@ class PowerOceanBase(DeviceBase, ProtobufProps):
     battery_4_system_state = _BpHeartbeatBmsSysState(4)  # Diag
     battery_4_bms_run_state = _BpHeartbeatBmsRunStaDef(4)  # Diag
 
-
-
-    bp_remain_watth = pb_field(pb_heartbeat.bp_remain_watth)
-
     # Connected Devices: Phases
     l1_voltage = pb_field(pb_heartbeat.pcs_a_phase.vol)  # pcs_a_phase_vol
     l1_current = pb_field(pb_heartbeat.pcs_a_phase.amp)  # pcs_a_phase_amp
@@ -348,7 +341,7 @@ class PowerOceanBase(DeviceBase, ProtobufProps):
     # monthElectricityGeneration     14.48     kWh
     # yearElectricityGeneration      14.48     kWh
 
-    # String data
+    # PV String data
     pv_voltage_1 = _MpptPv(1, 'vol')
     pv_current_1 = _MpptPv(1, 'amp')  # mppt_pv1_amp
     pv_power_1 = _MpptPv(1, 'pwr')  # mppt_pv1_pwr

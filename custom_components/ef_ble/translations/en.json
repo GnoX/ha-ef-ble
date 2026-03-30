@@ -758,23 +758,32 @@
       "pcs_meter_power": {
         "name": "Smart Meter Power"
       },
-      "bp_remain_watth": {
-        "name": "Battery Packs Remaining Power"
+      "total_load": {
+        "name": "Total Load"
       },
-      "bp_online_sum": {
-        "name": "Battery Packs Online Count"
+      "batteries_remaining_power": {
+        "name": "Batteries Remaining Power"
       },
-      "bp_pwr": {
-        "name": "Battery Packs Power"
+      "batteries_online_count": {
+        "name": "Batteries Online Count"
       },
-      "bp_total_chg_energy": {
-        "name": "Battery Packs Total Charge Energy"
+      "batteries_power": {
+        "name": "Batteries Power"
       },
-      "bp_total_dsg_energy": {
-        "name": "Battery Packs Total Discharge Energy"
+      "batteries_total_charge_energy": {
+        "name": "Batteries Total Charge Energy"
       },
-      "bp_soc": {
-        "name": "Battery Packs State Of Charge"
+      "batteries_total_discharge_energy": {
+        "name": "Batteries Total Discharge Energy"
+      },
+      "batteries_level": {
+        "name": "Batteries Level"
+      },
+      "batteries_ems_power": {
+        "name": "Batteries EMS Power"
+      },
+      "driver_version": {
+        "name": "Driver Version"
       },
       "ems_work_mode": {
         "name": "EMS Work Mode",
@@ -818,9 +827,6 @@
       },
       "min_cell_temperature": {
         "name": "Min Cell Temperature"
-      },
-      "bpack_pwr": {
-        "name": "Battery Pack {name} Power"
       },
       "remaining_power": {
         "name": "Remaining Power"

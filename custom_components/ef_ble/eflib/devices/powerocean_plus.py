@@ -24,10 +24,10 @@ class Device(PowerOceanBase):
 
     ems_work_mode = pb_field(pb_ems_change_report.ems_word_mode, WorkMode.from_mode)
 
-    bp_soc = pb_field(pb_ems_state_change_report.bp_soc)
-    bp_total_chg_energy = pb_field(pb_ems_state_change_report.bp_total_chg_energy)
-    bp_total_dsg_energy = pb_field(pb_ems_state_change_report.bp_total_dsg_energy)
-    bp_online_sum = pb_field(pb_ems_state_change_report.bp_online_sum)
+    batteries_level = pb_field(pb_ems_state_change_report.bp_soc)
+    batteries_total_charge_energy = pb_field(pb_ems_state_change_report.bp_total_chg_energy)
+    batteries_total_discharge_energy = pb_field(pb_ems_state_change_report.bp_total_dsg_energy)
+    batteries_online_count = pb_field(pb_ems_state_change_report.bp_online_sum)
 
     # String data (only Plus supports 3rd string)
     pv_fault_code_1 = pb_field(pb_ems_state_change_report.mppt1_fault_code)

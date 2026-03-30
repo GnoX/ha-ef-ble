@@ -644,17 +644,25 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
         indices=range(1, 3),
     ),
     "llc_temperature": temperature(),
-    # Power Ocean
-    "sys_load_pwr": power(),
+    # PowerOcean
+    "total_load": power(),
     "pcs_meter_power": power(precision=4),
-    "bp_remain_watth": energy_storage(),
-    "bp_online_sum": raw(),
-    "bp_pwr": power(),
+    "pcs_active_power": power(precision=4),
     "ems_work_mode": enum(options=WorkMode, entity_category=EntityCategory.DIAGNOSTIC),
-    "bp_total_chg_energy": energy_storage(),
-    "bp_total_dsg_energy": energy_storage(),
-    "bp_soc": percentage(),
-    # PO - CD - Solar Strings (just missing sensors)
+    "batteries_ems_power": power(),
+    "bp_remain_watth": energy_storage(),
+    "batteries_online_count": raw(),
+    "batteries_power": power(),
+    "batteries_total_charge_energy": energy_storage(),
+    "batteries_total_discharge_energy": energy_storage(),
+    "batteries_level": percentage(),
+    "pv{n}_main_power": power(
+        translation_key="port_power",
+        translation_placeholders={"name": "PV {n}"},
+        indices=range(1, 4),
+    ),
+    "driver_version": raw(entity_category=EntityCategory.DIAGNOSTIC),
+    # PowerOcean - Connected Device - Solar Strings (just missing sensors)
     "pv_fault_code_{n}": raw(
         translation_key="param_fault_code",
         translation_placeholders={"name": "PV ({n})"},
@@ -665,9 +673,8 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
         translation_placeholders={"name": "PV ({n})"},
         indices=range(1, 4),
     ),
-
-    # PO - CD - Battery Pack
-    # PO - CD - Phase
+    # PowerOcean - Connected Device - Battery Pack (using battery addon sensors)
+    # PowerOcean - Connected Device - Phases (just missing sensors)
     "l{n}_active_power": power(
         precision=4,
         translation_key="phase_active_pwr",
