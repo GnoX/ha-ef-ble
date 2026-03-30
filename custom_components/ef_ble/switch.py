@@ -1,3 +1,4 @@
+import dataclasses
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from functools import partial
@@ -12,8 +13,10 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import DeviceConfigEntry
-from .eflib import DeviceBase
-from .eflib.devices import dpu, shp2
+from .deprecated.switches import DEPRECATED_SWITCH_TYPES
+from .description_builder import EntityDescriptionBuilder
+from .eflib import DeviceBase, get_controls
+from .eflib.entity import controls
 from .entity import EcoflowEntity
 
 
@@ -23,167 +26,50 @@ class EcoflowSwitchEntityDescription[T: DeviceBase](SwitchEntityDescription):
     availability_prop: str | None = None
 
 
-SWITCH_TYPES = [
-    SwitchEntityDescription(
-        key="dc_12v_port",
-        name="DC 12V Port",
-        device_class=SwitchDeviceClass.OUTLET,
-    ),
-    SwitchEntityDescription(
-        key="dc_ports",
-        device_class=SwitchDeviceClass.OUTLET,
-    ),
-    EcoflowSwitchEntityDescription[dpu.Device](
-        key="ac_ports",
-        device_class=SwitchDeviceClass.OUTLET,
-        availability_prop="ac_ports_availability",
-    ),
-    SwitchEntityDescription(
-        key="ac_ports_2",
-        name="AC Ports (2)",
-        device_class=SwitchDeviceClass.OUTLET,
-    ),
-    SwitchEntityDescription(
-        key="ac_port",
-        name="AC Port",
-        device_class=SwitchDeviceClass.OUTLET,
-    ),
-    SwitchEntityDescription(
-        key="disable_grid_bypass",
-        name="Disable Grid Bypass",
-        entity_registry_enabled_default=False,
-    ),
-    SwitchEntityDescription(
-        key="self_start",
-        name="Self Start",
-    ),
-    SwitchEntityDescription(
-        key="ac_lv_port",
-        name="LV AC",
-        device_class=SwitchDeviceClass.OUTLET,
-    ),
-    SwitchEntityDescription(
-        key="ac_hv_port",
-        name="HV AC",
-        device_class=SwitchDeviceClass.OUTLET,
-    ),
-    SwitchEntityDescription(
-        key="energy_backup",
-        name="Backup Reserve",
-        device_class=SwitchDeviceClass.SWITCH,
-        translation_key="battery_sync",
-    ),
-    SwitchEntityDescription(
-        key="usb_ports",
-        name="USB Ports",
-        icon="mdi:usb",
-    ),
-    SwitchEntityDescription(
-        key="engine_on",
-        name="Engine",
-    ),
-    SwitchEntityDescription(
-        key="charger_open",
-        name="Charger",
-    ),
-    SwitchEntityDescription(
-        key="lpg_level_monitoring",
-        name="LPG Level Monitoring",
-    ),
-    SwitchEntityDescription(
-        key="ac_1",
-        name="AC (1)",
-        device_class=SwitchDeviceClass.OUTLET,
-    ),
-    SwitchEntityDescription(
-        key="ac_2",
-        name="AC (2)",
-        device_class=SwitchDeviceClass.OUTLET,
-    ),
-    SwitchEntityDescription(
-        key="feed_grid",
-        name="Feed Grid",
-    ),
-    SwitchEntityDescription(
-        key="power",
-        name="Power",
-        device_class=SwitchDeviceClass.SWITCH,
-    ),
-    SwitchEntityDescription(
-        key="energy_strategy_self_powered",
-        name="Self-Powered Mode",
-        device_class=SwitchDeviceClass.SWITCH,
-        icon="mdi:solar-power",
-    ),
-    SwitchEntityDescription(
-        key="energy_strategy_scheduled",
-        name="Scheduled Mode",
-        device_class=SwitchDeviceClass.SWITCH,
-        icon="mdi:calendar-clock",
-    ),
-    SwitchEntityDescription(
-        key="energy_strategy_tou",
-        name="Time-of-Use Mode",
-        device_class=SwitchDeviceClass.SWITCH,
-        icon="mdi:clock-time-eight",
-    ),
-    SwitchEntityDescription(
-        key="automatic_drain",
-        name="Automatic Drain",
-    ),
-    SwitchEntityDescription(
-        key="ambient_light",
-        name="Ambient Light",
-    ),
-    SwitchEntityDescription(
-        key="emergency_reverse_charging",
-        name="Emergency Reverse Charging",
-    ),
-    EcoflowSwitchEntityDescription[shp2.Device](
-        key="eps_mode",
-        device_class=SwitchDeviceClass.SWITCH,
-        set_state=lambda device, value: device.set_eps_mode(value),
-    ),
-    # SHP2 Circuit switches
-    *[
-        EcoflowSwitchEntityDescription[shp2.Device](
-            key=f"circuit_{i}",
-            translation_key="circuit_is_enabled",
-            translation_placeholders={"circuit": f"{i}"},
-            device_class=SwitchDeviceClass.OUTLET,
-            set_state=lambda device, value, i=i: device.set_circuit_power(i, value),
-            availability_prop=f"circuit_{i}_split_info_loaded",
+@dataclass(init=False)
+class SwitchBuilder(EntityDescriptionBuilder):
+    _device_class: SwitchDeviceClass | None = None
+    _enable_func: Callable[[DeviceBase, bool], Awaitable[None]] | None = None
+
+    def device_class(self, device_class: SwitchDeviceClass):
+        self._device_class = device_class
+        return self
+
+    def enable_func(self, func: Callable[[DeviceBase, bool], Awaitable[None]]):
+        self._enable_func = func
+        return self
+
+    def build(self):
+        if self._enable_func is None:
+            raise ValueError("Cannot build switch entity without enable func")
+        return EcoflowSwitchEntityDescription(
+            key=self._entity_key,
+            name=self._entity_name,
+            device_class=self._device_class,
+            entity_category=self._entity_category,
+            set_state=self._enable_func,
+            entity_registry_enabled_default=self._entity_registry_enabled_default,
+            translation_key=self._entity_translation_key,
+            translation_placeholders=self._translation_placeholders,
+            availability_prop=self._availability_prop,
+            icon=self._icon,
         )
-        for i in range(1, shp2.Device.NUM_OF_CIRCUITS + 1)
-    ],
-    # SHP2 Channels switches
-    *[
-        EcoflowSwitchEntityDescription[shp2.Device](
-            key=f"channel{i}_is_enabled",
-            translation_key="channel_is_enabled",
-            translation_placeholders={"channel": f"{i}"},
-            device_class=SwitchDeviceClass.SWITCH,
-            set_state=lambda device, enabled, i=i: device.set_channel_enable(
-                i, enabled
-            ),
-            availability_prop=f"channel{i}_is_connected",
-        )
-        for i in range(1, shp2.Device.NUM_OF_CHANNELS + 1)
-    ],
-    *[
-        EcoflowSwitchEntityDescription[shp2.Device](
-            key=f"ch{i}_force_charge",
-            translation_key="ch_force_charge",
-            translation_placeholders={"channel": f"{i}"},
-            device_class=SwitchDeviceClass.SWITCH,
-            set_state=lambda device, enabled, i=i: device.set_channel_force_charge(
-                i, enabled
-            ),
-            availability_prop=f"channel{i}_is_connected",
-        )
-        for i in range(1, shp2.Device.NUM_OF_CHANNELS + 1)
-    ],
-]
+
+
+@dataclasses.dataclass
+class _Builder[E: controls.ControlType]:
+    builder: Callable[[E, SwitchBuilder], SwitchBuilder]
+
+
+_BUILDERS: dict[type[controls.ControlType], _Builder] = {
+    controls.outlet: _Builder[controls.outlet](
+        lambda outlet, builder: builder.device_class(SwitchDeviceClass.OUTLET)
+    ),
+    controls.switch: _Builder[controls.switch](
+        lambda switch, builder: builder.device_class(SwitchDeviceClass.SWITCH)
+    ),
+    controls.toggle: _Builder[controls.toggle](lambda toggle, builder: builder),
+}
 
 
 async def async_setup_entry(
@@ -193,20 +79,34 @@ async def async_setup_entry(
 ):
     device = entry.runtime_data
 
-    switches = [
-        EcoflowSwitchEntity(device, switch_desc)
-        for switch_desc in SWITCH_TYPES
-        if (
-            hasattr(device, switch_desc.key)
-            and (
-                isinstance(switch_desc, EcoflowSwitchEntityDescription)
-                or hasattr(device, f"enable_{switch_desc.key}")
-            )
+    # New controls system (devices migrated to @controls decorators)
+    descriptions = [
+        (
+            _BUILDERS[switch.__class__]
+            .builder(switch, SwitchBuilder.from_entity(switch))
+            .enable_func(switch.enable_func)
+            .build()
         )
+        for switch in get_controls(device, controls.toggle)
     ]
 
-    if switches:
-        async_add_entities(switches)
+    if not descriptions:
+        # Deprecated: old hardcoded list (for devices not yet migrated)
+        descriptions = [
+            desc
+            for desc in DEPRECATED_SWITCH_TYPES
+            if (
+                hasattr(device, desc.key)
+                and (
+                    isinstance(desc, EcoflowSwitchEntityDescription)
+                    or hasattr(device, f"enable_{desc.key}")
+                )
+            )
+        ]
+
+    entities = [EcoflowSwitchEntity(device, desc) for desc in descriptions]
+    if entities:
+        async_add_entities(entities)
 
 
 class EcoflowSwitchEntity(EcoflowEntity, SwitchEntity):
