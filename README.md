@@ -166,8 +166,11 @@ Click on any device below to see available sensors, switches, and controls:
 | Weak HV Solar Source              |            |                       |                |               |
 | Weak LV Solar Source              |            |                       |                |               |
 
-<sup>¹ Extra batteries are only updated when you set up the device, but has to
-be manually reconfigured if battery is connected/disconnected.</sup>
+<sup>¹ Per extra battery (up to 5)</sup>
+
+> **📝 Note:** Extra batteries are detected when the integration is set up. If you
+> connect or disconnect a battery, you can reconfigure the integration to update
+> the registered devices.
 
 </details>
 <details>
@@ -183,6 +186,8 @@ be manually reconfigured if battery is connected/disconnected.</sup>
 | AC Output Power                     |                | AC Charging Speed    |                  |
 | Main Battery Level ⁺                |                | DC Charging Max Amps |                  |
 | Battery Level                       |                |                      |                  |
+| Extra Battery Level ¹               |                |                      |                  |
+| Extra Battery Temperature ¹         |                |                      |                  |
 | DC 12V Port Output Energy           |                |                      |                  |
 | DC 12V Port Output Power            |                |                      |                  |
 | DC Input Energy                     |                |                      |                  |
@@ -201,7 +206,12 @@ be manually reconfigured if battery is connected/disconnected.</sup>
 | Charge Time Remaining (disabled)    |                |                      |                  |
 | Discharge Time Remaining (disabled) |                |                      |                  |
 
-<sup>⁺ Only available on Plus variant</sup>
+<sup>⁺ Only available on Plus variant</sup><br>
+<sup>¹ Per extra battery (up to 2)</sup>
+
+> **📝 Note:** Extra batteries are detected when the integration is set up. If you
+> connect or disconnect a battery, you can reconfigure the integration to update
+> the registered devices.
 
 > **📝 Note:** **AC Input Energy sensor** is not working as intended - this is a firmware
 > bug. If you need this sensor, create an integral helper from AC Input Power instead. See
@@ -270,8 +280,10 @@ be manually reconfigured if battery is connected/disconnected.</sup>
 |-------------------------------------|----------------|----------------------|
 | Main Battery Level                  | AC Ports       | Backup Reserve Level |
 | Battery Level                       | DC Ports       | Max Charge Limit     |
-| AC Input Power                      | Backup Reserve | Min Discharge Limit  |
-| AC LV Output Power                  |                | AC Charging Speed    |
+| Extra Battery Level ¹               | Backup Reserve | Min Discharge Limit  |
+| Extra Battery Temperature ¹         |                | AC Charging Speed    |
+| AC Input Power                      |                |                      |
+| AC LV Output Power                  |                |                      |
 | AC HV Output Power                  |                |                      |
 | DC 12V Output Power                 |                |                      |
 | DC LV Input Power                   |                |                      |
@@ -290,6 +302,12 @@ be manually reconfigured if battery is connected/disconnected.</sup>
 | Cell Temperature (disabled)         |                |                      |
 | Charge Time Remaining (disabled)    |                |                      |
 | Discharge Time Remaining (disabled) |                |                      |
+
+<sup>¹ Per extra battery (up to 2)</sup>
+
+> **📝 Note:** Extra batteries are detected when the integration is set up. If you
+> connect or disconnect a battery, you can reconfigure the integration to update
+> the registered devices.
 
 > **📝 Note:** Delta Pro 3 does not expose energy sensors. To use with the Energy
 > dashboard, you must create them yourself. See the
@@ -496,26 +514,30 @@ first charging task</sup>
 
 <br>
 
-| *Sensors*              | *Switches*  | *Sliders*         |
-|------------------------|-------------|-------------------|
-| Battery Level          | AC Ports    | AC Charging Speed |
-| Input Power            | DC 12V Port | Backup Reserve    |
-| Output Power           |             | Charge Limit      |
-| AC Input Power         |             | Discharge Limit   |
-| AC Input Voltage       |             |                   |
-| AC Input Current       |             |                   |
-| AC Output Power        |             |                   |
-| DC Output Power        |             |                   |
-| USB C Output Power     |             |                   |
-| USB C (2) Output Power |             |                   |
-| USB A Output Power     |             |                   |
-| USB A (2) Output Power |             |                   |
-| USB A QC (1) Power     |             |                   |
-| USB A QC (2) Power     |             |                   |
-| Extra Battery Level ¹  |             |                   |
+| *Sensors*                   | *Switches*  | *Sliders*         |
+|-----------------------------|-------------|-------------------|
+| Battery Level               | AC Ports    | AC Charging Speed |
+| Input Power                 | DC 12V Port | Backup Reserve    |
+| Output Power                |             | Charge Limit      |
+| AC Input Power              |             | Discharge Limit   |
+| AC Input Voltage            |             |                   |
+| AC Input Current            |             |                   |
+| AC Output Power             |             |                   |
+| DC Output Power             |             |                   |
+| USB C Output Power          |             |                   |
+| USB C (2) Output Power      |             |                   |
+| USB A Output Power          |             |                   |
+| USB A (2) Output Power      |             |                   |
+| USB A QC (1) Power          |             |                   |
+| USB A QC (2) Power          |             |                   |
+| Extra Battery Level ¹       |             |                   |
+| Extra Battery Temperature ¹ |             |                   |
 
-<sup>¹ Extra batteries are only updated when you set up the device, but has to
-be manually reconfigured if battery is connected/disconnected.</sup>
+<sup>¹ Per extra battery (up to 2)</sup>
+
+> **📝 Note:** Extra batteries are detected when the integration is set up. If you
+> connect or disconnect a battery, you can reconfigure the integration to update
+> the registered devices.
 
 </details>
 
@@ -524,42 +546,43 @@ be manually reconfigured if battery is connected/disconnected.</sup>
 
 <br>
 
-| *Sensors*                                 | *Switches*     | *Sliders*           |
-|-------------------------------------------|----------------|---------------------|
-| Battery Level                             | AC Ports       | Max Charge Limit    |
-| Main Battery Level                        | DC 12V Port    | Min Discharge Limit |
-| Extra Battery 1 SOC                       | USB Ports      | Energy Backup       |
-| Extra Battery 1 Temperature               | Backup Reserve | AC Charging Speed   |
-| Input Power                               |                |                     |
-| Output Power                              |                |                     |
-| AC Input Power                            |                |                     |
-| AC Input Voltage (disabled)               |                |                     |
-| AC Input Current (disabled)               |                |                     |
-| AC Output Power                           |                |                     |
-| DC Output Power                           |                |                     |
-| DC 12V Output Voltage (disabled)          |                |                     |
-| DC 12V Output Current (disabled)          |                |                     |
-| XT60 Input Power ¹                        |                |                     |
-| XT60 (1) Input Power ²                    |                |                     |
-| XT60 (2) Input Power ²                    |                |                     |
-| DC Input Voltage (disabled)               |                |                     |
-| DC Input Current (disabled)               |                |                     |
-| USB A (1) Output Power                    |                |                     |
-| USB A (2) Output Power                    |                |                     |
-| USB A QC (1) Output Power                 |                |                     |
-| USB A QC (2) Output Power                 |                |                     |
-| USB C (1) Output Power                    |                |                     |
-| USB C (2) Output Power                    |                |                     |
-| Cell Temperature (disabled)               |                |                     |
-| Addon Battery Cell Temperature (disabled) |                |                     |
-| Charge Time Remaining (disabled)          |                |                     |
-| Discharge Time Remaining (disabled)       |                |                     |
-
-> **📝 Note:** Extra batteries are only updated when you set up the device, but has to
-> be manually reconfigured if battery is connected/disconnected.
+| *Sensors*                           | *Switches*     | *Sliders*           |
+|-------------------------------------|----------------|---------------------|
+| Battery Level                       | AC Ports       | Max Charge Limit    |
+| Main Battery Level                  | DC 12V Port    | Min Discharge Limit |
+| Extra Battery Level ³               | USB Ports      | Energy Backup       |
+| Extra Battery Temperature ³         | Backup Reserve | AC Charging Speed   |
+| Input Power                         |                |                     |
+| Output Power                        |                |                     |
+| AC Input Power                      |                |                     |
+| AC Input Voltage (disabled)         |                |                     |
+| AC Input Current (disabled)         |                |                     |
+| AC Output Power                     |                |                     |
+| DC Output Power                     |                |                     |
+| DC 12V Output Voltage (disabled)    |                |                     |
+| DC 12V Output Current (disabled)    |                |                     |
+| XT60 Input Power ¹                  |                |                     |
+| XT60 (1) Input Power ²              |                |                     |
+| XT60 (2) Input Power ²              |                |                     |
+| DC Input Voltage (disabled)         |                |                     |
+| DC Input Current (disabled)         |                |                     |
+| USB A (1) Output Power              |                |                     |
+| USB A (2) Output Power              |                |                     |
+| USB A QC (1) Output Power           |                |                     |
+| USB A QC (2) Output Power           |                |                     |
+| USB C (1) Output Power              |                |                     |
+| USB C (2) Output Power              |                |                     |
+| Cell Temperature (disabled)         |                |                     |
+| Charge Time Remaining (disabled)    |                |                     |
+| Discharge Time Remaining (disabled) |                |                     |
 
 <sup>¹ Only available on Delta 2 and Delta 2 1500</sup><br>
 <sup>² Only available on Delta 2 Max</sup><br>
+<sup>³ Per extra battery (up to 2)</sup>
+
+> **📝 Note:** Extra batteries are detected when the integration is set up. If you
+> connect or disconnect a battery, you can reconfigure the integration to update
+> the registered devices.
 
 </details>
 

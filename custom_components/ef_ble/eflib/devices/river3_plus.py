@@ -2,7 +2,10 @@ from ..entity import controls
 from ..pb import pr705_pb2
 from ..props import pb_field
 from ..props.enums import IntFieldValue
+from ..props.resv_info_parser import resv_soc, resv_temperature
 from . import river3
+
+pb = river3.pb
 
 
 class LedMode(IntFieldValue):
@@ -18,6 +21,16 @@ class Device(river3.Device):
     SN_PREFIX = (b"R631", b"R634", b"R635")
 
     battery_level_main = pb_field(river3.pb.bms_batt_soc)
+
+    battery_1_enabled = pb_field(pb.plug_in_info_dcp_in_flag)
+    battery_1_battery_level = pb_field(pb.plug_in_info_dcp_resv, resv_soc)
+    battery_1_cell_temperature = pb_field(pb.plug_in_info_dcp_resv, resv_temperature)
+    battery_1_sn = pb_field(pb.plug_in_info_dcp_sn)
+
+    battery_2_enabled = pb_field(pb.plug_in_info_dcp2_in_flag)
+    battery_2_battery_level = pb_field(pb.plug_in_info_dcp2_resv, resv_soc)
+    battery_2_cell_temperature = pb_field(pb.plug_in_info_dcp2_resv, resv_temperature)
+    battery_2_sn = pb_field(pb.plug_in_info_dcp2_sn)
 
     led_mode = pb_field(river3.pb.led_mode, LedMode.from_value)
 
