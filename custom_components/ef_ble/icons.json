@@ -259,6 +259,12 @@
       },
       "energy_strategy_tou": {
         "default": "mdi:clock-time-eight"
+      },
+      "dc_ports": {
+        "default": "mdi:power-plug",
+        "state": {
+          "off": "mdi:power-plug-off"
+        }
       }
     },
     "select": {
@@ -276,6 +282,9 @@
       },
       "dc_charging_type": {
         "default": "mdi:lightning-bolt-circle"
+      },
+      "operating_mode_select": {
+        "default": "mdi:state-machine"
       }
     },
     "number": {
@@ -305,6 +314,15 @@
       },
       "backup_reserve_level": {
         "default": "mdi:battery-arrow-down-outline"
+      },
+      "backup_discharge_limit": {
+        "default": "mdi:battery-arrow-down-outline"
+      },
+      "ac_c20_charging_power": {
+        "default": "mdi:lightning-bolt"
+      },
+      "ac_5p8_charging_power": {
+        "default": "mdi:lightning-bolt"
       }
     }
   }
