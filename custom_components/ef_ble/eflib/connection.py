@@ -811,7 +811,7 @@ class Connection:
                 self._write_characteristic, bytearray(to_send), response=False
             )
 
-    async def replyPacket(self, packet: Packet):
+    async def replyPacket(self, packet: Packet, wait_for_response: bool = True):
         """Copy and change the packet to be reply packet and sends it back to device"""
         # Found it's necesary to send back the packets, otherwise device will not send
         # moar info then strict minimum - which just about power params, but not configs
@@ -829,7 +829,9 @@ class Connection:
             packet.productId,
         )
         # Running reply asynchroneously
-        self._add_task(self.sendPacket(reply_packet))
+        self._add_task(
+            self.sendPacket(reply_packet, wait_for_response=wait_for_response)
+        )
 
     async def initBleSessionKey(self):
         if self._encrypt_type == 1:

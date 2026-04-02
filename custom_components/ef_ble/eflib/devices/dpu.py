@@ -1,6 +1,8 @@
 from enum import IntEnum
 from functools import partial
 
+from google.protobuf.message import Message
+
 from ..commands import TimeCommands
 from ..devicebase import AdvertisementData, BLEDevice, DeviceBase
 from ..entity import controls
@@ -326,7 +328,7 @@ class Device(DeviceBase, ProtobufProps):
         match (packet.src, packet.cmdSet, packet.cmdId):
             case 0x02, 0x02, 0x01:
                 # Ping
-                await self._conn.replyPacket(packet)
+                await self._conn.replyPacket(packet, wait_for_response=False)
                 self._logger.debug(
                     "%s: %s: Parsed data: %r", self.address, self.name, packet
                 )
@@ -336,33 +338,33 @@ class Device(DeviceBase, ProtobufProps):
                 # self._logger.debug("DPU AppShowHeartbeatReport: \n %s", str(p))
             case 0x02, 0x02, 0x02:
                 # BackendRecordHeartbeatReport
-                await self._conn.replyPacket(packet)
+                await self._conn.replyPacket(packet, wait_for_response=False)
                 self.update_from_bytes(
                     yj751_sys_pb2.BackendRecordHeartbeatReport, packet.payload
                 )
                 # self._logger.debug("DPU BackendRecordHeartbeatReport: \n %s", str(p))
             case 0x02, 0x02, 0x03:
-                await self._conn.replyPacket(packet)
+                await self._conn.replyPacket(packet, wait_for_response=False)
                 self.update_from_bytes(
                     yj751_sys_pb2.APPParaHeartbeatReport, packet.payload
                 )
                 # self._logger.debug("DPU APPParaHeartbeatReport: \n %s", str(p))
             case 0x02, 0x02, 0x04:
-                await self._conn.replyPacket(packet)
+                await self._conn.replyPacket(packet, wait_for_response=False)
                 self.update_from_bytes(yj751_sys_pb2.BpInfoReport, packet.payload)
                 # self._logger.debug("DPU BpInfoReport: \n %s", str(p))
             case 0x02, 0x0A, 0x20:
-                await self._conn.replyPacket(packet)
+                await self._conn.replyPacket(packet, wait_for_response=False)
                 self.update_from_bytes(yj751_sys_pb2.CurrentNode, packet.payload)
                 # self._logger.debug("DPU CurrentNode: \n %s", str(p))
             case 0x02, 0xFE, 0x15:
-                await self._conn.replyPacket(packet)
+                await self._conn.replyPacket(packet, wait_for_response=False)
                 self.update_from_bytes(
                     yj751_sys_pb2.DisplayPropertyUpload, packet.payload
                 )
                 # self._logger.debug("DPU DisplayPropertyUpload: \n %s", str(p))
             case 0x02, 0x02, 0x17:
-                await self._conn.replyPacket(packet)
+                await self._conn.replyPacket(packet, wait_for_response=False)
                 self.update_from_bytes(yj751_sys_pb2.DevRequest, packet.payload)
                 # self._logger.debug("DPU DevRequest: \n %s", str(p))
             case 0x35, 0x35, 0x20:
@@ -391,11 +393,18 @@ class Device(DeviceBase, ProtobufProps):
 
         return processed
 
-    async def _send_command_packet(self, dst: int, cmd_func: int, cmd_id: int, message):
+    async def _send_command_packet(
+        self,
+        dst: int,
+        cmd_func: int,
+        cmd_id: int,
+        message: Message,
+        response: bool = True,
+    ):
         payload = message.SerializeToString()
         p = Packet(0x21, dst, cmd_func, cmd_id, payload, 0x01, 0x01, 0x13)
 
-        await self._conn.sendPacket(p)
+        await self._conn.sendPacket(p, wait_for_response=response)
 
     async def enable_wireless_4g(self, enable: bool):
         """Send command to enable/disable wireless 4G"""
@@ -640,6 +649,6 @@ class Device(DeviceBase, ProtobufProps):
         message = yj751_sys_pb2.SystemParamGet(get_param_type=param_type)
 
         await self._send_command_packet(
-            dst=0x02, cmd_func=0x02, cmd_id=0x67, message=message
+            dst=0x02, cmd_func=0x02, cmd_id=0x67, message=message, response=False
         )
         return True
