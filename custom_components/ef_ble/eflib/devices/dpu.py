@@ -1,5 +1,4 @@
 from enum import IntEnum
-from functools import partial
 
 from ..commands import TimeCommands
 from ..devicebase import AdvertisementData, BLEDevice, DeviceBase
@@ -308,12 +307,6 @@ class Device(DeviceBase, ProtobufProps):
     ) -> None:
         super().__init__(ble_dev, adv_data, sn)
         self._time_commands = TimeCommands(self)
-        # Add timer to request heartbeat info from backend using update_period
-        # with minimum 2 seconds to avoid spamming the device with requests
-        self.add_timer_task(
-            partial(self.request_heartbeat_info, 8),
-            interval=max(2, self._update_period),
-        )
 
     async def packet_parse(self, data: bytes):
         return Packet.fromBytes(data, xor_payload=True)
@@ -326,43 +319,37 @@ class Device(DeviceBase, ProtobufProps):
         match (packet.src, packet.cmdSet, packet.cmdId):
             case 0x02, 0x02, 0x01:
                 # Ping
-                await self._conn.replyPacket(packet)
                 self._logger.debug(
                     "%s: %s: Parsed data: %r", self.address, self.name, packet
                 )
                 self.update_from_bytes(
                     yj751_sys_pb2.AppShowHeartbeatReport, packet.payload
                 )
+                self._conn._add_task(self.request_heartbeat_info(8))
                 # self._logger.debug("DPU AppShowHeartbeatReport: \n %s", str(p))
             case 0x02, 0x02, 0x02:
                 # BackendRecordHeartbeatReport
-                await self._conn.replyPacket(packet)
                 self.update_from_bytes(
                     yj751_sys_pb2.BackendRecordHeartbeatReport, packet.payload
                 )
                 # self._logger.debug("DPU BackendRecordHeartbeatReport: \n %s", str(p))
             case 0x02, 0x02, 0x03:
-                await self._conn.replyPacket(packet)
                 self.update_from_bytes(
                     yj751_sys_pb2.APPParaHeartbeatReport, packet.payload
                 )
                 # self._logger.debug("DPU APPParaHeartbeatReport: \n %s", str(p))
             case 0x02, 0x02, 0x04:
-                await self._conn.replyPacket(packet)
                 self.update_from_bytes(yj751_sys_pb2.BpInfoReport, packet.payload)
                 # self._logger.debug("DPU BpInfoReport: \n %s", str(p))
             case 0x02, 0x0A, 0x20:
-                await self._conn.replyPacket(packet)
                 self.update_from_bytes(yj751_sys_pb2.CurrentNode, packet.payload)
                 # self._logger.debug("DPU CurrentNode: \n %s", str(p))
             case 0x02, 0xFE, 0x15:
-                await self._conn.replyPacket(packet)
                 self.update_from_bytes(
                     yj751_sys_pb2.DisplayPropertyUpload, packet.payload
                 )
                 # self._logger.debug("DPU DisplayPropertyUpload: \n %s", str(p))
             case 0x02, 0x02, 0x17:
-                await self._conn.replyPacket(packet)
                 self.update_from_bytes(yj751_sys_pb2.DevRequest, packet.payload)
                 # self._logger.debug("DPU DevRequest: \n %s", str(p))
             case 0x35, 0x35, 0x20:
