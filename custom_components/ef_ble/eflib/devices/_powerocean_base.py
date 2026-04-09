@@ -1,4 +1,5 @@
 import logging
+from abc import abstractmethod
 from typing import Sequence
 
 from bleak import AdvertisementData, BLEDevice
@@ -6,7 +7,6 @@ from ..packet import Packet
 from ..devicebase import DeviceBase
 from ..connection import ConnectionState
 from ..pb import (
-    iot_comm_pb2,
     jt_s1_sys_pb2,
     jt_s1_edev_pb2,
     jt_s1_ev_pb2,
@@ -24,7 +24,6 @@ from ..props.enums import IntFieldValue
 _LOGGER = logging.getLogger(__name__)
 
 pb_heartbeat = proto_attr_mapper(jt_s1_sys_pb2.HeartbeatReport)
-pb_moduleinfo = proto_attr_mapper(iot_comm_pb2.ModuleInfo)
 pb_energy_stream_report = proto_attr_mapper(jt_s1_sys_pb2.EnergyStreamReport)
 pb_error_change_report = proto_attr_mapper(jt_s1_sys_pb2.ErrorChangeReport)
 pb_bp_heart = proto_attr_mapper(jt_s1_sys_pb2.BpHeartbeatReport)
@@ -57,9 +56,6 @@ class WorkMode(IntFieldValue):
             _LOGGER.debug("Encountered invalid value %s for %s", mode, cls.__name__)
             return WorkMode.UNKNOWN
 
-    # def __str__(self):
-    #     return self.state_name.upper()
-
     def as_pb_enum(self):
         return {
             WorkMode.WORKMODE_SELFUSE: jt_s1_sys_pb2.WORKMODE_SELFUSE,
@@ -76,6 +72,7 @@ class WorkMode(IntFieldValue):
             WorkMode.WORKMODE_THIRD_MODE: jt_s1_sys_pb2.WORKMODE_THIRD_MODE,
             WorkMode.WORKMODE_AI_SCHEDULE: jt_s1_sys_pb2.WORKMODE_AI_SCHEDULE,
             WorkMode.WORKMODE_KRAKEN: jt_s1_sys_pb2.WORKMODE_KRAKEN,
+            WorkMode.UNKNOWN: -1,
         }[self]
 
 
@@ -95,9 +92,6 @@ class BmsSysState(IntFieldValue):
             _LOGGER.debug("Encountered invalid value %s for %s", mode, cls.__name__)
             return BmsSysState.UNKNOWN
 
-    # def __str__(self):
-    #     return self.state_name.upper()
-
     def as_pb_enum(self):
         return {
             BmsSysState.NORMAL_STATE: jt_s1_sys_pb2.NORMAL_STATE,
@@ -105,6 +99,7 @@ class BmsSysState(IntFieldValue):
             BmsSysState.POWER_OFF_STATE: jt_s1_sys_pb2.POWER_OFF_STATE,
             BmsSysState.PRE_POWER_ON_STATE: jt_s1_sys_pb2.PRE_POWER_ON_STATE,
             BmsSysState.SLEEP_STATE: jt_s1_sys_pb2.SLEEP_STATE,
+            BmsSysState.UNKNOWN: -1,
         }[self]
 
 
@@ -124,9 +119,6 @@ class BmsRunStaDef(IntFieldValue):
             _LOGGER.debug("Encountered invalid value %s for %s", mode, cls.__name__)
             return BmsRunStaDef.UNKNOWN
 
-    # def __str__(self):
-    #     return self.state_name.upper()
-
     def as_pb_enum(self):
         return {
             BmsRunStaDef.PB_BMS_STATE_SHUTDOWN: jt_s1_sys_pb2.PB_BMS_STATE_SHUTDOWN,
@@ -134,10 +126,11 @@ class BmsRunStaDef(IntFieldValue):
             BmsRunStaDef.PB_BMS_STATE_CHARGEABLE: jt_s1_sys_pb2.PB_BMS_STATE_CHARGEABLE,
             BmsRunStaDef.PB_BMS_STATE_DISCHARGEABLE: jt_s1_sys_pb2.PB_BMS_STATE_DISCHARGEABLE,
             BmsRunStaDef.PB_BMS_STATE_FAULT: jt_s1_sys_pb2.PB_BMS_STATE_FAULT,
+            BmsRunStaDef.UNKNOWN: -1,
         }[self]
 
 
-class _BpHeartbeatIntValue(repeated_pb_field_type(pb_bp_heart.bp_heart_beat, lambda msg: msg, per_item=True)):
+class _BpHeartbeatIntValue(repeated_pb_field_type(pb_bp_heart.bp_heart_beat, lambda x: x, per_item=True)):
     idx: int
     type: str
 
@@ -148,7 +141,7 @@ class _BpHeartbeatIntValue(repeated_pb_field_type(pb_bp_heart.bp_heart_beat, lam
             return None
 
 
-class _BpHeartbeatFloatValue(repeated_pb_field_type(pb_bp_heart.bp_heart_beat, lambda msg: msg, per_item=True)):
+class _BpHeartbeatFloatValue(repeated_pb_field_type(pb_bp_heart.bp_heart_beat, lambda x: x, per_item=True)):
     idx: int
     type: str
 
@@ -159,7 +152,7 @@ class _BpHeartbeatFloatValue(repeated_pb_field_type(pb_bp_heart.bp_heart_beat, l
             return None
 
 
-class _BpHeartbeatBmsSysState(repeated_pb_field_type(pb_bp_heart.bp_heart_beat, lambda msg: msg, per_item=True)):
+class _BpHeartbeatBmsSysState(repeated_pb_field_type(pb_bp_heart.bp_heart_beat, lambda x: x, per_item=True)):
     idx: int
 
     def get_value(self, item: jt_s1_sys_pb2.BpStaReport) -> BmsSysState | None:
@@ -169,7 +162,7 @@ class _BpHeartbeatBmsSysState(repeated_pb_field_type(pb_bp_heart.bp_heart_beat, 
             return None
 
 
-class _BpHeartbeatBmsRunStaDef(repeated_pb_field_type(pb_bp_heart.bp_heart_beat, lambda msg: msg, per_item=True)):
+class _BpHeartbeatBmsRunStaDef(repeated_pb_field_type(pb_bp_heart.bp_heart_beat, lambda x: x, per_item=True)):
     idx: int
 
     def get_value(self, item: jt_s1_sys_pb2.BpStaReport) -> BmsRunStaDef | None:
@@ -179,7 +172,7 @@ class _BpHeartbeatBmsRunStaDef(repeated_pb_field_type(pb_bp_heart.bp_heart_beat,
             return None
 
 
-class _MpptPv(repeated_pb_field_type(pb_heartbeat.mppt_heart_beat, lambda msg: msg, per_item=True)):
+class _MpptPv(repeated_pb_field_type(pb_heartbeat.mppt_heart_beat, lambda x: x, per_item=True)):
     idx: int
     type: str
 
@@ -201,7 +194,7 @@ class _MpptPv(repeated_pb_field_type(pb_heartbeat.mppt_heart_beat, lambda msg: m
 # ems_err_code
 
 
-class _EDevEnergyStreamShow(repeated_pb_field_type(pb_edev_energy_stream.energy, lambda msg: msg, per_item=True)):
+class _EDevEnergyStreamShow(repeated_pb_field_type(pb_edev_energy_stream.energy, lambda x: x, per_item=True)):
     idx: int
     type: str
 
@@ -219,7 +212,7 @@ class _EDevEnergyStreamShow(repeated_pb_field_type(pb_edev_energy_stream.energy,
         return getattr(item_pv, self.type, None) if item_pv else None
 
 
-class _EmsErrorCode(repeated_pb_field_type(pb_error_change_report.ems_err_code, lambda msg: msg, per_item=True)):
+class _EmsErrorCode(repeated_pb_field_type(pb_error_change_report.ems_err_code, lambda x: x, per_item=True)):
     def get_value(self, item: jt_s1_sys_pb2.ErrorCode) -> int | None:
         if not item.err_code:
             return None
@@ -227,7 +220,7 @@ class _EmsErrorCode(repeated_pb_field_type(pb_error_change_report.ems_err_code, 
             return item.err_code[0]
 
 
-class _PcsErrorCode(repeated_pb_field_type(pb_error_change_report.pcs_err_code, lambda msg: msg, per_item=True)):
+class _PcsErrorCode(repeated_pb_field_type(pb_error_change_report.pcs_err_code, lambda x: x, per_item=True)):
     def get_value(self, item: jt_s1_sys_pb2.ErrorCode) -> int | None:
         if not item.err_code:
             return None
@@ -238,7 +231,7 @@ class _PcsErrorCode(repeated_pb_field_type(pb_error_change_report.pcs_err_code, 
 class PowerOceanBase(DeviceBase, ProtobufProps):
     SN_PREFIX: Sequence[bytes]
 
-    driver_version = "0.5.4"
+    driver_version = "0.5.5"
 
     # ecr_ems_sn = pb_field(pb_error_change_report.ems_err_code.module_sn)
     # pcs_sn = pb_field(pb_error_change_report.pcs_err_code.module_sn)
@@ -516,5 +509,6 @@ class PowerOceanBase(DeviceBase, ProtobufProps):
         return processed
 
 
+    @abstractmethod
     def process_ems_change_report(self, packet: Packet):
         pass
