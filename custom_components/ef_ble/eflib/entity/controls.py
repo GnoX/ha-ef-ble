@@ -203,6 +203,74 @@ def for_each(
     return decorator
 
 
+class climate(ControlType):
+    """
+    Control type for composite climate entities
+
+    Bundles power, operating mode, target temperature, fan speed, and
+    current temperature into a single control that the climate platform
+    discovers via get_controls.
+    """
+
+    hvac_modes: dict[str, Any] = dataclasses.field(default_factory=dict)
+    fan_modes: dict[str, Any] = dataclasses.field(default_factory=dict)
+
+    current_temperature_field: Any = None
+    target_temperature_field: Any = None
+    fan_speed_field: Any = None
+    power_field: Any = None
+
+    min_temp: float = 16.0
+    max_temp: float = 30.0
+    temperature_step: float = 1.0
+    temperature_unit: str = "°C"
+
+    set_power: "Callable | None" = dataclasses.field(
+        default=None, repr=False, init=False
+    )
+    set_operating_mode: "Callable | None" = dataclasses.field(
+        default=None, repr=False, init=False
+    )
+    set_target_temperature: "Callable | None" = dataclasses.field(
+        default=None, repr=False, init=False
+    )
+    set_fan_speed: "Callable | None" = dataclasses.field(
+        default=None, repr=False, init=False
+    )
+
+    def __post_init__(self):
+        """Register this climate control on its field."""
+        self._field.sensor(self)
+
+    def __call__(self, func: Any) -> Any:
+        return func
+
+    def power(self, func: Any) -> Any:
+        self.set_power = _virtual_dispatch(func)
+        return func
+
+    def mode(self, func: Any) -> Any:
+        self.set_operating_mode = _virtual_dispatch(func)
+        return func
+
+    def target_temp(self, func: Any) -> Any:
+        self.set_target_temperature = _virtual_dispatch(func)
+        return func
+
+    def fan(self, func: Any) -> Any:
+        self.set_fan_speed = _virtual_dispatch(func)
+        return func
+
+
+def _virtual_dispatch(func: Any) -> Any:
+    name = func.__name__
+
+    async def _dispatch(device: "DeviceBase", *args: Any, **kwargs: Any) -> Any:
+        return await getattr(device, name)(*args, **kwargs)
+
+    return _dispatch
+
+
 def _check_value_param(func: Any, expected: type, decorator_name: str) -> None:
     hints = get_type_hints(func)
     params = list(inspect.signature(func).parameters.values())
