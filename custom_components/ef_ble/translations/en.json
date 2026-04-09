@@ -953,6 +953,15 @@
           "self_powered": "Self Powered",
           "scheduled": "Scheduled Tasks"
         }
+      },
+      "energy_strategy": {
+        "name": "Energy Strategy",
+        "state": {
+          "self_powered": "Self Powered",
+          "scheduled": "Scheduled",
+          "tou": "Time of Use",
+          "intelligent_schedule": "Intelligent Schedule"
+        }
       }
     },
     "number": {
@@ -970,6 +979,24 @@
       },
       "ac_c20_charging_power": {
         "name": "AC C20 Charging Power"
+      },
+      "feed_grid_pow_limit": {
+        "name": "Feed Grid Power Limit"
+      },
+      "base_load_power": {
+        "name": "Base Load Power"
+      },
+      "grid_in_power_limit": {
+        "name": "Grid Input Power Limit"
+      },
+      "charging_grid_power_limit": {
+        "name": "Charging Power Limit"
+      },
+      "charging_grid_target_soc": {
+        "name": "Charging Target SOC"
+      },
+      "feed_grid_mode_power_limit": {
+        "name": "Maximum Output Power"
       },
       "ac_5p8_charging_power": {
         "name": "AC 5P8 Charging Power"
@@ -1032,6 +1059,15 @@
       },
       "energy_strategy_tou": {
         "name": "Time-of-Use Mode"
+      },
+      "ac_1": {
+        "name": "AC (1)"
+      },
+      "ac_2": {
+        "name": "AC (2)"
+      },
+      "feed_grid": {
+        "name": "Feed Grid"
       }
     }
   }
