@@ -2,6 +2,8 @@ import time
 from collections.abc import Callable, Sequence
 
 from ..devicebase import DeviceBase
+from ..entity import controls
+from ..entity.base import dynamic
 from ..packet import Packet
 from ..pb import bk_series_pb2
 from ..props import (
@@ -188,49 +190,64 @@ class Device(DeviceBase, ProtobufProps):
         packet = Packet(0x20, 0x02, 0xFE, 0x11, payload, 0x01, 0x01, 0x13)
         await self._conn.sendPacket(packet)
 
-    async def set_battery_charge_limit_max(self, limit: int):
-        await self._send_config_packet(bk_series_pb2.ConfigWrite(cfg_max_chg_soc=limit))
-        return True
-
-    async def set_battery_charge_limit_min(self, limit: int):
-        await self._send_config_packet(bk_series_pb2.ConfigWrite(cfg_min_dsg_soc=limit))
-        return True
-
-    async def enable_ac_1(self, enable: bool):
+    @controls.battery(
+        battery_charge_limit_max,
+        min=dynamic(battery_charge_limit_min),
+    )
+    async def set_battery_charge_limit_max(self, limit: float):
         await self._send_config_packet(
-            bk_series_pb2.ConfigWrite(cfg_relay2_onoff=enable)
-        )
-
-    async def enable_ac_2(self, enable: bool):
-        await self._send_config_packet(
-            bk_series_pb2.ConfigWrite(cfg_relay3_onoff=enable)
-        )
-
-    async def set_energy_backup_battery_level(self, value: int):
-        await self._send_config_packet(
-            bk_series_pb2.ConfigWrite(cfg_backup_reverse_soc=value)
+            bk_series_pb2.ConfigWrite(cfg_max_chg_soc=int(limit))
         )
         return True
 
-    async def set_feed_grid_pow_limit(self, value: int):
+    @controls.battery(
+        battery_charge_limit_min,
+        max=dynamic(battery_charge_limit_max),
+    )
+    async def set_battery_charge_limit_min(self, limit: float):
+        await self._send_config_packet(
+            bk_series_pb2.ConfigWrite(cfg_min_dsg_soc=int(limit))
+        )
+        return True
+
+    @controls.battery(
+        energy_backup_battery_level,
+        min=dynamic(battery_charge_limit_min),
+        max=dynamic(battery_charge_limit_max),
+    )
+    async def set_energy_backup_battery_level(self, value: float):
+        await self._send_config_packet(
+            bk_series_pb2.ConfigWrite(cfg_backup_reverse_soc=int(value))
+        )
+        return True
+
+    @controls.power(feed_grid_pow_limit, max=dynamic(feed_grid_pow_max))
+    async def set_feed_grid_pow_limit(self, value: float):
         if self.feed_grid_pow_max is None or value > self.feed_grid_pow_max:
             return False
         await self._send_config_packet(
-            bk_series_pb2.ConfigWrite(cfg_feed_grid_mode_pow_limit=value)
+            bk_series_pb2.ConfigWrite(cfg_feed_grid_mode_pow_limit=int(value))
         )
         return True
 
+    @controls.switch(feed_grid)
     async def enable_feed_grid(self, enable: bool):
         await self._send_config_packet(
             bk_series_pb2.ConfigWrite(cfg_feed_grid_mode=2 if enable else 1)
         )
 
+    @controls.select(energy_strategy, options=EnergyStrategy)
     async def set_energy_strategy(self, strategy: EnergyStrategy):
         cfg = bk_series_pb2.ConfigWrite()
         strategy.as_pb(cfg.cfg_energy_strategy_operate_mode)
         await self._send_config_packet(cfg)
 
-    async def set_load_power(self, limit: int):
+    @controls.power(
+        base_load_power,
+        max=dynamic(feed_grid_pow_max),
+        availability=dynamic(load_power_enabled),
+    )
+    async def set_load_power(self, limit: float):
         if self._resident_load is None:
             return False
 
@@ -239,7 +256,7 @@ class Device(DeviceBase, ProtobufProps):
                 cfg_day_resident_load_list=bk_series_pb2.DayResidentLoadList(
                     load=[
                         bk_series_pb2.ResidentLoad(
-                            load_power=limit,
+                            load_power=int(limit),
                             start_min=self._resident_load.start_min,
                             end_min=self._resident_load.end_min,
                         )
@@ -249,24 +266,36 @@ class Device(DeviceBase, ProtobufProps):
         )
         return True
 
-    async def set_grid_in_pow_limit(self, value: int):
+    @controls.power(grid_in_power_limit, max=dynamic(max_ac_in_power))
+    async def set_grid_in_pow_limit(self, value: float):
         if self.max_ac_in_power is None or value > self.max_ac_in_power or value < 0:
             return False
 
         await self._send_config_packet(
-            bk_series_pb2.ConfigWrite(cfg_sys_grid_in_pwr_limit=value)
+            bk_series_pb2.ConfigWrite(cfg_sys_grid_in_pwr_limit=int(value))
         )
         return True
 
-    async def set_charging_grid_power_limit(self, limit: int):
+    @controls.power(
+        charging_grid_power_limit,
+        step=100,
+        max=dynamic(max_bp_input),
+        availability=dynamic(charging_grid_power_limit_enabled),
+    )
+    async def set_charging_grid_power_limit(self, limit: float):
         def set_power_limit(dev_soc: bk_series_pb2.DeviceTargetSoc):
-            dev_soc.chg_from_grid_power_limited = limit
+            dev_soc.chg_from_grid_power_limited = int(limit)
 
         return await self._send_charging_task_packet(set_power_limit)
 
-    async def set_charging_grid_target_soc(self, soc: int):
+    @controls.battery(
+        charging_grid_target_soc,
+        max=100,
+        availability=dynamic(charging_grid_power_limit_enabled),
+    )
+    async def set_charging_grid_target_soc(self, soc: float):
         def set_target_soc(dev_soc: bk_series_pb2.DeviceTargetSoc):
-            dev_soc.target_soc = soc
+            dev_soc.target_soc = int(soc)
 
         return await self._send_charging_task_packet(set_target_soc)
 

@@ -1,3 +1,5 @@
+from ..entity import controls
+from ..pb import bk_series_pb2
 from ..props import ProtobufProps, pb_field
 from . import stream_ac
 
@@ -14,3 +16,15 @@ class Device(stream_ac.Device, ProtobufProps):
 
     ac_1 = pb_field(pb.relay2_onoff)
     ac_2 = pb_field(pb.relay3_onoff)
+
+    @controls.outlet(ac_1)
+    async def enable_ac_1(self, enable: bool):  # pyright: ignore[reportIncompatibleMethodOverride]
+        await self._send_config_packet(
+            bk_series_pb2.ConfigWrite(cfg_relay2_onoff=enable)
+        )
+
+    @controls.outlet(ac_2)
+    async def enable_ac_2(self, enable: bool):  # pyright: ignore[reportIncompatibleMethodOverride]
+        await self._send_config_packet(
+            bk_series_pb2.ConfigWrite(cfg_relay3_onoff=enable)
+        )

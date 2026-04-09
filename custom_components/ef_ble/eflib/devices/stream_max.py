@@ -1,3 +1,5 @@
+from ..entity import controls
+from ..pb import bk_series_pb2
 from ..props import pb_field
 from . import stream_ac
 
@@ -18,3 +20,9 @@ class Device(stream_ac.Device):
     pv_power_sum = pb_field(pb.pow_get_pv_sum, lambda v: round(v, 2))
 
     load_from_pv = pb_field(pb.pow_get_sys_load_from_pv, lambda v: round(v, 2))
+
+    @controls.outlet(ac_1)
+    async def enable_ac_1(self, enable: bool):  # pyright: ignore[reportIncompatibleMethodOverride]
+        await self._send_config_packet(
+            bk_series_pb2.ConfigWrite(cfg_relay2_onoff=enable)
+        )
