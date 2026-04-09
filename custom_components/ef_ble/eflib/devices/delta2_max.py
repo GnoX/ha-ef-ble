@@ -1,6 +1,8 @@
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
+from ..entity import controls
+from ..entity.base import dynamic
 from ..model import Mr350MpptHeart, Mr350PdHeartbeatDelta2Max
 from ..packet import Packet
 from ..props import dataclass_attr_mapper, raw_field
@@ -43,11 +45,41 @@ class Device(Delta2Base):
     def ac_commands_dst(self):
         return 0x04
 
-    async def set_ac_charging_speed(self, value: int):
-        if self.max_ac_charging_power is None:
+    @controls.switch(energy_backup)
+    async def enable_energy_backup(self, enabled: bool):
+        backup_level = self.energy_backup_battery_level or 50
+        await self._send_backup_packet(backup_level, enabled=enabled)
+
+    @controls.battery(
+        energy_backup_battery_level,
+        min=dynamic(Delta2Base.battery_charge_limit_min),
+        max=dynamic(Delta2Base.battery_charge_limit_max),
+        availability=energy_backup,
+    )
+    async def set_energy_backup_battery_level(self, value: float):
+        await self._send_backup_packet(int(value), enabled=True)
+        return True
+
+    async def _send_backup_packet(self, value: int, enabled: bool):
+        if (
+            self.battery_charge_limit_min is None
+            or self.battery_charge_limit_max is None
+        ):
+            return
+        value = max(
+            self.battery_charge_limit_min,
+            min(value, self.battery_charge_limit_max),
+        )
+        payload = bytes([0x01 if enabled else 0, value, 0x00, 0x00])
+        await self._conn.sendPacket(
+            Packet(0x21, 0x02, 0x20, 0x5E, payload, version=0x02)
+        )
+
+    @controls.power(ac_charging_speed, max=dynamic(Delta2Base.max_ac_charging_power))
+    async def set_ac_charging_speed(self, value: float):
+        if self.max_ac_charging_power is None or value < 1:
             return False
-        value = max(1, min(value, self.max_ac_charging_power))
-        payload = bytes([0xFF, 0xFF]) + value.to_bytes(2, "little") + bytes([0xFF])
+        payload = bytes([0xFF, 0xFF]) + int(value).to_bytes(2, "little") + bytes([0xFF])
         await self._conn.sendPacket(
             Packet(0x20, 0x04, 0x20, 0x45, payload, version=0x02)
         )
