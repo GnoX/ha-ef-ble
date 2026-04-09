@@ -236,6 +236,18 @@
           "off": "mdi:battery-sync-outline"
         }
       },
+      "ac_lv_port": {
+        "default": "mdi:power-plug",
+        "state": {
+          "off": "mdi:power-plug-off"
+        }
+      },
+      "ac_hv_port": {
+        "default": "mdi:power-plug",
+        "state": {
+          "off": "mdi:power-plug-off"
+        }
+      },
       "dc_12v_port": {
         "default": "mdi:power-plug",
         "state": {
