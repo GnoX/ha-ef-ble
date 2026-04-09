@@ -792,7 +792,7 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     "wifi_rssi": signal_strength(enabled=False),
     "ambient_temperature": wave_temperature(),
     "ambient_humidity": humidity(),
-    "operating_mode": enum(options=wave3.OperatingMode),
+    # "operating_mode": enum(options=wave3.OperatingMode),
     "condensate_water_level": percentage(),
     "sleep_state": enum(options=wave3.SleepState),
     "in_drainage": raw(),

@@ -1,9 +1,7 @@
 import logging
 
-from bleak.backends.device import BLEDevice
-from bleak.backends.scanner import AdvertisementData
-
 from ..devicebase import DeviceBase
+from ..entity import controls
 from ..packet import Packet
 from ..pb import ac517_apl_comm_pb2
 from ..props import ProtobufProps, pb_field
@@ -12,7 +10,6 @@ from ..props.protobuf_field import proto_attr_mapper
 from ..props.transforms import pround
 
 pb_disp = proto_attr_mapper(ac517_apl_comm_pb2.DisplayPropertyUpload)
-pb_run = proto_attr_mapper(ac517_apl_comm_pb2.RuntimePropertyUpload)
 pb_mode = proto_attr_mapper(ac517_apl_comm_pb2.WaveOperatingModeParamItem)
 
 _LOGGER = logging.getLogger(__name__)
@@ -111,11 +108,11 @@ class Device(DeviceBase, ProtobufProps):
     battery_power = pb_field(pb_disp.pow_get_bms, pround(1))
 
     temp_indoor_supply_air = pb_field(pb_disp.temp_indoor_supply_air, pround(1))
-    temp_indoor_return_air = pb_field(pb_run.temp_indoor_return_air, pround(1))
-    temp_outdoor_ambient = pb_field(pb_run.temp_outdoor_ambient, pround(1))
-    temp_condenser = pb_field(pb_run.temp_condenser, pround(1))
-    temp_evaporator = pb_field(pb_run.temp_evaporator, pround(1))
-    temp_compressor_discharge = pb_field(pb_run.temp_compressor_discharge, pround(1))
+    # temp_indoor_return_air = pb_field(pb_run.temp_indoor_return_air, pround(1))
+    # temp_outdoor_ambient = pb_field(pb_run.temp_outdoor_ambient, pround(1))
+    # temp_condenser = pb_field(pb_run.temp_condenser, pround(1))
+    # temp_evaporator = pb_field(pb_run.temp_evaporator, pround(1))
+    # temp_compressor_discharge = pb_field(pb_run.temp_compressor_discharge, pround(1))
 
     temp_unit = pb_field(pb_disp.user_temp_unit, TemperatureUnit.from_mode)
 
@@ -130,15 +127,6 @@ class Device(DeviceBase, ProtobufProps):
     _wave_mode_info = pb_field(pb_disp.wave_mode_info)
     target_temperature_climate = pb_field(pb_mode.temp_set, pround(1))
     fan_speed_climate = pb_field(pb_mode.airflow_speed, FanSpeed.from_value)
-
-    min_temp: float = 16.0
-    max_temp: float = 30.0
-
-    def __init__(
-        self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
-    ) -> None:
-        super().__init__(ble_dev, adv_data, sn)
-        self.add_timer_task(self._request_full_upload, interval=10)
 
     @classmethod
     def check(cls, sn):
@@ -201,6 +189,31 @@ class Device(DeviceBase, ProtobufProps):
         )
         return True
 
+    _climate = controls.climate(
+        operating_mode,
+        hvac_modes={
+            "cool": OperatingMode.COOLING,
+            "heat": OperatingMode.HEATING,
+            "fan_only": OperatingMode.VENTING,
+            "dry": OperatingMode.DEHUMIDIFYING,
+            "auto": OperatingMode.THERMOSTATIC,
+        },
+        fan_modes={
+            "low": FanSpeed.LOW,
+            "medium_low": FanSpeed.MEDIUM_LOW,
+            "medium": FanSpeed.MEDIUM,
+            "medium_high": FanSpeed.MEDIUM_HIGH,
+            "high": FanSpeed.HIGH,
+        },
+        power_field=power,
+        current_temperature_field=ambient_temperature,
+        target_temperature_field=target_temperature_climate,
+        fan_speed_field=fan_speed_climate,
+        min_temp=16,
+        max_temp=30,
+    )
+
+    @_climate.power
     async def enable_power(self, enabled: bool):
         cfg = ac517_apl_comm_pb2.ConfigWrite()
         if enabled:
@@ -209,28 +222,27 @@ class Device(DeviceBase, ProtobufProps):
             cfg.cfg_power_off = True
         await self._send_config_packet(cfg)
 
+    @_climate.mode
     async def set_operating_mode(self, mode: OperatingMode):
         await self._send_config_packet(
             ac517_apl_comm_pb2.ConfigWrite(cfg_wave_operating_mode=mode.value)
         )
 
+    @_climate.target_temp
     async def set_target_temperature(self, temperature: float):
         await self._send_config_packet(
             ac517_apl_comm_pb2.ConfigWrite(cfg_temp_set=temperature)
         )
         self.notify_field(Device.target_temperature_climate, temperature)
 
+    @_climate.fan
     async def set_fan_speed(self, speed: FanSpeed):
         await self._send_config_packet(
             ac517_apl_comm_pb2.ConfigWrite(cfg_airflow_speed=speed.value)
         )
         self.notify_field(Device.fan_speed_climate, speed)
 
-    async def set_lcd_show_temp_type(self, temp_type: TemperatureDisplayType):
-        await self._send_config_packet(
-            ac517_apl_comm_pb2.ConfigWrite(cfg_lcd_show_temp_type=temp_type.value)
-        )
-
+    @controls.switch(en_pet_care)
     async def enable_en_pet_care(self, enabled: bool):
         await self._send_config_packet(
             ac517_apl_comm_pb2.ConfigWrite(cfg_en_pet_care=enabled)

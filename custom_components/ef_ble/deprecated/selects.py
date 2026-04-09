@@ -17,7 +17,6 @@ from ..eflib.devices import (
     smart_generator,
     stream_ac,
     wave2,
-    wave3,
 )
 
 
@@ -160,27 +159,6 @@ SELECT_TYPES: list[EcoflowSelectEntityDescription] = [
         set_state=(
             lambda device, value: device.set_operating_mode(
                 dpu.OperatingMode[value.upper()]
-            )
-        ),
-    ),
-    EcoflowSelectEntityDescription[wave3.Device](
-        key="lcd_show_temp_type",
-        name="Temperature Display Type",
-        icon="mdi:thermometer-lines",
-        options=wave3.TemperatureDisplayType.options(include_unknown=False),
-        set_state=(
-            lambda device, value: device.set_lcd_show_temp_type(
-                wave3.TemperatureDisplayType[value.upper()]
-            )
-        ),
-    ),
-    EcoflowSelectEntityDescription[wave3.Device](
-        key="fan_speed",
-        name="Fan Speed",
-        options=wave3.FanSpeed.options(include_unknown=False),
-        set_state=(
-            lambda device, value: device.set_fan_speed(
-                wave3.FanSpeed[value.upper()]
             )
         ),
     ),
