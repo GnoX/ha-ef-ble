@@ -1,5 +1,11 @@
+import asyncio
+import dataclasses
 import time
 from collections.abc import Callable, Sequence
+from typing import ClassVar
+
+from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import AdvertisementData
 
 from ..devicebase import DeviceBase
 from ..entity import controls
@@ -46,6 +52,35 @@ class ChargingTimerTask(repeated_pb_field_type(pb.all_timer_task.time_task)):
                 return task
 
         return None
+
+
+class DischargingTimerTask(repeated_pb_field_type(pb.all_timer_task.time_task)):
+    def get_item(
+        self, value: Sequence[bk_series_pb2.TimerTask]
+    ) -> bk_series_pb2.TimerTask | None:
+        if not value:
+            return None
+
+        for task in value:
+            if proto_has_attr(task, pb_time_task.home_need_power_limited):
+                return task
+
+        return None
+
+
+@dataclasses.dataclass
+class _TimerTaskChain:
+    """
+    Shared state for linked STREAM devices that send the same `all_timer_task` config
+
+    Ensures concurrent commands from different devices in the chain don't overwrite each
+    other.
+    """
+
+    lock: asyncio.Lock = dataclasses.field(default_factory=asyncio.Lock)
+    pending_mods: list[tuple[int, Callable[[bk_series_pb2.TimerTask], None]]] = (
+        dataclasses.field(default_factory=list)
+    )
 
 
 class EnergyStrategy(IntFieldValue):
@@ -100,6 +135,8 @@ class Device(DeviceBase, ProtobufProps):
     SN_PREFIX = (b"BK51",)
     NAME_PREFIX = "EF-6"
 
+    _timer_task_chains: ClassVar[dict[frozenset[str], _TimerTaskChain]] = {}
+
     battery_level = pb_field(pb.cms_batt_soc)
     battery_level_main = pb_field(pb.bms_batt_soc)
     cell_temperature = pb_field(pb.bms_max_cell_temp)
@@ -134,13 +171,24 @@ class Device(DeviceBase, ProtobufProps):
     _resident_load = ResidentLoad()
     load_power_enabled = Field[bool]()
     base_load_power = Field[int]()
+    max_bp_input = pb_field(pb.max_bp_input)
 
     _charging_task = ChargingTimerTask()
+    _discharging_task = DischargingTimerTask()
     _all_timer_tasks = pb_field(pb.all_timer_task)
     charging_grid_power_limit_enabled = Field[bool]()
     charging_grid_power_limit = Field[int]()
     charging_grid_target_soc = Field[int]()
-    max_bp_input = pb_field(pb.max_bp_input)
+    charging_task_enabled = Field[bool]()
+    discharging_task_available = Field[bool]()
+    discharging_task_enabled = Field[bool]()
+    discharging_power_limit = Field[int]()
+
+    def __init__(
+        self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
+    ) -> None:
+        super().__init__(ble_dev, adv_data, sn)
+        self._timer_task_chain: _TimerTaskChain | None = None
 
     @property
     def _dev_target_soc(self):
@@ -177,6 +225,17 @@ class Device(DeviceBase, ProtobufProps):
         if (target_soc := self._dev_target_soc) is not None:
             self.charging_grid_power_limit = target_soc.chg_from_grid_power_limited
             self.charging_grid_target_soc = target_soc.target_soc
+
+        if self._charging_task is not None:
+            self.charging_task_enabled = self._charging_task.is_enable
+
+        self.discharging_task_available = self._discharging_task is not None
+
+        if self._discharging_task is not None:
+            self.discharging_task_enabled = self._discharging_task.is_enable
+            self.discharging_power_limit = (
+                self._discharging_task.home_need_power_limited
+            )
 
         for field_name in self.updated_fields:
             self.update_callback(field_name)
@@ -299,26 +358,105 @@ class Device(DeviceBase, ProtobufProps):
 
         return await self._send_charging_task_packet(set_target_soc)
 
+    async def _send_timer_task_packet(
+        self,
+        target: bk_series_pb2.TimerTask | None,
+        modify: Callable[[bk_series_pb2.TimerTask], None],
+    ) -> bool:
+        chain = self._get_chain()
+        async with chain.lock:
+            if target is None or self._all_timer_tasks is None:
+                return False
+
+            chain.pending_mods.append((target.task_index, modify))
+
+            config = bk_series_pb2.ConfigWrite()
+
+            for task in self._all_timer_tasks.time_task:
+                new_task = config.cfg_all_timer_task.time_task.add()
+                new_task.CopyFrom(task)
+
+                for mod_idx, mod_fn in chain.pending_mods:
+                    if task.task_index == mod_idx:
+                        mod_fn(new_task)
+
+            await self._send_config_packet(config)
+
+            # Clear pending mods after the device has had time to process and send back
+            # updated state
+            self.call_later(
+                5.0,
+                chain.pending_mods.clear,
+                key="pending_task_mods",
+            )
+
+            return True
+
     async def _send_charging_task_packet(
-        self, modify_dev_target_soc: Callable[[bk_series_pb2.DeviceTargetSoc], None]
+        self,
+        modify_dev_target_soc: Callable[[bk_series_pb2.DeviceTargetSoc], None],
     ):
         if (
             self._charging_task is None
-            or self._all_timer_tasks is None
             or len(self._charging_task.chg_task.dev_target_soc) < 1
         ):
             return False
 
-        config = bk_series_pb2.ConfigWrite()
+        sn = self._sn
 
-        for task in self._all_timer_tasks.time_task:
-            new_task = config.cfg_all_timer_task.time_task.add()
-            new_task.CopyFrom(task)
+        def modify(task: bk_series_pb2.TimerTask):
+            for dev_target_soc in task.chg_task.dev_target_soc:
+                if dev_target_soc.sn == sn:
+                    modify_dev_target_soc(dev_target_soc)
 
-            if task.task_index == self._charging_task.task_index:
-                for dev_target_soc in new_task.chg_task.dev_target_soc:
-                    if dev_target_soc.sn == self._sn:
-                        modify_dev_target_soc(dev_target_soc)
+        return await self._send_timer_task_packet(self._charging_task, modify)
 
-        await self._send_config_packet(config)
-        return True
+    @controls.switch(
+        charging_task_enabled,
+        availability=dynamic(charging_grid_power_limit_enabled),
+    )
+    async def enable_charging_task(self, enable: bool):
+        def modify(task: bk_series_pb2.TimerTask):
+            task.is_enable = enable
+
+        await self._send_timer_task_packet(self._charging_task, modify)
+
+    @controls.switch(
+        discharging_task_enabled,
+        availability=dynamic(discharging_task_available),
+    )
+    async def enable_discharging_task(self, enable: bool):
+        def modify(task: bk_series_pb2.TimerTask):
+            task.is_enable = enable
+
+        await self._send_timer_task_packet(self._discharging_task, modify)
+
+    @controls.power(
+        discharging_power_limit,
+        step=100,
+        availability=dynamic(discharging_task_available),
+    )
+    async def set_discharging_power_limit(self, limit: float):
+        def modify(task: bk_series_pb2.TimerTask):
+            task.home_need_power_limited = int(limit)
+
+        return await self._send_timer_task_packet(self._discharging_task, modify)
+
+    def _get_chain(self) -> _TimerTaskChain:
+        if self._timer_task_chain is not None:
+            return self._timer_task_chain
+
+        chain_key = (
+            frozenset(soc.sn for soc in self._charging_task.chg_task.dev_target_soc)
+            if (
+                self._charging_task is not None
+                and len(self._charging_task.chg_task.dev_target_soc) > 0
+            )
+            else frozenset([self._sn])
+        )
+
+        if chain_key not in Device._timer_task_chains:
+            Device._timer_task_chains[chain_key] = _TimerTaskChain()
+
+        self._timer_task_chain = Device._timer_task_chains[chain_key]
+        return self._timer_task_chain

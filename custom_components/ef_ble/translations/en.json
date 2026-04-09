@@ -998,6 +998,9 @@
       "feed_grid_mode_power_limit": {
         "name": "Maximum Output Power"
       },
+      "discharging_power_limit": {
+        "name": "Discharging Power Limit"
+      },
       "ac_5p8_charging_power": {
         "name": "AC 5P8 Charging Power"
       },
@@ -1068,6 +1071,12 @@
       },
       "feed_grid": {
         "name": "Feed Grid"
+      },
+      "charging_task_enabled": {
+        "name": "Charging Task"
+      },
+      "discharging_task_enabled": {
+        "name": "Discharging Task"
       }
     }
   }
