@@ -292,6 +292,18 @@
         "state": {
           "off": "mdi:transmission-tower-off"
         }
+      },
+      "charging_task_enabled": {
+        "default": "mdi:battery-charging",
+        "state": {
+          "off": "mdi:battery-off"
+        }
+      },
+      "discharging_task_enabled": {
+        "default": "mdi:battery-arrow-down",
+        "state": {
+          "off": "mdi:battery-off-outline"
+        }
       }
     },
     "select": {
@@ -377,6 +389,9 @@
       },
       "feed_grid_mode_power_limit": {
         "default": "mdi:transmission-tower"
+      },
+      "discharging_power_limit": {
+        "default": "mdi:battery-arrow-down"
       }
     }
   }

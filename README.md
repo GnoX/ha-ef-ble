@@ -357,39 +357,35 @@ Click on any device below to see available sensors, switches, and controls:
 
 <br>
 
-| *Sensors*                           | *Switches*  | *Sliders*               | *Selects*       |
-|-------------------------------------|-------------|-------------------------|-----------------|
-| Battery Level                       | Feed Grid   | Feed Grid Power Limit   | Energy Strategy |
-| Main Battery Level                  | AC (1) ᴬᴹᴾᵁ | Backup Reserve Level    |                 |
-| Battery Power                       | AC (2) ᴬᴾᵁ  | Charge Limit            |                 |
-| Grid Power                          |             | Discharge Limit         |                 |
-| Grid Voltage                        |             | Base Load Power ¹       |                 |
-| Grid Frequency                      |             | Grid Input Power Limit  |                 |
-| Load from Battery                   |             | Charging Power Limit ²ꜝ |                 |
-| Load from Grid                      |             | Charging Target SOC ²ꜝ  |                 |
-| Load from PV ᴹᴾᵁ                    |             |                         |                 |
-| AC (1) Power ᴬᴹᴾᵁ                   |             |                         |                 |
-| AC (2) Power ᴬᴾᵁ                    |             |                         |                 |
-| PV (1) Power ᴹᴾᵁ                    |             |                         |                 |
-| PV (2) Power ᴹᴾᵁ                    |             |                         |                 |
-| PV (3) Power ᴾᵁ                     |             |                         |                 |
-| PV (4) Power ᵁ                      |             |                         |                 |
-| PV Power Total ᴹᴾᵁ                  |             |                         |                 |
-| Cell Temperature (disabled)         |             |                         |                 |
-| Charge Time Remaining (disabled)    |             |                         |                 |
-| Discharge Time Remaining (disabled) |             |                         |                 |
+| *Sensors*                           | *Switches*           | *Sliders*                    | *Selects*       |
+|-------------------------------------|----------------------|------------------------------|-----------------|
+| Battery Level                       | Feed Grid            | Feed Grid Power Limit        | Energy Strategy |
+| Main Battery Level                  | AC (1) ᴬᴹᴾᵁ          | Backup Reserve Level         |                 |
+| Battery Power                       | AC (2) ᴬᴾᵁ           | Charge Limit                 |                 |
+| Grid Power                          | Charging Task ²      | Discharge Limit              |                 |
+| Grid Voltage                        | Discharging Task ³   | Base Load Power ¹            |                 |
+| Grid Frequency                      |                      | Grid Input Power Limit       |                 |
+| Load from Battery                   |                      | Charging Power Limit ²ꜝ      |                 |
+| Load from Grid                      |                      | Charging Target SOC ²ꜝ       |                 |
+| Load from PV ᴹᴾᵁ                    |                      | Discharging Power Limit ³ꜝ   |                 |
+| AC (1) Power ᴬᴹᴾᵁ                   |                      |                              |                 |
+| AC (2) Power ᴬᴾᵁ                    |                      |                              |                 |
+| PV (1) Power ᴹᴾᵁ                    |                      |                              |                 |
+| PV (2) Power ᴹᴾᵁ                    |                      |                              |                 |
+| PV (3) Power ᴾᵁ                     |                      |                              |                 |
+| PV (4) Power ᵁ                      |                      |                              |                 |
+| PV Power Total ᴹᴾᵁ                  |                      |                              |                 |
+| Cell Temperature (disabled)         |                      |                              |                 |
+| Charge Time Remaining (disabled)    |                      |                              |                 |
+| Discharge Time Remaining (disabled) |                      |                              |                 |
 
 <sup>ᴬ Only available on AC Pro variant</sup><br>
 <sup>ᴹ Only available on Max variant</sup><br>
 <sup>ᴾ Only available on Pro variant</sup><br>
 <sup>ᵁ Only available on Ultra and Ultra X variants</sup><br>
 <sup>¹ Not available when there's no base load timeframe or more than 1 timeframe configured</sup><br>
-<sup>² Only works if timer task with charging power limit is configured and only works for the
-first charging task</sup>
-
-> **❗ Important:** When changing limits or target SOC using automations, wait at least 1
-> second between each set, otherwise the last one will override all previous ones. This is
-> a current limitation that will be addressed in a future update.
+<sup>² Only available when a charging timer task is configured</sup><br>
+<sup>³ Only available when a discharging timer task is configured</sup>
 
 </details>
 

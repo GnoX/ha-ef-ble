@@ -242,6 +242,7 @@ class Connection:
         self._auth_header_dst = auth_header_dst
 
         self._tasks: set[asyncio.Task] = set()
+        self._call_later_handles: dict[str, asyncio.TimerHandle] = {}
 
         self._logger = ConnectionLogger(self)
         self._state_changed = asyncio.Event()
@@ -1088,6 +1089,10 @@ class Connection:
             task.cancel()
         self._tasks.clear()
 
+        for handle in self._call_later_handles.values():
+            handle.cancel()
+        self._call_later_handles.clear()
+
     def _add_task(
         self,
         coro: Coroutine,
@@ -1117,6 +1122,29 @@ class Connection:
                 await asyncio.sleep(sleep_time)
 
         return self._add_task(_timer_task(), event_loop)
+
+    def call_later(
+        self,
+        delay: float,
+        callback: Callable[[], None],
+        key: str | None = None,
+    ) -> None:
+        def _call_if_connected():
+            if key is not None:
+                self._call_later_handles.pop(key, None)
+            if not self.is_connected:
+                return
+            callback()
+
+        if key is None:
+            asyncio.get_event_loop().call_later(delay, _call_if_connected)
+            return
+
+        if (h := self._call_later_handles.get(key)) is not None:
+            h.cancel()
+        self._call_later_handles[key] = asyncio.get_event_loop().call_later(
+            delay, _call_if_connected
+        )
 
 
 def getEcdhTypeSize(curve_num: int):

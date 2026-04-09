@@ -22,7 +22,7 @@ class Device(stream_ac.Device):
     load_from_pv = pb_field(pb.pow_get_sys_load_from_pv, lambda v: round(v, 2))
 
     @controls.outlet(ac_1)
-    async def enable_ac_1(self, enable: bool):  # pyright: ignore[reportIncompatibleMethodOverride]
+    async def enable_ac_1(self, enable: bool):
         await self._send_config_packet(
             bk_series_pb2.ConfigWrite(cfg_relay2_onoff=enable)
         )
