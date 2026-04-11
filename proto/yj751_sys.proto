@@ -1,4 +1,4 @@
-syntax = "proto2";
+syntax = "proto3";
 
 package yj751;
 
@@ -57,16 +57,78 @@ enum MODEM_RAT {
   RAT_4G = 4;
 }
 
+enum SERVE_MIDDLEMEN {
+  SERVE_MIDDLEMEN_NONE = 0;
+  SERVE_MIDDLEMEN_SUNNOVA = 1;
+}
+
+enum INSTALLMENT_PAYMENT_STATE {
+  INSTALLMENT_PAYMENT_STATE_WAIT_FOT_ACTIVATE = 0;
+  INSTALLMENT_PAYMENT_STATE_ACTIVATED = 1;
+  INSTALLMENT_PAYMENT_STATE_OVERDUE = 2;
+  INSTALLMENT_PAYMENT_STATE_SETTLE = 3;
+  INSTALLMENT_PAYMENT_STATE_MANUAL_LOCKDOWN = 4;
+}
+
+enum INSTALLMENT_PAYMENT_OVERDUE_LIMIT {
+  INSTALLMENT_PAYMENT_OVERDUE_LIMIT_NONE = 0;
+  INSTALLMENT_PAYMENT_OVERDUE_LIMIT_CLOSE_OUTPUT = 1;
+}
+
+enum TIME_TASK_MODE {
+  TIME_TASK_MODE_RESV = 0;
+  TIME_TASK_MODE_PER_WEEK = 1;
+  TIME_TASK_MODE_ONCE = 2;
+}
+
 enum TIME_TASK_TYPE {
-  AC_CHG = 0;
-  AC_DSG = 1;
-  DC_DSG = 2;
+  TIME_TASK_TYPE_AC_CHG = 0;
+  TIME_TASK_TYPE_AC_DSG = 1;
+  TIME_TASK_TYPE_AC2_DSG = 2;
+  TIME_TASK_TYPE_DC_CHG = 3;
+  TIME_TASK_TYPE_DC2_CHG = 4;
+  TIME_TASK_TYPE_DC_DSG = 5;
+  TIME_TASK_TYPE_OIL_ON = 6;
+  TIME_TASK_TYPE_OIL_OFF = 7;
+  TIME_TASK_TYPE_USB_CHG = 8;
+  TIME_TASK_TYPE_USB_DSG = 9;
+  TIME_TASK_TYPE_AC_BYPASS = 10;
+  TIME_TASK_TYPE_AC_DSG_ONLY = 11;
+  TIME_TASK_TYPE_SHARING_SOC = 12;
+  TIME_TASK_TYPE_POWER_ON = 13;
+  TIME_TASK_TYPE_POWER_OFF = 14;
+  TIME_TASK_TYPE_THERMOSTATIC = 15;
+  TIME_TASK_TYPE_COOLING = 16;
+  TIME_TASK_TYPE_HEATING = 17;
+  TIME_TASK_TYPE_VENTING = 18;
+  TIME_TASK_TYPE_DEHUMIDIFYING = 19;
+  TIME_TASK_TYPE_LOAD_CTRL_OFF = 20;
+  TIME_TASK_TYPE_LOAD_CTRL_ON = 21;
+  TIME_TASK_TYPE_LOAD_CTRL_GRID = 22;
+  TIME_TASK_TYPE_LOAD_CTRL_BACKUP = 23;
+  TIME_TASK_TYPE_AC_DSG_SELF = 24;
+  TIME_TASK_TYPE_EV_CHG = 25;
+}
+
+
+enum TIME_TASK_DETAIL_TYPE {
+  TIME_TASK_DETAIL_IDLE = 0;
+  TIME_TASK_DETAIL_POW = 1;
+  TIME_TASK_DETAIL_TEMP = 2;
+  TIME_TASK_DETAIL_LEVEL = 3;
+}
+
+enum EV_CHG_MODE {
+  EV_CHG_MODE_NULL = 0;
+  EV_CHG_MODE_REDUNDANCY_PV = 1;
+  EV_CHG_MODE_ENERGY_SAVE = 2;
+  EV_CHG_MODE_PLUG_PLAY = 3;
 }
 
 message TimeInfo {
-  optional uint32 hour = 1;
-  optional uint32 min = 2;
-  optional uint32 sec = 3;
+  uint32 hour = 1;
+  uint32 min = 2;
+  uint32 sec = 3;
 }
 
 message SelfUsedParam {
@@ -75,11 +137,11 @@ message SelfUsedParam {
 message TouParam {
   optional .yj751.TimeInfo start_time = 1;
   optional .yj751.TimeInfo end_time = 2;
-  optional uint32 chg_dsg_mode = 3;
+  uint32 chg_dsg_mode = 3;
 }
 
 message BackupParam {
-  optional uint32 backup_soc = 1;
+  uint32 backup_soc = 1;
 }
 
 message AppShowHeartbeatReport {
@@ -131,6 +193,7 @@ message AppShowHeartbeatReport {
   optional uint32 chg_time_task_table_0 = 107;
   optional uint32 chg_time_task_table_1 = 108;
   optional uint32 chg_time_task_table_2 = 109;
+  optional uint32 chg_time_task_addparam = 110;
   optional uint32 dsg_time_task_notice = 121;
   optional uint32 dsg_time_task_type = 122;
   optional uint32 dsg_time_task_index = 123;
@@ -139,6 +202,7 @@ message AppShowHeartbeatReport {
   optional uint32 dsg_time_task_table_0 = 126;
   optional uint32 dsg_time_task_table_1 = 127;
   optional uint32 dsg_time_task_table_2 = 128;
+  optional uint32 dsg_time_task_addparam = 129;
 }
 
 message BackendRecordHeartbeatReport {
@@ -203,6 +267,13 @@ message BackendRecordHeartbeatReport {
   optional float mppt_hv_temp = 100;
   optional int32 pd_temp = 101;
   optional float ev_max_charger_cur = 102;
+  optional float out_ac_l1_1_pf = 103;
+  optional float out_ac_l1_2_pf = 104;
+  optional float out_ac_l2_1_pf = 105;
+  optional float out_ac_l2_2_pf = 106;
+  optional float out_ac_tt_pf = 107;
+  optional float out_ac_l14_pf = 108;
+  optional float out_ac_5p8_pf = 109;
 }
 
 message APPParaHeartbeatReport {
@@ -234,18 +305,18 @@ message APPParaHeartbeatReport {
 }
 
 message BPInfo {
-  optional uint32 bp_no = 1;
-  optional uint32 bp_chg_sta = 2;
-  optional uint32 bp_soc = 3;
-  optional float bp_pwr = 4;
-  optional float bp_energy = 5;
-  optional uint32 heat_time = 6;
-  optional uint32 remain_time = 7;
-  optional uint32 bp_soc_max = 8;
-  optional uint32 bp_soc_min = 9;
-  optional uint32 bp_err_code = 10;
-  optional int32 bp_temp = 11;
-  optional uint32 bp_sunnova_ban = 12;
+  uint32 bp_no = 1;
+  uint32 bp_chg_sta = 2;
+  uint32 bp_soc = 3;
+  float bp_pwr = 4;
+  float bp_energy = 5;
+  uint32 heat_time = 6;
+  int32 remain_time = 7;
+  uint32 bp_soc_max = 8;
+  uint32 bp_soc_min = 9;
+  uint32 bp_err_code = 10;
+  int32 bp_temp = 11;
+  int32 bp_sunnova_ban = 12;
 }
 
 message BpInfoReport {
@@ -256,47 +327,47 @@ message SysRTCSyncGet {
 }
 
 message SysRTCSync {
-  optional uint32 sys_utc_time = 1;
+  uint32 sys_utc_time = 1;
   optional sint32 sys_timezone = 2;
 }
 
 message Combo4GInfoGet {
-  optional string sim_iccid = 1;
+  string sim_iccid = 1;
 }
 
 message Combo4GInfoGetAck {
-  optional uint32 is_bind = 1;
-  optional uint32 combo_type = 2;
-  optional uint32 month_full_combo = 3;
-  optional uint32 day_remain_combo = 4;
-  optional uint32 month_remain_combo = 5;
-  optional uint32 year_remain_combo = 6;
+  uint32 is_bind = 1;
+  uint32 combo_type = 2;
+  uint32 month_full_combo = 3;
+  uint32 day_remain_combo = 4;
+  uint32 month_remain_combo = 5;
+  uint32 year_remain_combo = 6;
 }
 
 message ProductNameSet {
-  optional string product_name = 1;
+  string product_name = 1;
 }
 
 message SetCmdResultAck {
-  optional sint32 result = 1;
+  sint32 result = 1;
 }
 
 message ProductInfoGet {
 }
 
 message ProductInfoGetAck {
-  optional sint32 result = 1;
-  optional uint32 model = 2;
-  optional uint32 soc = 3;
-  optional string product_name = 4;
+  sint32 result = 1;
+  uint32 model = 2;
+  uint32 soc = 3;
+  string product_name = 4;
 }
 
 message FactoryReset {
-  optional uint32 level = 1;
+  uint32 level = 1;
 }
 
 message DCSwitchSet {
-  optional uint32 enable = 1;
+  uint32 enable = 1;
 }
 
 message ACDsgSet {
@@ -313,81 +384,81 @@ message ACChgSet {
 }
 
 message PowerStandbySet {
-  optional uint32 power_standby_min = 1;
+  uint32 power_standby_min = 1;
 }
 
 message ScreenStandbySet {
-  optional uint32 screen_standby_sec = 1;
+  uint32 screen_standby_sec = 1;
 }
 
 message ACStandbySet {
-  optional uint32 ac_standby_min = 1;
+  uint32 ac_standby_min = 1;
 }
 
 message DCStandbySet {
-  optional uint32 dc_standby_min = 1;
+  uint32 dc_standby_min = 1;
 }
 
 message ChgSocMaxSet {
-  optional uint32 max_chg_soc = 1;
+  uint32 max_chg_soc = 1;
 }
 
 message DsgSocMinSet {
-  optional uint32 min_dsg_soc = 1;
+  uint32 min_dsg_soc = 1;
 }
 
 message BpHeatSet {
-  optional uint32 en_bp_heat = 1;
+  uint32 en_bp_heat = 1;
 }
 
 message Switch4GEnable {
-  optional uint32 en_4G_open = 1;
+  uint32 en_4G_open = 1;
 }
 
 message Iot4GInfoGet {
 }
 
 message Iot4GInfoGetAck {
-  optional sint32 enable = 1;
-  optional sint32 usb_con = 2;
-  optional sint32 pdp_active = 3;
-  optional string sim_iccid = 4;
-  optional string sim_imsi = 5;
-  optional string modem_imei = 6;
-  optional string modem_ver = 7;
-  optional string network_act = 8;
-  optional string network_sopr = 9;
-  optional string network_nopr = 10;
-  optional string network_band = 11;
-  optional uint32 network_rat = 12;
-  optional uint32 network_reg = 13;
-  optional sint32 signal_rssi = 14;
-  optional sint32 err_code = 15;
-  optional sint32 signal_ico = 16;
-  optional uint32 ip = 17;
+  sint32 enable = 1;
+  sint32 usb_con = 2;
+  sint32 pdp_active = 3;
+  string sim_iccid = 4;
+  string sim_imsi = 5;
+  string modem_imei = 6;
+  string modem_ver = 7;
+  string network_act = 8;
+  string network_sopr = 9;
+  string network_nopr = 10;
+  string network_band = 11;
+  uint32 network_rat = 12;
+  uint32 network_reg = 13;
+  sint32 signal_rssi = 14;
+  sint32 err_code = 15;
+  sint32 signal_ico = 16;
+  uint32 ip = 17;
 }
 
 message AcOftenOpenCfg {
-  optional uint32 ac_often_open = 1;
-  optional uint32 ac_often_open_min_soc = 2;
+  uint32 ac_often_open = 1;
+  uint32 ac_often_open_min_soc = 2;
 }
 
 message EnergyManageSet {
-  optional uint32 energy_manage_enable = 1;
+  uint32 energy_manage_enable = 1;
   optional uint32 backup_ratio = 2;
 }
 
 message SolarOnlySet {
-  optional uint32 solar_only_enable = 1;
+  uint32 solar_only_enable = 1;
 }
 
 message AppConnectSync {
-  optional uint32 connect_sta = 1;
+  uint32 connect_sta = 1;
 }
 
 message SetReportInfo {
-  optional uint32 data_type = 1;
-  optional sint32 cycle_ms = 2;
+  uint32 data_type = 1;
+  sint32 cycle_ms = 2;
 }
 
 message ServerSetReportInfo {
@@ -395,7 +466,7 @@ message ServerSetReportInfo {
 }
 
 message SystemParamGet {
-  optional uint32 get_param_type = 1;
+  uint32 get_param_type = 1;
 }
 
 message SysRTCGet {
@@ -405,38 +476,39 @@ message GeneralTimetaskGet {
 }
 
 message GeneralTimeTaskCfg {
-  optional uint32 product_type = 1;
-  optional uint32 task_seted_number = 2;
-  optional uint32 task_max_number = 3;
-  optional uint32 conf_number = 4;
+  uint32 product_type = 1;
+  uint32 task_seted_number = 2;
+  uint32 task_max_number = 3;
+  uint32 conf_number = 4;
   repeated uint32 conf_term = 5;
 }
 
 message GeneralTimeTaskSet {
-  optional uint32 tasks_ctrl = 1;
+  uint32 tasks_ctrl = 1;
 }
 
 message DefineTimeTaskCfg {
-  optional uint32 task_index = 1;
-  optional bool is_valid = 2;
-  optional bool is_cfg = 3;
-  optional bool is_enable = 4;
-  optional uint32 conflict_flag = 5;
-  optional uint32 type = 6;
-  optional uint32 time_mode = 7;
-  optional uint32 time_param = 8;
+  uint32 task_index = 1;
+  bool is_valid = 2;
+  bool is_cfg = 3;
+  bool is_enable = 4;
+  uint32 conflict_flag = 5;
+  uint32 type = 6;
+  uint32 time_mode = 7;
+  uint32 time_param = 8;
   repeated uint32 time_table = 9;
+  optional uint32 task_param = 10;
 }
 
 message DefineTimeTaskSetAck {
-  optional uint32 type = 1;
-  optional uint32 task_index = 2;
-  optional uint32 sta = 3;
+  uint32 type = 1;
+  uint32 task_index = 2;
+  uint32 sta = 3;
 }
 
 message DefineTimeTaskGet {
-  optional uint32 type = 1;
-  optional uint32 task_index = 2;
+  uint32 type = 1;
+  uint32 task_index = 2;
 }
 
 message ALLDefineTimeTaskGet {
@@ -447,53 +519,22 @@ message ALLDefineTimeTaskGetAck {
 }
 
 message FastSlowChgSet {
-  optional uint32 fast_slow_set = 1;
+  uint32 fast_slow_set = 1;
 }
 
 message PowerOffSet {
-  optional uint32 power_off_set = 1;
+  uint32 power_off_set = 1;
 }
 
 message FanLevelSet {
-  optional uint32 ext_fan_level = 1;
-  optional uint32 int_fan_level = 2;
-}
-
-message StatisticsItem {
-  optional uint32 timestamp = 1;
-  optional uint32 time_type = 2;
-  optional uint32 data_type = 3;
-  repeated sint32 data = 4;
-}
-
-message StatisticsTotalReport {
-  optional uint32 item_seq = 1;
-  repeated .yj751.StatisticsItem item_data = 2;
-}
-
-message StatisticsTotalReportAck {
-  optional uint32 result = 1;
-  optional uint32 item_seq = 2;
-  optional uint32 time_type = 3;
-  optional uint32 data_type = 4;
-}
-
-message StatisticsRptCtrlSet {
-  optional uint32 time_type = 1;
-  optional uint32 data_type = 2;
-  optional uint32 sys_rate_ctrl_time = 3;
-}
-
-message StatisticsRptCtrlSetAck {
-  optional uint32 result = 1;
-  optional uint32 time_type = 2;
-  optional uint32 data_type = 3;
+  uint32 ext_fan_level = 1;
+  uint32 int_fan_level = 2;
 }
 
 message CurrentNode {
-  optional string parentSn = 1;
-  optional string currentSn = 2;
-  optional uint32 currentSnIdx = 3;
+  string parentSn = 1;
+  string currentSn = 2;
+  uint32 currentSnIdx = 3;
   optional uint32 extIdx = 4;
 }
 
@@ -502,8 +543,244 @@ message PrStateSet {
   optional uint32 set_para = 2;
 }
 
-message AppSetTimezoneType {
-  optional uint32 set_type = 1;
+message SysUTCRequest {
+}
+
+message SysUTCRequestACK {
+  uint32 sys_utc_time = 1;
+}
+
+message SysRTCInfoGet {
+}
+
+message SysRTCInfoGetACK {
+  uint32 sys_utc_time = 1;
+  sint32 sys_timezone = 2;
+  uint32 time_type = 3;
+  string timezone_id = 4;
+  optional uint32 set_timezone_type = 5;
+}
+
+message SysUTCSync {
+  uint32 sys_utc_time = 1;
+}
+
+message SysTimezoneSync {
+  sint32 sys_timezone = 1;
+  optional uint32 set_timezone_type = 2;
+}
+
+message SysTimezoneIDSync {
+  string timezone_id = 1;
+}
+
+message InstallmentPaymentServeBelone {
+  .yj751.SERVE_MIDDLEMEN serve_middlemen = 1;
+  .yj751.INSTALLMENT_PAYMENT_OVERDUE_LIMIT installment_payment_overdue_limit = 2;
+  .yj751.INSTALLMENT_PAYMENT_STATE installment_payment_state = 3;
+}
+
+message InstallmentPaymentServe {
+  .yj751.INSTALLMENT_PAYMENT_STATE installment_payment_state = 1;
+  uint32 installment_payment_start_utc_time = 2;
+  uint32 installment_payment_overdue_limit_utc_time = 3;
+}
+
+message ResetMiddlemenDeliverySetting {
+  .yj751.SERVE_MIDDLEMEN serve_middlemen = 1;
+}
+
+message CfgTouStrategy {
+  uint32 tou_hours_strategy = 1;
+  uint32 tou_gird_chg_stop_soc = 2;
+}
+
+message CfgGridPrice {
+  uint32 timestamp = 1;
+}
+
+message CfgEnergyStrategyOperateMode {
+  bool operate_self_powered_open = 1;
+  bool operate_scheduled_open = 2;
+  bool operate_tou_mode_open = 3;
+  bool operate_intelligent_schedule_mode_open = 4;
+}
+
+message TimeTaskParamDetail {
+  .yj751.TIME_TASK_DETAIL_TYPE type = 1;
+  float val = 2;
+}
+
+message TimeTaskItemV2 {
+  uint32 task_index = 1;
+  bool is_cfg = 2;
+  bool is_enable = 3;
+  uint32 conflict_flag = 4;
+  .yj751.TIME_TASK_MODE time_mode = 5;
+  uint32 time_param = 6;
+  uint32 time_table = 7;
+  .yj751.TIME_TASK_TYPE task_type = 8;
+  uint32 task_param = 9;
+  repeated .yj751.TimeTaskParamDetail task_param_detail = 10;
+}
+
+message TimeTaskItemV2List {
+  repeated .yj751.TimeTaskItemV2 time_task = 1;
+}
+
+message ResvInfo {
+  uint32 resv_info = 1;
+}
+
+message CfgStormPattern {
+  bool storm_pattern_enable = 1;
+  bool storm_pattern_open_flag = 2;
+  uint32 storm_pattern_end_time = 3;
+}
+
+message ReqSmartCharge {
+  uint32 target_external_chg_wh = 1;
+  uint32 curr_storage_wh = 2;
+  uint32 accumulated_external_chg_wh = 3;
+  uint32 target_external_chg_finsh_timestamp = 4;
+  uint32 grid_chg_pow_max = 5;
+  uint32 external_chg_pow_max = 6;
+  string sn = 7;
+  uint32 device_min_charge_rate = 8;
+}
+
+message ReqIntelligentSchedule {
+  uint32 req_intelligent_schedule_state = 1;
+  repeated .yj751.ReqSmartCharge smart_charge_info_list = 2;
+}
+
+message GetIntelligentSchedule {
+  uint32 intelligent_schedule_mode = 1;
+  uint32 join_intelligent_schedule = 2;
+  repeated .yj751.ReqSmartCharge smart_charge_info_list = 3;
+}
+
+message CfgIntelligentScheduleMode {
+  uint32 intelligent_schedule_mode = 1;
+  uint32 join_intelligent_schedule = 2;
+}
+
+message CfgTimeScheduleTask {
+  repeated .yj751.TimeScheduleTaskItem time_schedule_task_item_list = 1;
+  repeated .yj751.CfgIntelligentScheduleChannelItem intelligent_schedule_channel_item_list = 2;
+}
+
+message TimeScheduleTaskItem {
+  uint32 start_timestamp = 1;
+  uint32 end_timestamp = 2;
+  uint32 grid_chg_wh = 3;
+  uint32 grid_dischg_wh = 4;
+  uint32 chg_wh = 5;
+  uint32 dischg_wh = 6;
+  uint32 v2h_output_wh = 7;
+}
+
+message CfgIntelligentScheduleChannelItem {
+  string sn = 1;
+  repeated uint32 channel_num = 2;
+  repeated uint32 cfg_turn_off = 3;
+}
+
+message ConfigWrite {
+  optional uint32 cfg_soc_cali = 31;
+  optional uint32 cfg_ev_chg_amp_max = 35;
+  optional .yj751.EV_CHG_MODE cfg_ev_chg_mode = 36;
+  optional uint32 cfg_ev_chg_soc_min = 37;
+  optional bool cfg_ev_chg_manual_ctrl = 38;
+  optional .yj751.CfgTouStrategy cfg_tou_hours_strategy = 65;
+  optional .yj751.CfgStormPattern cfg_storm_pattern = 93;
+  optional .yj751.CfgGridPrice cfg_grid_price = 101;
+  optional uint32 cfg_backup_reverse_soc = 102;
+  optional .yj751.CfgEnergyStrategyOperateMode cfg_energy_strategy_operate_mode = 106;
+  optional bool cfg_installment_payment_serve_enable = 119;
+  optional .yj751.InstallmentPaymentServeBelone cfg_installment_payment_serve_belone = 120;
+  optional .yj751.InstallmentPaymentServe cfg_installment_payment_serve = 121;
+  optional .yj751.ResetMiddlemenDeliverySetting reset_middlemen_delivery_setting = 124;
+  optional .yj751.TimeTaskItemV2 cfg_time_task_v2_item = 127;
+  optional bool unlock_pv_weak = 167;
+  optional .yj751.CfgIntelligentScheduleMode cfg_cfg_intelligent_schedule_mode = 546;
+  optional .yj751.CfgTimeScheduleTask cfg_cfg_time_schedule_task = 547;
+  optional uint32 cfg_oil_max_charge_power = 103;
+}
+
+message ConfigWriteAck {
+  uint32 action_id = 1;
+  bool config_ok = 2;
+}
+
+message ConfigRead {
+  uint32 action_id = 1;
+}
+
+message ConfigReadAck {
+  optional .yj751.TimeTaskItemV2List read_time_task_v2_list = 129;
+  optional .yj751.GetIntelligentSchedule cfg_read_intelligent_schedule = 545;
+}
+
+message DisplayPropertyUpload {
+  optional uint32 plug_in_info_pv_h_flag = 39;
+  optional uint32 plug_in_info_pv_h_type = 40;
+  optional float pow_get_pv_h = 35;
+  optional uint32 plug_in_info_pv_l_flag = 42;
+  optional uint32 plug_in_info_pv_l_type = 43;
+  optional float pow_get_pv_l = 36;
+  optional uint32 oil_max_charge_power = 793;
+  optional uint32 plug_in_info_5p8_flag = 63;
+  optional uint32 plug_in_info_5p8_type = 64;
+  optional uint32 plug_in_info_5p8_detail = 65;
+  optional string plug_in_info_5p8_sn = 193;
+  optional uint32 plug_in_info_acp_run_state = 116;
+  optional uint32 plug_in_info_acp_err_code = 117;
+  optional uint32 plug_in_info_acp_firm_ver = 118;
+  optional .yj751.ResvInfo plug_in_info_acp_resv = 119;
+  optional float cms_batt_soc = 262;
+  optional uint32 cms_max_chg_soc = 270;
+  optional uint32 cms_min_dsg_soc = 271;
+  optional uint32 cms_batt_pow_out_max = 459;
+  optional uint32 cms_batt_pow_in_max = 460;
+  optional uint32 backup_reverse_soc = 461;
+  optional uint32 cms_batt_full_energy = 462;
+  optional bool storm_pattern_enable = 467;
+  optional bool storm_pattern_open_flag = 468;
+  optional uint32 storm_pattern_end_time = 469;
+  optional uint32 storm_pattern_conflict_flag = 397;
+  optional .yj751.CfgEnergyStrategyOperateMode energy_strategy_operate_mode = 393;
+  optional uint32 ev_chg_amp_max = 538;
+  optional .yj751.EV_CHG_MODE ev_chg_mode = 539;
+  optional uint32 ev_chg_soc_min = 540;
+  optional bool ev_chg_manual_ctrl = 541;
+  optional uint32 ev_chg_manual_wait_reason = 1552;
+  optional bool installment_payment_serve_enable = 591;
+  optional .yj751.SERVE_MIDDLEMEN serve_middlemen = 592;
+  optional .yj751.INSTALLMENT_PAYMENT_OVERDUE_LIMIT installment_payment_overdue_limit = 593;
+  optional .yj751.INSTALLMENT_PAYMENT_STATE installment_payment_state = 594;
+  optional uint32 installment_payment_start_utc_time = 595;
+  optional uint32 installment_payment_overdue_limit_utc_time = 596;
+  optional uint32 cms_soc_cali_state = 756;
+  optional uint32 plug_in_info_pv_vol_low_flag = 1264;
+  optional uint32 plug_in_info_pv_weak_source_flag = 1265;
+}
+
+message ReqTouStrategy {
+  uint32 req_state = 1;
+}
+
+message DevRequest {
+  uint32 dev_utc_time = 1;
+  float dev_utc_timezone = 2;
+  optional .yj751.ReqTouStrategy require_tou_strategy = 4;
+  optional .yj751.ReqIntelligentSchedule require_intelligent_schedule = 11;
+  optional bool require_storm_pattern_open_flag = 12;
+}
+
+message DevRequestAck {
+  uint32 request_id = 1;
+  uint32 require_ok = 2;
 }
 
 message TimeTaskSpecialSet {

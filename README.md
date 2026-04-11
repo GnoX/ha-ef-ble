@@ -90,22 +90,92 @@ Click on any device below to see available sensors, switches, and controls:
 
 <br>
 
-| *Sensors*                          |
-|------------------------------------|
-| Battery Level                      |
-| Battery Level (each battery) ¹     |
-| Cell Temperature (each battery)  ¹ |
-| Input Power                        |
-| Output Power                       |
-| Low Voltage Solar Power            |
-| High Voltage Solar Power           |
-| AC L1 (1) Output Power             |
-| AC L1 (2) Output Power             |
-| AC L2 (1) Output Power             |
-| AC L2 (2) Output Power             |
-| AC TT-30R Output Power             |
-| AC L14-30P Output Power            |
-| AC I/O Output Power                |
+| *Sensors*                         | *Switches* | *Sliders*             | *Selects*      | *Buttons*     |
+|-----------------------------------|------------|-----------------------|----------------|---------------|
+| AC 5P8 In Power                   | AC Ports   | AC 5P8 Charging Power | Operating Mode | Unpause Solar |
+| AC 5P8 Out Power                  | DC Ports   | AC C20 Charging Power |                |               |
+| AC C20 In Power                   |            | Backup Reserve Level  |                |               |
+| AC L1 (1) Out Power               |            | Charge Limit          |                |               |
+| AC L1 (2) Out Power               |            | Discharge Limit       |                |               |
+| AC L2 (1) Out Power               |            |                       |                |               |
+| AC L2 (2) Out Power               |            |                       |                |               |
+| AC L14 Out Power                  |            |                       |                |               |
+| AC TT Out Power                   |            |                       |                |               |
+| Anderson Out Power                |            |                       |                |               |
+| Battery Level                     |            |                       |                |               |
+| Battery Level (each battery) ¹    |            |                       |                |               |
+| Cell Temperature (each battery) ¹ |            |                       |                |               |
+| HV Solar Power                    |            |                       |                |               |
+| LV Solar Power                    |            |                       |                |               |
+| Output Power                      |            |                       |                |               |
+| USB-C (1) Out Power               |            |                       |                |               |
+| USB-C (2) Out Power               |            |                       |                |               |
+| USB (1) Out Power                 |            |                       |                |               |
+| USB (2) Out Power                 |            |                       |                |               |
+| AC 5P8 In Current                 |            |                       |                |               |
+| AC 5P8 In Voltage                 |            |                       |                |               |
+| AC 5P8 In Type                    |            |                       |                |               |
+| AC 5P8 Out Current                |            |                       |                |               |
+| AC 5P8 Out Power Factor           |            |                       |                |               |
+| AC 5P8 Out Type                   |            |                       |                |               |
+| AC 5P8 Out Voltage                |            |                       |                |               |
+| AC 5P8 Work Mode                  |            |                       |                |               |
+| AC Allowed                        |            |                       |                |               |
+| AC C20 In Current                 |            |                       |                |               |
+| AC C20 In Voltage                 |            |                       |                |               |
+| AC C20 Input Type                 |            |                       |                |               |
+| AC L1 (1) Out Current             |            |                       |                |               |
+| AC L1 (1) Out Power Factor        |            |                       |                |               |
+| AC L1 (1) Out Voltage             |            |                       |                |               |
+| AC L1 (2) Out Current             |            |                       |                |               |
+| AC L1 (2) Out Power Factor        |            |                       |                |               |
+| AC L1 (2) Out Voltage             |            |                       |                |               |
+| AC L2 (1) Out Current             |            |                       |                |               |
+| AC L2 (1) Out Power Factor        |            |                       |                |               |
+| AC L2 (1) Out Voltage             |            |                       |                |               |
+| AC L2 (2) Out Current             |            |                       |                |               |
+| AC L2 (2) Out Power Factor        |            |                       |                |               |
+| AC L2 (2) Out Voltage             |            |                       |                |               |
+| AC L14 Out Current                |            |                       |                |               |
+| AC L14 Out Power Factor           |            |                       |                |               |
+| AC L14 Out Voltage                |            |                       |                |               |
+| AC TT Out Current                 |            |                       |                |               |
+| AC TT Out Power Factor            |            |                       |                |               |
+| AC TT Out Voltage                 |            |                       |                |               |
+| Anderson Out Current              |            |                       |                |               |
+| Anderson Out Error Code           |            |                       |                |               |
+| Anderson Out Voltage              |            |                       |                |               |
+| Battery Current                   |            |                       |                |               |
+| Battery Input Power               |            |                       |                |               |
+| Battery Output Power              |            |                       |                |               |
+| Battery Voltage                   |            |                       |                |               |
+| HV Solar Current                  |            |                       |                |               |
+| HV Solar Error Code               |            |                       |                |               |
+| HV Solar Temperature              |            |                       |                |               |
+| HV Solar Voltage                  |            |                       |                |               |
+| HV Solar Voltage Low              |            |                       |                |               |
+| Is Charging                       |            |                       |                |               |
+| LV Solar Current                  |            |                       |                |               |
+| LV Solar Error Code               |            |                       |                |               |
+| LV Solar Temperature              |            |                       |                |               |
+| LV Solar Voltage                  |            |                       |                |               |
+| LV Solar Voltage Low              |            |                       |                |               |
+| AC Inverter Error Code            |            |                       |                |               |
+| AC Inverter Temperature           |            |                       |                |               |
+| DC Inverter Error Code            |            |                       |                |               |
+| DC Inverter Temperature           |            |                       |                |               |
+| Slow Charging Switch              |            |                       |                |               |
+| System Temperature                |            |                       |                |               |
+| USB-C (1) Out Current             |            |                       |                |               |
+| USB-C (1) Out Voltage             |            |                       |                |               |
+| USB-C (2) Out Current             |            |                       |                |               |
+| USB-C (2) Out Voltage             |            |                       |                |               |
+| USB (1) Out Current               |            |                       |                |               |
+| USB (1) Out Voltage               |            |                       |                |               |
+| USB (2) Out Current               |            |                       |                |               |
+| USB (2) Out Voltage               |            |                       |                |               |
+| Weak HV Solar Source              |            |                       |                |               |
+| Weak LV Solar Source              |            |                       |                |               |
 
 <sup>¹ Extra batteries are only updated when you set up the device, but has to
 be manually reconfigured if battery is connected/disconnected.</sup>
@@ -284,15 +354,16 @@ be manually reconfigured if battery is connected/disconnected.</sup>
 |-------------------------------------|-------------|-------------------------|-----------------|
 | Battery Level                       | Feed Grid   | Feed Grid Power Limit   | Energy Strategy |
 | Main Battery Level                  | AC (1) ᴬᴹᴾᵁ | Backup Reserve Level    |                 |
-| Grid Power                          | AC (2) ᴬᴾᵁ  | Charge Limit            |                 |
-| Grid Voltage                        |             | Discharge Limit         |                 |
-| Grid Frequency                      |             | Base Load Power ¹       |                 |
-| Load from Battery                   |             | Grid Input Power Limit  |                 |
-| Load from Grid                      |             | Charging Power Limit ²ꜝ |                 |
-| Load from PV ᴹᴾᵁ                    |             | Charging Target SOC ²ꜝ  |                 |
+| Battery Power                       | AC (2) ᴬᴾᵁ  | Charge Limit            |                 |
+| Grid Power                          |             | Discharge Limit         |                 |
+| Grid Voltage                        |             | Base Load Power ¹       |                 |
+| Grid Frequency                      |             | Grid Input Power Limit  |                 |
+| Load from Battery                   |             | Charging Power Limit ²ꜝ |                 |
+| Load from Grid                      |             | Charging Target SOC ²ꜝ  |                 |
+| Load from PV ᴹᴾᵁ                    |             |                         |                 |
 | AC (1) Power ᴬᴹᴾᵁ                   |             |                         |                 |
 | AC (2) Power ᴬᴾᵁ                    |             |                         |                 |
-| PV (1) Poweri ᴹᴾᵁ                   |             |                         |                 |
+| PV (1) Power ᴹᴾᵁ                    |             |                         |                 |
 | PV (2) Power ᴹᴾᵁ                    |             |                         |                 |
 | PV (3) Power ᴾᵁ                     |             |                         |                 |
 | PV (4) Power ᵁ                      |             |                         |                 |
@@ -320,18 +391,20 @@ first charging task</sup>
 
 <br>
 
-| *Sensors*      | *Sliders*            |
-|----------------|----------------------|
-| Grid Power     | Maximum Output Power |
-| Grid Voltage   |                      |
-| Grid Current   |                      |
-| Grid Frequency |                      |
-| PV (1) Power   |                      |
-| PV (1) Current |                      |
-| PV (1) Voltage |                      |
-| PV (2) Power   |                      |
-| PV (2) Current |                      |
-| PV (2) Voltage |                      |
+| *Sensors*                         | *Sliders*            |
+|-----------------------------------|----------------------|
+| Grid Power                        | Maximum Output Power |
+| Grid Voltage                      |                      |
+| Grid Current                      |                      |
+| Grid Frequency                    |                      |
+| Grid Connection Status            |                      |
+| PV (1) Power                      |                      |
+| PV (1) Current                    |                      |
+| PV (1) Voltage                    |                      |
+| PV (2) Power                      |                      |
+| PV (2) Current                    |                      |
+| PV (2) Voltage                    |                      |
+| WiFi RSSI (disabled)              |                      |
 
 </details>
 

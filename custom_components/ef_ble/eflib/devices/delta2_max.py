@@ -18,7 +18,7 @@ class Device(Delta2Base):
     ac_input_power = raw_field(pb_inv.input_watts)
     ac_charging_speed = raw_field(pb_inv.cfg_slow_chg_watts)
     dc_output_power = raw_field(pb_pd.car_watts)
-    energy_backup_enabled = raw_field(pb_pd.watthisconfig, lambda x: x == 1)
+    energy_backup = raw_field(pb_pd.watthisconfig, lambda x: x == 1)
     energy_backup_battery_level = raw_field(pb_pd.bp_power_soc)
 
     xt60_1_input_power = raw_field(pb_pd.pv1_charge_watts)

@@ -40,6 +40,8 @@ class Delta2Base(DeviceBase, RawDataProps):
     ac_output_power = raw_field(pb_inv.output_watts)
     ac_input_voltage = raw_field(pb_inv.ac_in_vol, lambda x: round(x / 1000, 2))
     ac_input_current = raw_field(pb_inv.ac_in_amp, lambda x: round(x / 1000, 2))
+    ac_output_voltage = raw_field(pb_inv.inv_out_vol, lambda x: round(x / 1000, 2))
+    ac_output_current = raw_field(pb_inv.inv_out_amp, lambda x: round(x / 1000, 2))
 
     battery_level_main = raw_field(pb_bms.f32_show_soc, lambda x: round(x, 2))
 
@@ -127,7 +129,8 @@ class Delta2Base(DeviceBase, RawDataProps):
                 processed = True
             case 0x03, 0x03, 0x0E:
                 kit_data = self.update_from_bytes(AllKitDetailData, packet.payload)
-                self._update_extra_batteries(kit_data)
+                if kit_data is not None:
+                    self._update_extra_batteries(kit_data)
                 processed = True
             case 0x03, 0x20, 0x02:
                 self.update_from_bytes(DirectEmsDeltaHeartbeatPack, packet.payload)
