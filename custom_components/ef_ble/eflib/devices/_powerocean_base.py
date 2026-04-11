@@ -387,7 +387,7 @@ class PowerOceanBase(DeviceBase, ProtobufProps):
                 model = "Single Phase 5kW"
             case "J32E":
                 model = "Single Phase 6kW"
-            case "R372ZD":
+            case "R372": # R372ZD
                 model = "Plus - 3 phase"
             case "HC31":
                 model = "DC Fit"  # this might work or not
