@@ -546,37 +546,37 @@ first charging task</sup>
 
 <br>
 
-| *Sensors*                           | *Switches*     | *Sliders*           |
-|-------------------------------------|----------------|---------------------|
-| Battery Level                       | AC Ports       | Max Charge Limit    |
-| Main Battery Level                  | DC 12V Port    | Min Discharge Limit |
-| Extra Battery Level ³               | USB Ports      | Energy Backup       |
-| Extra Battery Temperature ³         | Backup Reserve | AC Charging Speed   |
-| Input Power                         |                |                     |
-| Output Power                        |                |                     |
-| AC Input Power                      |                |                     |
-| AC Input Voltage (disabled)         |                |                     |
-| AC Input Current (disabled)         |                |                     |
-| AC Output Power                     |                |                     |
-| DC Output Power                     |                |                     |
-| DC 12V Output Voltage (disabled)    |                |                     |
-| DC 12V Output Current (disabled)    |                |                     |
-| XT60 Input Power ¹                  |                |                     |
-| XT60 (1) Input Power ²              |                |                     |
-| XT60 (2) Input Power ²              |                |                     |
-| DC Input Voltage (disabled)         |                |                     |
-| DC Input Current (disabled)         |                |                     |
-| USB A (1) Output Power              |                |                     |
-| USB A (2) Output Power              |                |                     |
-| USB A QC (1) Output Power           |                |                     |
-| USB A QC (2) Output Power           |                |                     |
-| USB C (1) Output Power              |                |                     |
-| USB C (2) Output Power              |                |                     |
-| Cell Temperature (disabled)         |                |                     |
-| Charge Time Remaining (disabled)    |                |                     |
-| Discharge Time Remaining (disabled) |                |                     |
+| *Sensors*                           | *Switches*                       | *Sliders*           |
+|-------------------------------------|----------------------------------|---------------------|
+| Battery Level                       | AC Ports                         | Max Charge Limit    |
+| Main Battery Level                  | DC 12V Port                      | Min Discharge Limit |
+| Extra Battery Level ³               | USB Ports                        | Energy Backup       |
+| Extra Battery Temperature ³         | Backup Reserve                   | AC Charging Speed   |
+| Input Power                         | Disable Grid Bypass ¹ (disabled) |                     |
+| Output Power                        |                                  |                     |
+| AC Input Power                      |                                  |                     |
+| AC Input Voltage (disabled)         |                                  |                     |
+| AC Input Current (disabled)         |                                  |                     |
+| AC Output Power                     |                                  |                     |
+| DC Output Power                     |                                  |                     |
+| DC 12V Output Voltage (disabled)    |                                  |                     |
+| DC 12V Output Current (disabled)    |                                  |                     |
+| XT60 Input Power ¹                  |                                  |                     |
+| XT60 (1) Input Power ²              |                                  |                     |
+| XT60 (2) Input Power ²              |                                  |                     |
+| DC Input Voltage (disabled)         |                                  |                     |
+| DC Input Current (disabled)         |                                  |                     |
+| USB A (1) Output Power              |                                  |                     |
+| USB A (2) Output Power              |                                  |                     |
+| USB A QC (1) Output Power           |                                  |                     |
+| USB A QC (2) Output Power           |                                  |                     |
+| USB C (1) Output Power              |                                  |                     |
+| USB C (2) Output Power              |                                  |                     |
+| Cell Temperature (disabled)         |                                  |                     |
+| Charge Time Remaining (disabled)    |                                  |                     |
+| Discharge Time Remaining (disabled) |                                  |                     |
 
-<sup>¹ Only available on Delta 2 and Delta 2 1500</sup><br>
+<sup>¹ Only available on Delta 2 and Delta 3 1500</sup><br>
 <sup>² Only available on Delta 2 Max</sup><br>
 <sup>³ Per extra battery (up to 2)</sup>
 
