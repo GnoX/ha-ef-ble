@@ -33,10 +33,12 @@
         "data": {
           "user_id": "EcoFlow User ID",
           "address": "BLE Device",
-          "update_period": "Update Period"
+          "update_period": "Update Period",
+          "connection_timeout": "Connection Timeout"
         },
         "data_description": {
-          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of database writes)."
+          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of database writes).",
+          "connection_timeout": "Number of seconds to wait for the device to connect and authenticate."
         },
         "sections": {
           "login": {
@@ -90,10 +92,12 @@
         "data": {
           "user_id": "EcoFlow User ID",
           "address": "BLE Device",
-          "update_period": "Update Period"
+          "update_period": "Update Period",
+          "connection_timeout": "Connection Timeout"
         },
         "data_description": {
-          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of DB writes)."
+          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of DB writes).",
+          "connection_timeout": "Number of seconds to wait for the device to connect and authenticate."
         },
         "sections": {
           "login": {
@@ -141,11 +145,13 @@
         "data": {
           "user_id": "EcoFlow User ID",
           "update_period": "Update Period",
-          "packet_version": "Packet Version"
+          "packet_version": "Packet Version",
+          "connection_timeout": "Connection Timeout"
         },
         "data_description": {
           "update_period": "Number of seconds to wait before processing the next device update. A default value of 0 means all updates are processed immediately (may result in a high number of DB writes).",
-          "packet_version": "Version of packets to use - depends on the generation and firmware of this device. Try different version if connection/authentication fails.\nNote that some devices may use packet version that is not yet supported by this integration."
+          "packet_version": "Version of packets to use - depends on the generation and firmware of this device. Try different version if connection/authentication fails.\nNote that some devices may use packet version that is not yet supported by this integration.",
+          "connection_timeout": "Number of seconds to wait for the device to connect and authenticate."
         },
         "sections": {
           "login": {
@@ -174,7 +180,7 @@
           },
           "log_options": {
             "name": "Logging Options",
-            "description": "Detailed logging options. Most of these will flood your logs, so avoid leaving them enabled for long periods.",
+            "description": "Advanced logging options. Most of these settings will generate a large volume of log output, so it is recommended not to leave them enabled for extended periods.",
             "data": {
               "log_masked": "Mask sensitive information (useful when sharing logs publicly)",
               "log_connection": "Log device connection requests and responses",
@@ -864,6 +870,123 @@
       },
       "ac_c20_in_type": {
         "name": "AC C20 In Type"
+      },
+      "sys_load_pwr": {
+        "name": "System Load Power"
+      },
+      "pcs_meter_power": {
+        "name": "Smart Meter Power"
+      },
+      "total_load": {
+        "name": "Total Load"
+      },
+      "batteries_remaining_power": {
+        "name": "Batteries Remaining Power"
+      },
+      "batteries_online_count": {
+        "name": "Batteries Online Count"
+      },
+      "batteries_power": {
+        "name": "Batteries Power"
+      },
+      "batteries_total_charge_energy": {
+        "name": "Batteries Total Charge Energy"
+      },
+      "batteries_total_discharge_energy": {
+        "name": "Batteries Total Discharge Energy"
+      },
+      "batteries_level": {
+        "name": "Batteries Level"
+      },
+      "batteries_ems_power": {
+        "name": "Batteries EMS Power"
+      },
+      "driver_version": {
+        "name": "Driver Version"
+      },
+      "ems_work_mode": {
+        "name": "EMS Work Mode",
+        "state": {
+          "workmode_selfuse": "Self use",
+          "workmode_tou": "TOU",
+          "workmode_backup": "Backup",
+          "workmode_dbg": "Debug",
+          "workmode_ac_makeup": "AC Makeup",
+          "workmode_drm_mode": "DRM",
+          "workmode_remote_sched": "Remote Schedule",
+          "workmode_standby_mode": "Standby",
+          "workmode_soc_calib": "SOC Calibration",
+          "workmode_timer_mode": "Timer",
+          "workmode_fcr_mode": "FCR",
+          "workmode_third_mode": "3rd Mode",
+          "workmode_ai_schedule": "AI Schedule",
+          "workmode_kraken": "Kraken"
+        }
+      },
+      "param_fault_code": {
+        "name": "{name} Fault Code"
+      },
+      "param_warning_code": {
+        "name": "{name} Warning Code"
+      },
+      "voltage": {
+        "name": "Voltage"
+      },
+      "current": {
+        "name": "Current"
+      },
+      "error_code": {
+        "name": "Error Code"
+      },
+      "environment_temperature": {
+        "name": "Environment Temperature"
+      },
+      "max_cell_temperature": {
+        "name": "Max Cell Temperature"
+      },
+      "min_cell_temperature": {
+        "name": "Min Cell Temperature"
+      },
+      "remaining_power": {
+        "name": "Remaining Power"
+      },
+      "health": {
+        "name": "Health"
+      },
+      "cycles": {
+        "name": "Cycles"
+      },
+      "system_state": {
+        "name": "System State",
+        "state": {
+          "pre_power_on_state": "Pre-Power On",
+          "cfm_power_on_state": "CFM Power On",
+          "normal_state": "Normal",
+          "power_off_state": "Power Off",
+          "sleep_state": "Sleep",
+          "unknown": "Unknown"
+        }
+      },
+      "bms_run_state": {
+        "name": "BMS Run State",
+        "state": {
+          "pb_bms_state_shutdown": "Shutdown",
+          "pb_bms_state_normal": "Normal",
+          "pb_bms_state_chargeable": "Charging",
+          "pb_bms_state_dischargeable": "Discharging",
+          "pb_bms_state_fault": "Fault",
+          "unknown": "Unknown"
+        }
+      },
+
+      "phase_apparent_power": {
+        "name": "{name} Apparent Power"
+      },
+      "phase_reactive_power": {
+        "name": "{name} Reactive Power"
+      },
+      "phase_active_pwr": {
+        "name": "{name} Active Power"
       }
     },
     "select": {

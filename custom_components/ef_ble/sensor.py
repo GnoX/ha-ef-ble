@@ -39,8 +39,9 @@ from .eflib.devices import (
     smart_generator,
     stream_microinverter,
     wave2,
-    wave3,
+    wave3, powerocean,
 )
+from .eflib.devices._powerocean_base import WorkMode, BmsRunStaDef, BmsSysState
 from .eflib.props.enums import IntFieldValue
 from .entity import (
     EcoflowBatteryAddonEntity,
@@ -833,7 +834,55 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
         indices=range(1, 3),
     ),
     "llc_temperature": temperature(),
-    # unsupported
+    # PowerOcean
+    "total_load": power(),
+    "pcs_meter_power": power(precision=4),
+    "pcs_active_power": power(precision=4),
+    "ems_work_mode": enum(options=WorkMode, entity_category=EntityCategory.DIAGNOSTIC),
+    "batteries_ems_power": power(),
+    "bp_remain_watth": energy_storage(),
+    "batteries_online_count": raw(),
+    "batteries_power": power(),
+    "batteries_total_charge_energy": energy_storage(),
+    "batteries_total_discharge_energy": energy_storage(),
+    "batteries_level": percentage(),
+    "pv{n}_main_power": power(
+        translation_key="port_power",
+        translation_placeholders={"name": "PV {n}"},
+        indices=range(1, 4),
+    ),
+    "driver_version": raw(entity_category=EntityCategory.DIAGNOSTIC),
+    # PowerOcean - Connected Device - Solar Strings (just missing sensors)
+    "pv_fault_code_{n}": raw(
+        translation_key="param_fault_code",
+        translation_placeholders={"name": "PV ({n})"},
+        indices=range(1, 4),
+    ),
+    "pv_warning_code_{n}": raw(
+        translation_key="param_warning_code",
+        translation_placeholders={"name": "PV ({n})"},
+        indices=range(1, 4),
+    ),
+    # PowerOcean - Connected Device - Battery Pack (using battery addon sensors)
+    # PowerOcean - Connected Device - Phases (just missing sensors)
+    "l{n}_active_power": power(
+        precision=4,
+        translation_key="phase_active_pwr",
+        translation_placeholders={"name": "L{n}"},
+        indices=range(1, 4)),
+    "l{n}_reactive_power": power(
+        precision=4,
+        translation_key="phase_reactive_power",
+        translation_placeholders={"name": "L{n}"},
+        indices=range(1, 4)),
+    "l{n}_apparent_power": power(
+        precision=4,
+        translation_key="phase_apparent_power",
+        translation_placeholders={"name": "L{n}"},
+        indices=range(1, 4)),
+
+
+# unsupported
     "collecting_data": enum(
         name="Collecting data",
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -850,6 +899,22 @@ _BATTERY_ADDON_SENSORS: Final = {
     "battery_{n}_cell_temperature": temperature(translation_key="cell_temperature"),
     "battery_{n}_input_power": power(precision=0, translation_key="input_power"),
     "battery_{n}_output_power": power(precision=0, translation_key="output_power"),
+    # PowerOcean 
+    "battery_{n}_min_cell_temperature": temperature(translation_key="min_cell_temperature"),
+    "battery_{n}_max_cell_temperature": temperature(translation_key="max_cell_temperature"),
+    "battery_{n}_power": power(precision=4, translation_key="power"),
+    "battery_{n}_remaining_power": energy_storage(translation_key="remaining_power"),
+    "battery_{n}_voltage": voltage(precision=4, translation_key="voltage"),
+    "battery_{n}_current": current(precision=4, translation_key="current"),
+    "battery_{n}_environment_temperature": temperature(translation_key="environment_temperature"),
+    "battery_{n}_system_state": enum(translation_key="system_state", options=BmsSysState,
+		entity_category=EntityCategory.DIAGNOSTIC),
+    "battery_{n}_bms_run_state": enum(translation_key="bms_run_state", options=BmsRunStaDef,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    "battery_{n}_cycles": raw(translation_key="cycles", entity_category=EntityCategory.DIAGNOSTIC),
+    "battery_{n}_error_code": raw(translation_key="error_code", entity_category=EntityCategory.DIAGNOSTIC),
+    "battery_{n}_health": percentage(translation_key="health", entity_category=EntityCategory.DIAGNOSTIC)
 }
 
 
@@ -1005,7 +1070,11 @@ class EcoflowBatteryAddonSensor(EcoflowBatteryAddonEntity, SensorEntity):
 
     @property
     def native_value(self):
-        return getattr(self._device, self._sensor, None)
+        """Return the value of the sensor."""
+        value = getattr(self._device, self._sensor, None)
+        if isinstance(value, Enum):
+            return value.name.lower()
+        return value
 
     async def async_added_to_hass(self):
         await super().async_added_to_hass()

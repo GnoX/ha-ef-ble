@@ -1,68 +1,78 @@
-from ..devicebase import DeviceBase
+import logging
+
+from bleak import BLEDevice, AdvertisementData
+
+from ._powerocean_base import PowerOceanBase, WorkMode
 from ..packet import Packet
 from ..pb import (
-    iot_comm_pb2,
-    jt_s1_ecology_dev_pb2,
     jt_s1_sys_pb2,
-    platform_comm_pb2,
 )
+#from ..pb.jt_s1_sys_pb2 import WorkMode
 from ..props import (
-    ProtobufProps,
     pb_field,
     proto_attr_mapper,
 )
 
-pb_heartbeat = proto_attr_mapper(jt_s1_sys_pb2.HeartbeatReport)
-pb_moduleinfo = proto_attr_mapper(iot_comm_pb2.ModuleInfo)
+
+_LOGGER = logging.getLogger(__name__)
+
+# pb_heartbeat = proto_attr_mapper(jt_s1_sys_pb2.HeartbeatReport)
+# pb_moduleinfo = proto_attr_mapper(iot_comm_pb2.ModuleInfo)
+# pb_energy_stream_report = proto_attr_mapper(jt_s1_sys_pb2.EnergyStreamReport)
+# pb_error_change_report = proto_attr_mapper(jt_s1_sys_pb2.ErrorChangeReport)
+# pb_bp_heart = proto_attr_mapper(jt_s1_sys_pb2.BpHeartbeatReport)
+# pb_ems_change_report = proto_attr_mapper(jt_s1_sys_pb2.EmsChangeReport)
+# pb_sys_param_get_ack = proto_attr_mapper(jt_s1_sys_pb2.SysParamGetAck)
+# pb_edev_energy_stream = proto_attr_mapper(jt_s1_edev_pb2.EDevEnergyStreamShow)
 
 
-class Device(DeviceBase, ProtobufProps):
-    SN_PREFIX = (b"J32",)
+pb_ems_change_report = proto_attr_mapper(jt_s1_sys_pb2.EmsChangeReport)
+
+
+
+#      TODO:
+#       X  - error change report
+#       - sensor values:
+#           - add sensor values from cloud implementation   DONE
+#           - support for total accumulating values if possible and few missing
+#       - add diagnostic values
+#       OK - put pass on most of messages (I wouldn't remove implementation, because we have all of there, if we need to
+#       OK   use it we can just uncomment it and use the message)
+#       - hotrod support (v2)
+#       - EV support (v2)
+#       - HeatPump support (v2)
+#       OK    - split into plus and normal version
+#       Integration:
+#                    - add standalone sensors
+#                    - connected devices: Phases (A,B,C)
+#                    - connected devices: PV String (1,2,3)
+#                    - connected devices: Battery packs (1-4)
+#
+
+#   Description:
+#   This device is to be used for all PowerOcean models that are not plus and pro. There is quite a lot of
+#   "Standard" models available and they all should be handled by this implementation.
+
+class Device(PowerOceanBase):
+    """PowerOcean"""
+
+    SN_PREFIX = (b"J32", b"HJ3", b"HC3")  # 1-phase, 3-phase, DC-Fit
     NAME_PREFIX = "EF-J32"
 
-    grid_power = pb_field(pb_heartbeat.ems_bp_power)
+    ems_work_mode = pb_field(pb_ems_change_report.ems_word_mode, WorkMode.from_mode)
 
-    @classmethod
-    def check(cls, sn: bytes):
-        return sn[:3] in cls.SN_PREFIX
+    batteries_level = pb_field(pb_ems_change_report.bp_soc)  # bp_soc
+    batteries_total_charge_energy = pb_field(pb_ems_change_report.bp_total_chg_energy) # bp_total_chg_energy
+    batteries_total_discharge_energy = pb_field(pb_ems_change_report.bp_total_dsg_energy) # bp_total_dsg_energy
+    batteries_online_count = pb_field(pb_ems_change_report.bp_online_sum)  # bp_online_sum
 
-    async def packet_parse(self, data: bytes):
-        return Packet.fromBytes(data, xor_payload=True)
+    # String data
+    pv_fault_code_1 = pb_field(pb_ems_change_report.mppt1_fault_code)  # mppt_pv1_fault_code
+    pv_warning_code_1 = pb_field(pb_ems_change_report.mppt1_warning_code)  # mppt_pv1_warning_code
 
-    async def data_parse(self, packet: Packet):
-        processed = False
-        self.reset_updated()
+    pv_fault_code_2 = pb_field(pb_ems_change_report.mppt2_fault_code)
+    pv_warning_code_2 = pb_field(pb_ems_change_report.mppt2_warning_code)
 
-        match packet.src, packet.cmdSet, packet.cmdId:
-            case _, 0xFE, 0x10:
-                self.update_from_message(platform_comm_pb2.EventRecordReport())
-                # TODO(gnox): should respond with platform_comm_pb2.EventInfoReportAck
-            case 0x35, 0x35, 0x71:
-                self.update_from_message(iot_comm_pb2.ModuleClusterInfo())
-            case 0x60, 0x60, 0x01:
-                self.update_from_message(jt_s1_sys_pb2.HeartbeatReport())
-            case 0x60, 0x60, 0x03:
-                self.update_from_message(jt_s1_sys_pb2.ErrorChangeReport())
-            case 0x60, 0x60, 0x07:
-                self.update_from_message(jt_s1_sys_pb2.BpHeartbeatReport())
-            case 0x60, 0x60, 0x08:
-                self.update_from_message(jt_s1_sys_pb2.EmsChangeReport())
-            case 0x60, 0x60, 0x0D:
-                # NOTE(gnox): network config data - even though it is parsable as
-                # protocol buffers, in the app, it's parsed manually into NetConfig
-                # beans
-                pass
-            case 0x60, 0x60, 0x0A:
-                self.update_from_message(jt_s1_sys_pb2.EmsAllTimerTaskReport())
-            case 0x60, 0x60, 0x0B:
-                self.update_from_message(jt_s1_sys_pb2.EmsEcologyDevReport())
-            case 0x60, 0x60, 0x21:
-                self.update_from_message(jt_s1_sys_pb2.EnergyStreamReport())
-            case 0x60, 0xE0, 0x01:
-                self.update_from_message(jt_s1_ecology_dev_pb2.EcologyDevGetAck())
 
-        for field_name in self.updated_fields:
-            self.update_callback(field_name)
-            self.update_state(field_name, getattr(self, field_name))
-
-        return processed
+    def process_ems_change_report(self, packet: Packet):
+        self.update_from_bytes(jt_s1_sys_pb2.EmsChangeReport, packet.payload)
