@@ -15,7 +15,7 @@ from ..props import (
     repeated_pb_field_type,
 )
 from ..props.enums import IntFieldValue
-from ..props.utils import pmultiply, prop_has_bit_off, prop_has_bit_on, pround
+from ..props.transforms import pmultiply, prop_has_bit_off, prop_has_bit_on, pround
 
 pb_heartbeat = proto_attr_mapper(yj751_sys_pb2.AppShowHeartbeatReport)
 pb_backend_record_heartbeat = proto_attr_mapper(

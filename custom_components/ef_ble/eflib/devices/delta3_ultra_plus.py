@@ -3,8 +3,8 @@ from collections.abc import Sequence
 from ..entity import controls
 from ..pb import pd335_sys_pb2
 from ..props import pb_field, repeated_pb_field_type
+from ..props.transforms import flow_is_on, out_power
 from . import delta3, delta3_ultra
-from ._delta3_base import flow_is_on, out_power
 
 pb = delta3.pb
 

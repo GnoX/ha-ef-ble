@@ -6,7 +6,7 @@ from ..pb import ac517_apl_comm_pb2
 from ..props import ProtobufProps, pb_field
 from ..props.enums import IntFieldValue
 from ..props.protobuf_field import proto_attr_mapper
-from ..props.utils import pround
+from ..props.transforms import pround
 
 # Two mappers: Display and Runtime
 pb_disp = proto_attr_mapper(ac517_apl_comm_pb2.DisplayPropertyUpload)

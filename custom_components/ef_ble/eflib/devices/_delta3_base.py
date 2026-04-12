@@ -16,19 +16,10 @@ from ..props import (
     repeated_pb_field_type,
 )
 from ..props.enums import IntFieldValue
+from ..props.transforms import flow_is_on, out_power
 
 pb = proto_attr_mapper(pd335_sys_pb2.DisplayPropertyUpload)
 pb_bms = proto_attr_mapper(pd335_bms_bp_pb2.BMSHeartBeatReport)
-
-
-def out_power(x) -> float:
-    return -round(x, 2) if x != 0 else 0
-
-
-def flow_is_on(x):
-    # this is the same check as in app, no idea what values other than 0 (off) or 2 (on)
-    # actually represent
-    return (int(x) & 0b11) in [0b10, 0b11]
 
 
 class _DcChargingMaxField(
