@@ -417,7 +417,7 @@ class Connection:
         if self._reconnect_task is not None:
             return
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         self._reconnect_task = self._add_task(self.reconnect(), loop)
 
         def _reconnect_done(task: asyncio.Task[None]):
@@ -1137,12 +1137,12 @@ class Connection:
             callback()
 
         if key is None:
-            asyncio.get_event_loop().call_later(delay, _call_if_connected)
+            asyncio.get_running_loop().call_later(delay, _call_if_connected)
             return
 
         if (h := self._call_later_handles.get(key)) is not None:
             h.cancel()
-        self._call_later_handles[key] = asyncio.get_event_loop().call_later(
+        self._call_later_handles[key] = asyncio.get_running_loop().call_later(
             delay, _call_if_connected
         )
 
