@@ -159,6 +159,58 @@ class RawHeaderAssembler(FrameAssembler):
         return payloads
 
 
+class PlainRawHeaderAssembler:
+    """Frame codec for encrypt_type 0: 0xAA header + unencrypted body"""
+
+    def __init__(self) -> None:
+        self._buffer = b""
+
+    @property
+    def write_with_response(self) -> bool:
+        return False
+
+    async def encode(self, packet: Packet) -> bytes:
+        return packet.toBytes()
+
+    async def reassemble(self, data: bytes) -> list[bytes]:
+        if self._buffer:
+            data = self._buffer + data
+            self._buffer = b""
+
+        payloads = []
+        while data:
+            start = data.find(Packet.PREFIX)
+            if start < 0:
+                data = b""
+                break
+
+            if start > 0:
+                data = data[start:]
+
+            if len(data) < 5:
+                break
+
+            if crc8(data[:4]) != data[4]:
+                data = data[1:]
+                continue
+
+            payload_length = struct.unpack("<H", data[2:4])[0]
+            version = data[1]
+
+            inner_overhead = 15 if version >= 3 else 13
+            inner_len = inner_overhead + payload_length
+            frame_len = 5 + inner_len
+
+            if len(data) < frame_len:
+                break
+
+            payloads.append(data[:frame_len])
+            data = data[frame_len:]
+
+        self._buffer = data
+        return payloads
+
+
 class SimplePacketAssembler:
     """Assembler for unencrypted EncPacket command/response frames"""
 

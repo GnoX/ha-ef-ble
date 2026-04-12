@@ -232,7 +232,12 @@ class DeviceBase(abc.ABC):
             )
             self._connection_event.set()
 
-            self._logger.info("Connecting to %s", self.device)
+            self._logger.info(
+                "Connecting to %s (encrypt_type=%d, capability_flags=0b%s)",
+                self.device,
+                self.scan_record.encrypt_type,
+                f"{self.scan_record.capability_flags:08b}",
+            )
 
             self._conn.on_disconnect(self._listeners.on_disconnect)
             self._conn.on_packet_data_received(self._listeners.on_packet_received)

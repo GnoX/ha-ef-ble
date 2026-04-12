@@ -38,6 +38,7 @@ from .exceptions import (
 )
 from .frame_assembler import (
     EncPacketAssembler,
+    PlainRawHeaderAssembler,
     RawHeaderAssembler,
     SimplePacketAssembler,
 )
@@ -390,7 +391,6 @@ class Connection:
             return
 
         self._set_state(ConnectionState.CONNECTED)
-        self._logger.info("Connected")
         self._errors = 0
         self._retry_on_disconnect = self._reconnect
 
@@ -401,6 +401,12 @@ class Connection:
     def disconnected(self, *args, **kwargs) -> None:
         self._logger.warning("Disconnected from device")
         self._client = None
+
+        # NOTE(gnox): don't trigger disconnect/reconnect logic while
+        # establish_connection is still retrying internally (bleak_retry_connector
+        # manages its own retries and will raise on final failure)
+        if self._state is ConnectionState.ESTABLISHING_CONNECTION:
+            return
 
         if not self._retry_on_disconnect:
             if self._reconnect_task:
@@ -828,14 +834,24 @@ class Connection:
             packet.seq,
             packet.productId,
         )
-        # Running reply asynchroneously
-        self._add_task(self.sendPacket(reply_packet))
+        # NOTE(gnox): Send reply without waiting for BLE ACK to reduce latency - replies
+        # are best-effort echoes and don't need the retry path
+        self._add_task(self.sendPacket(reply_packet, wait_for_response=False))
 
     async def initBleSessionKey(self):
-        if self._encrypt_type == 1:
+        self._logger.info("Session init with encrypt_type=%d", self._encrypt_type)
+        if self._encrypt_type == 0:
+            await self._type_0_session()
+        elif self._encrypt_type == 1:
             await self._type_1_session()
         else:
             await self._ecdh_key_exchange()
+
+    async def _type_0_session(self):
+        await self._start_notify(self.listenForDataHandler)
+
+        await self.send_auth_status_packet()
+        await self.autoAuthentication()
 
     async def _type_1_session(self):
         session_key = hashlib.md5(self._dev_sn.encode()).digest()
@@ -868,7 +884,25 @@ class Connection:
     async def initBleSessionKeyHandler(
         self, characteristic: BleakGATTCharacteristic, recv_data: bytearray
     ):
-        data = await self.parseSimple(bytes(recv_data))
+        try:
+            data = await self.parseSimple(bytes(recv_data))
+        except PacketParseError:
+            if bytes(recv_data).find(Packet.PREFIX) >= 0:
+                # Device responded with unencrypted 0xAA packet instead of ECDH
+                # response - old firmware that doesn't support encryption
+                self._logger.warning(
+                    "Device sent unencrypted packet during ECDH exchange, falling back"
+                    " to unencrypted mode (encrypt_type 0)"
+                )
+                assert self._client is not None
+                await self._client.stop_notify(self._notify_characteristic)
+                self._encrypt_type = 0
+                with contextlib.suppress(AttributeError):
+                    del self._frame_assembler
+                await self._type_0_session()
+                return
+            raise
+
         if data is None:
             return
 
@@ -1072,6 +1106,8 @@ class Connection:
 
     def _create_frame_assembler(self):
         match self._encrypt_type:
+            case 0:
+                return PlainRawHeaderAssembler()
             case 1:
                 return RawHeaderAssembler(self._encryption)
             case 7:
