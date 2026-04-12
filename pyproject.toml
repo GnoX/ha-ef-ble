@@ -35,7 +35,7 @@ hass = [
 ]
 lint = [
   "pre-commit",
-  "ruff",
+  "ruff==0.15.10",
 ]
 
 [tool.setuptools]
