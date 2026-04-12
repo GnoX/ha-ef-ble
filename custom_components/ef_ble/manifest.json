@@ -198,10 +198,10 @@
     "loggers": ["custom_components.ef_ble"],
 
     "requirements": [
-        "ecdsa",
-        "crc",
-        "PyCryptodome",
-        "protobuf"
+        "ecdsa~=0.19",
+        "crc~=7.1",
+        "PyCryptodome~=3.23",
+        "protobuf~=6.30"
     ],
 
     "version": "0.39.0"
