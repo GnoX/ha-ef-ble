@@ -9,7 +9,7 @@ from ..packet import Packet
 from ..pb import cp307_iot_pb2
 from ..props import ProtobufProps, pb_field, proto_attr_mapper
 from ..props.enums import IntFieldValue
-from ..props.utils import pround
+from ..props.transforms import pround
 
 pb = proto_attr_mapper(cp307_iot_pb2.HeartBeat)
 
