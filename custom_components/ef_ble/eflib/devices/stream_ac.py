@@ -13,8 +13,8 @@ from ..entity.base import dynamic
 from ..packet import Packet
 from ..pb import bk_series_pb2
 from ..props import (
-    Field,
     ProtobufProps,
+    computed_field,
     pb_field,
     proto_attr_mapper,
     repeated_pb_field_type,
@@ -169,37 +169,17 @@ class Device(DeviceBase, ProtobufProps):
     max_ac_in_power = pb_field(pb.pow_sys_ac_in_max)
 
     _resident_load = ResidentLoad()
-    load_power_enabled = Field[bool]()
-    base_load_power = Field[int]()
     max_bp_input = pb_field(pb.max_bp_input)
 
     _charging_task = ChargingTimerTask()
     _discharging_task = DischargingTimerTask()
     _all_timer_tasks = pb_field(pb.all_timer_task)
-    charging_grid_power_limit_enabled = Field[bool]()
-    charging_grid_power_limit = Field[int]()
-    charging_grid_target_soc = Field[int]()
-    charging_task_enabled = Field[bool]()
-    discharging_task_available = Field[bool]()
-    discharging_task_enabled = Field[bool]()
-    discharging_power_limit = Field[int]()
 
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
     ) -> None:
         super().__init__(ble_dev, adv_data, sn)
         self._timer_task_chain: _TimerTaskChain | None = None
-
-    @property
-    def _dev_target_soc(self):
-        if self._charging_task is None:
-            return None
-
-        for target_soc in self._charging_task.chg_task.dev_target_soc:
-            if target_soc.sn == self._sn:
-                return target_soc
-
-        return None
 
     async def packet_parse(self, data: bytes):
         return Packet.fromBytes(data, xor_payload=True)
@@ -216,32 +196,66 @@ class Device(DeviceBase, ProtobufProps):
             self.update_from_bytes(bk_series_pb2.DisplayPropertyUpload, packet.payload)
             processed = True
 
-        self.load_power_enabled = self._resident_load is not None
-        if self._resident_load is not None:
-            self.base_load_power = self._resident_load.load_power
-
-        self.charging_grid_power_limit_enabled = self._dev_target_soc is not None
-
-        if (target_soc := self._dev_target_soc) is not None:
-            self.charging_grid_power_limit = target_soc.chg_from_grid_power_limited
-            self.charging_grid_target_soc = target_soc.target_soc
-
-        if self._charging_task is not None:
-            self.charging_task_enabled = self._charging_task.is_enable
-
-        self.discharging_task_available = self._discharging_task is not None
-
-        if self._discharging_task is not None:
-            self.discharging_task_enabled = self._discharging_task.is_enable
-            self.discharging_power_limit = (
-                self._discharging_task.home_need_power_limited
-            )
-
-        for field_name in self.updated_fields:
-            self.update_callback(field_name)
-            self.update_state(field_name, getattr(self, field_name))
+        self._notify_updated()
 
         return processed
+
+    @computed_field
+    def load_power_enabled(self) -> bool:
+        return self._resident_load is not None
+
+    @computed_field
+    def base_load_power(self) -> int | None:
+        if self._resident_load is None:
+            return None
+        return self._resident_load.load_power
+
+    @computed_field
+    def charging_grid_power_limit_enabled(self) -> bool:
+        return self._dev_target_soc is not None
+
+    @computed_field
+    def charging_grid_power_limit(self) -> int | None:
+        target = self._dev_target_soc
+        return target.chg_from_grid_power_limited if target is not None else None
+
+    @computed_field
+    def charging_grid_target_soc(self) -> int | None:
+        target = self._dev_target_soc
+        return target.target_soc if target is not None else None
+
+    @computed_field
+    def charging_task_enabled(self) -> bool | None:
+        if self._charging_task is None:
+            return None
+        return self._charging_task.is_enable
+
+    @computed_field
+    def discharging_task_available(self) -> bool:
+        return self._discharging_task is not None
+
+    @computed_field
+    def discharging_task_enabled(self) -> bool | None:
+        if self._discharging_task is None:
+            return None
+        return self._discharging_task.is_enable
+
+    @computed_field
+    def discharging_power_limit(self) -> int | None:
+        if self._discharging_task is None:
+            return None
+        return self._discharging_task.home_need_power_limited
+
+    @property
+    def _dev_target_soc(self):
+        if self._charging_task is None:
+            return None
+
+        for target_soc in self._charging_task.chg_task.dev_target_soc:
+            if target_soc.sn == self._sn:
+                return target_soc
+
+        return None
 
     async def _send_config_packet(self, message: bk_series_pb2.ConfigWrite):
         payload = message.SerializeToString()
