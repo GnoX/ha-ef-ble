@@ -1,4 +1,6 @@
 from ..devicebase import DeviceBase
+from ..entity import controls
+from ..entity.base import dynamic
 from ..model import (
     AllKitDetailData,
     BaseMpptHeart,
@@ -160,52 +162,12 @@ class Delta2Base(DeviceBase, RawDataProps):
     def ac_commands_dst(self) -> int:
         return 0x05
 
-    async def set_ac_charging_speed(self, value: int):
-        if self.max_ac_charging_power is None:
-            return False
-
-        value = max(1, min(value, self.max_ac_charging_power))
-        # Sending 0 sets to (more than) max-load - better safe
-
-        payload = value.to_bytes(2, "little") + bytes([0xFF])
-
-        packet = Packet(
-            0x21,
-            self.ac_commands_dst,
-            0x20,
-            0x45,
-            payload,
-            version=0x02,
-        )
-        await self._conn.sendPacket(packet)
-        return True
-
-    async def enable_energy_backup(self, enabled: bool):
-        backup_level = getattr(self, "energy_backup_battery_level", 0)
-        if backup_level == 0 and enabled:
-            backup_level = 50
-
-        await self.set_energy_backup_battery_level(backup_level, enabled=enabled)
-
-    async def set_energy_backup_battery_level(self, value: int, enabled: bool = True):
-        if (
-            self.battery_charge_limit_min is None
-            or self.battery_charge_limit_max is None
-        ):
-            return
-
-        value = max(
-            self.battery_charge_limit_min,
-            min(value, self.battery_charge_limit_max),
-        )
-        payload = bytes([0x01 if enabled else 0, value, 0x00, 0x00])
-        packet = Packet(0x21, 0x02, 0x20, 0x5E, payload, version=0x02)
-        await self._conn.sendPacket(packet)
-
+    @controls.switch(usb_ports)
     async def enable_usb_ports(self, enabled: bool):
         packet = Packet(0x21, 0x02, 0x20, 0x22, enabled.to_bytes(), version=0x02)
         await self._conn.sendPacket(packet)
 
+    @controls.switch(dc_12v_port)
     async def enable_dc_12v_port(self, enabled: bool):
         packet = Packet(
             0x21,
@@ -217,18 +179,33 @@ class Delta2Base(DeviceBase, RawDataProps):
         )
         await self._conn.sendPacket(packet)
 
+    @controls.outlet(ac_ports)
     async def enable_ac_ports(self, enabled: bool):
         payload = bytes([1 if enabled else 0, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
         packet = Packet(0x21, self.ac_commands_dst, 0x20, 0x42, payload, version=0x02)
         await self._conn.sendPacket(packet)
 
-    async def set_battery_charge_limit_max(self, limit: int):
-        packet = Packet(0x21, 0x03, 0x20, 0x31, limit.to_bytes(), version=0x02)
+    @controls.battery(battery_charge_limit_max, min=dynamic(battery_charge_limit_min))
+    async def set_battery_charge_limit_max(self, limit: float):
+        if (
+            self.battery_charge_limit_min is not None
+            and limit < self.battery_charge_limit_min
+        ):
+            return False
+        packet = Packet(0x21, 0x03, 0x20, 0x31, int(limit).to_bytes(), version=0x02)
         await self._conn.sendPacket(packet)
+        return True
 
-    async def set_battery_charge_limit_min(self, limit: int):
-        packet = Packet(0x21, 0x03, 0x20, 0x33, limit.to_bytes(), version=0x02)
+    @controls.battery(battery_charge_limit_min, max=dynamic(battery_charge_limit_max))
+    async def set_battery_charge_limit_min(self, limit: float):
+        if (
+            self.battery_charge_limit_max is not None
+            and limit > self.battery_charge_limit_max
+        ):
+            return False
+        packet = Packet(0x21, 0x03, 0x20, 0x33, int(limit).to_bytes(), version=0x02)
         await self._conn.sendPacket(packet)
+        return True
 
     def _update_extra_batteries(self, kit_data: AllKitDetailData):
         battery_entity_map = [

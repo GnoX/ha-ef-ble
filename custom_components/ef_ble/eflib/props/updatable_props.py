@@ -117,9 +117,9 @@ class Field[T]:
         self._set_value(instance, value)
 
     def _set_value(self, instance: UpdatableProps, value: Any):
-        if value == getattr(instance, self.public_name):
-            return
         if (value := self._transform_value(value)) is Skip:
+            return
+        if value == getattr(instance, self.public_name):
             return
         setattr(instance, self.private_name, value)
         instance.updated = True

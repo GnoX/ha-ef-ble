@@ -236,6 +236,12 @@
           "off": "mdi:battery-sync-outline"
         }
       },
+      "ac_ports": {
+        "default": "mdi:power-plug",
+        "state": {
+          "off": "mdi:power-plug-off"
+        }
+      },
       "dc_12v_port": {
         "default": "mdi:power-plug",
         "state": {
@@ -249,7 +255,10 @@
         }
       },
       "disable_grid_bypass": {
-        "default": "mdi:transmission-tower-off"
+        "default": "mdi:transmission-tower-off",
+        "state": {
+          "off": "mdi:transmission-tower"
+        }
       },
       "energy_strategy_self_powered": {
         "default": "mdi:solar-power"

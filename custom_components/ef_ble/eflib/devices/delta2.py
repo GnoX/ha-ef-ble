@@ -1,3 +1,5 @@
+from ..entity import controls
+from ..entity.base import dynamic
 from ..model import (
     Mr330MpptHeart,
     Mr330PdHeartDelta2,
@@ -22,6 +24,8 @@ class Device(Delta2Base):
     dc_output_power = raw_field(pb_pd.dc_pv_output_watts)
     ac_charging_speed = raw_field(pb_mppt.cfg_chg_watts)
 
+    disable_grid_bypass = raw_field(pb_pd.reverser, lambda x: ((x >> 8) & 0xFF) == 1)
+
     xt60_input_power = raw_field(pb_pd.dc_pv_input_watts)
 
     async def packet_parse(self, data: bytes):
@@ -44,3 +48,48 @@ class Device(Delta2Base):
             self.max_ac_charging_power = 1500
         else:
             self.max_ac_charging_power = 1200
+
+    @controls.switch(energy_backup)
+    async def enable_energy_backup(self, enabled: bool):
+        backup_level = self.energy_backup_battery_level or 50
+        await self._send_backup_packet(backup_level, enabled=enabled)
+
+    @controls.battery(
+        energy_backup_battery_level,
+        min=dynamic(Delta2Base.battery_charge_limit_min),
+        max=dynamic(Delta2Base.battery_charge_limit_max),
+        availability=energy_backup,
+    )
+    async def set_energy_backup_battery_level(self, value: float):
+        await self._send_backup_packet(int(value), enabled=True)
+        return True
+
+    async def _send_backup_packet(self, value: int, enabled: bool):
+        if (
+            self.battery_charge_limit_min is None
+            or self.battery_charge_limit_max is None
+        ):
+            return
+        value = max(
+            self.battery_charge_limit_min,
+            min(value, self.battery_charge_limit_max),
+        )
+        payload = bytes([0x01 if enabled else 0, value, 0x00, 0x00])
+        packet = Packet(0x21, 0x02, 0x20, 0x5E, payload, version=0x02)
+        await self._conn.sendPacket(packet)
+
+    @controls.power(ac_charging_speed, max=dynamic(Delta2Base.max_ac_charging_power))
+    async def set_ac_charging_speed(self, value: float):
+        if self.max_ac_charging_power is None or value < 1:
+            return False
+        payload = int(value).to_bytes(2, "little") + bytes([0xFF])
+        packet = Packet(0x21, self.ac_commands_dst, 0x20, 0x45, payload, version=0x02)
+        await self._conn.sendPacket(packet)
+        return True
+
+    @controls.switch(disable_grid_bypass, enabled=False)
+    async def enable_disable_grid_bypass(self, disabled: bool):
+        packet = Packet(
+            0x21, 0x02, 0x20, 0x60, bytes([1 if disabled else 0]), version=0x02
+        )
+        await self._conn.sendPacket(packet)

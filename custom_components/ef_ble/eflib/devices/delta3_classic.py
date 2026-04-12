@@ -47,7 +47,7 @@ class Device(Delta3Base):
     def _after_message_parsed(self):
         pass
 
-    @controls.switch(disable_grid_bypass)
+    @controls.switch(disable_grid_bypass, enabled=False)
     async def enable_disable_grid_bypass(self, enabled: bool):
         await self._send_config_packet(
             pd335_sys_pb2.ConfigWrite(cfg_bypass_out_disable=enabled)
