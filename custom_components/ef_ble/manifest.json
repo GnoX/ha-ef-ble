@@ -1,7 +1,6 @@
 {
     "domain": "ef_ble",
     "name": "EcoFlow BLE (Unofficial)",
-
     "bluetooth": [
         {
             "local_name": "EF-HD3*",
