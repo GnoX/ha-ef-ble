@@ -25,7 +25,7 @@ No internet connection required • Real-time status updates • Full local cont
 > This fork is primarily intended for personal experimentation and testing. It includes
   the latest features, but **may not be fully stable** on devices other than **River 3**
   and **Delta 3 Plus**.  
->  
+>
 > All changes will eventually be merged into the [main repository](https://github.com/rabits/ha-ef-ble).
   If you're not actively testing or developing new features, it's recommended to use the
   main repo instead.

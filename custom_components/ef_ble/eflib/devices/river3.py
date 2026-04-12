@@ -15,6 +15,7 @@ from ..props import (
     repeated_pb_field_type,
 )
 from ..props.enums import IntFieldValue
+from ..props.transforms import flow_is_on, out_power
 
 pb = proto_attr_mapper(pr705_pb2.DisplayPropertyUpload)
 
@@ -40,16 +41,6 @@ class _StatField(
         return item.statistics_content if item.statistics_object == self.stat else None
 
 
-def _out_power(x) -> float:
-    return -round(x, 2) if x != 0 else 0
-
-
-def _flow_is_on(x) -> bool:
-    # this is the same check as in app, no idea what values other than 0 (off) or 2 (on)
-    # actually represent
-    return (int(x) & 0b11) in [0b10, 0b11]
-
-
 class Device(DeviceBase, ProtobufProps):
     """River 3"""
 
@@ -61,7 +52,7 @@ class Device(DeviceBase, ProtobufProps):
     ac_input_power = pb_field(pb.pow_get_ac_in, lambda x: round(x, 2))
     ac_input_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_AC_IN_ENERGY)
 
-    ac_output_power = pb_field(pb.pow_get_ac_out, _out_power)
+    ac_output_power = pb_field(pb.pow_get_ac_out, out_power)
     ac_output_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_AC_OUT_ENERGY)
 
     input_power = pb_field(pb.pow_in_sum_w)
@@ -70,13 +61,13 @@ class Device(DeviceBase, ProtobufProps):
     dc_input_power = pb_field(pb.pow_get_pv)
     dc_input_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_PV_IN_ENERGY)
 
-    dc12v_output_power = pb_field(pb.pow_get_12v, _out_power)
+    dc12v_output_power = pb_field(pb.pow_get_12v, out_power)
     dc12v_output_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_DC12V_OUT_ENERGY)
 
-    usbc_output_power = pb_field(pb.pow_get_typec1, _out_power)
+    usbc_output_power = pb_field(pb.pow_get_typec1, out_power)
     usbc_output_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_TYPEC_OUT_ENERGY)
 
-    usba_output_power = pb_field(pb.pow_get_qcusb1, _out_power)
+    usba_output_power = pb_field(pb.pow_get_qcusb1, out_power)
     usba_output_energy = _StatField(pr705_pb2.STATISTICS_OBJECT_USBA_OUT_ENERGY)
 
     ac_charging_speed = pb_field(pb.plug_in_info_ac_in_chg_pow_max)
@@ -93,8 +84,8 @@ class Device(DeviceBase, ProtobufProps):
 
     cell_temperature = pb_field(pb.bms_max_cell_temp)
 
-    dc_12v_port = pb_field(pb.flow_info_12v, _flow_is_on)
-    ac_ports = pb_field(pb.flow_info_ac_out, _flow_is_on)
+    dc_12v_port = pb_field(pb.flow_info_12v, flow_is_on)
+    ac_ports = pb_field(pb.flow_info_ac_out, flow_is_on)
 
     dc_charging_type = pb_field(pb.pv_chg_type, DcChargingType.from_value)
     dc_charging_max_amps = pb_field(pb.plug_in_info_pv_dc_amp_max)

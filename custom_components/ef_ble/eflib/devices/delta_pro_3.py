@@ -14,17 +14,7 @@ from ..props import (
 )
 from ..props.enums import IntFieldValue
 from ..props.resv_info_parser import resv_soc, resv_temperature
-
-
-def _out_power(x) -> float:
-    return -round(x, 2) if x != 0 else 0
-
-
-def _flow_is_on(x):
-    # this is the same check as in app, no idea what values other than 0 (off) or 2 (on)
-    # actually represent
-    return (int(x) & 0b11) in [0b10, 0b11]
-
+from ..props.transforms import flow_is_on, out_power
 
 pb = proto_attr_mapper(mr521_pb2.DisplayPropertyUpload)
 
@@ -49,24 +39,24 @@ class Device(DeviceBase, ProtobufProps):
     battery_level = pb_field(pb.cms_batt_soc, lambda value: round(value, 2))
     battery_level_main = pb_field(pb.bms_batt_soc, lambda value: round(value, 2))
 
-    ac_input_power = pb_field(pb.pow_get_ac, _out_power)
-    ac_lv_output_power = pb_field(pb.pow_get_ac_lv_out, _out_power)
-    ac_hv_output_power = pb_field(pb.pow_get_ac_hv_out, _out_power)
+    ac_input_power = pb_field(pb.pow_get_ac, out_power)
+    ac_lv_output_power = pb_field(pb.pow_get_ac_lv_out, out_power)
+    ac_hv_output_power = pb_field(pb.pow_get_ac_hv_out, out_power)
 
     input_power = pb_field(pb.pow_in_sum_w)
     output_power = pb_field(pb.pow_out_sum_w)
 
-    dc12v_output_power = pb_field(pb.pow_get_12v, _out_power)
+    dc12v_output_power = pb_field(pb.pow_get_12v, out_power)
 
     dc_lv_input_power = pb_field(pb.pow_get_pv_l)
     dc_hv_input_power = pb_field(pb.pow_get_pv_h)
     dc_lv_input_state = pb_field(pb.plug_in_info_pv_l_type, DCPortState.from_value)
     dc_hv_input_state = pb_field(pb.plug_in_info_pv_h_type, DCPortState.from_value)
 
-    usbc_output_power = pb_field(pb.pow_get_typec1, _out_power)
-    usbc2_output_power = pb_field(pb.pow_get_typec2, _out_power)
-    usba_output_power = pb_field(pb.pow_get_qcusb1, _out_power)
-    usba2_output_power = pb_field(pb.pow_get_qcusb2, _out_power)
+    usbc_output_power = pb_field(pb.pow_get_typec1, out_power)
+    usbc2_output_power = pb_field(pb.pow_get_typec2, out_power)
+    usba_output_power = pb_field(pb.pow_get_qcusb1, out_power)
+    usba2_output_power = pb_field(pb.pow_get_qcusb2, out_power)
 
     ac_charging_speed = pb_field(pb.plug_in_info_ac_in_chg_pow_max)
     max_ac_charging_power = pb_field(pb.plug_in_info_ac_in_chg_hal_pow_max)
@@ -83,9 +73,9 @@ class Device(DeviceBase, ProtobufProps):
 
     cell_temperature = pb_field(pb.bms_max_cell_temp)
 
-    dc_12v_port = pb_field(pb.flow_info_12v, _flow_is_on)
-    ac_lv_port = pb_field(pb.flow_info_ac_lv_out, _flow_is_on)
-    ac_hv_port = pb_field(pb.flow_info_ac_hv_out, _flow_is_on)
+    dc_12v_port = pb_field(pb.flow_info_12v, flow_is_on)
+    ac_lv_port = pb_field(pb.flow_info_ac_lv_out, flow_is_on)
+    ac_hv_port = pb_field(pb.flow_info_ac_hv_out, flow_is_on)
 
     solar_lv_power = Field[float]()
     solar_hv_power = Field[float]()

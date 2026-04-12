@@ -2,7 +2,8 @@ from ..entity import controls
 from ..entity.base import dynamic
 from ..pb import pd335_sys_pb2
 from ..props import pb_field
-from ._delta3_base import Delta3Base, flow_is_on, out_power, pb
+from ..props.transforms import flow_is_on, out_power
+from ._delta3_base import Delta3Base, pb
 
 
 class Device(Delta3Base):
