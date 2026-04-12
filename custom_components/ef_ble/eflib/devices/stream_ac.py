@@ -167,6 +167,7 @@ class Device(DeviceBase, ProtobufProps):
 
     grid_in_power_limit = pb_field(pb.sys_grid_in_pwr_limit)
     max_ac_in_power = pb_field(pb.pow_sys_ac_in_max)
+    max_ac_out_power = pb_field(pb.pow_sys_ac_out_max)
 
     _resident_load = ResidentLoad()
     max_bp_input = pb_field(pb.max_bp_input)
@@ -258,8 +259,8 @@ class Device(DeviceBase, ProtobufProps):
         return None
 
     async def _send_config_packet(self, message: bk_series_pb2.ConfigWrite):
-        payload = message.SerializeToString()
         message.cfg_utc_time = round(time.time())
+        payload = message.SerializeToString()
         packet = Packet(0x20, 0x02, 0xFE, 0x11, payload, 0x01, 0x01, 0x13)
         await self._conn.sendPacket(packet)
 
@@ -448,6 +449,7 @@ class Device(DeviceBase, ProtobufProps):
     @controls.power(
         discharging_power_limit,
         step=100,
+        max=dynamic(max_ac_out_power),
         availability=dynamic(discharging_task_available),
     )
     async def set_discharging_power_limit(self, limit: float):
