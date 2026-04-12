@@ -14,7 +14,6 @@ if TYPE_CHECKING:
 def _resolve(
     value: "float | DynamicValue | None", device: "DeviceBase"
 ) -> float | None:
-    """Resolve a plain float or a DynamicValue against the device."""
     if isinstance(value, DynamicValue):
         raw = getattr(device, value.field.public_name, None)  # pyright: ignore[reportAttributeAccessIssue]
         if raw is None:
@@ -27,7 +26,6 @@ class ControlType(EntityType):
     pass
 
 
-@dataclasses.dataclass
 class toggle(ControlType):
     type SwitchFunc[D: "DeviceBase"] = Callable[[D, bool], Awaitable[None]]
 
@@ -56,7 +54,7 @@ class switch(toggle):
 
 
 class NumberType(ControlType):
-    type ValueFunc[D: "DeviceBase", N] = Callable[[D, N], Awaitable[bool]]
+    type ValueFunc[D: "DeviceBase", float] = Callable[[D, float], Awaitable[bool]]
 
     set_value_func: ValueFunc = dataclasses.field(
         default=cast("Any", None),
@@ -85,7 +83,7 @@ class NumberType(ControlType):
         self.set_value_func = _check_limits
 
         self._field.sensor(self)
-        return func
+        return cast("F", _check_limits)
 
 
 class power(NumberType):
@@ -165,7 +163,7 @@ def for_each(
     translation_placeholders: "Callable[[int], dict[str, str]] | None" = None,
 ) -> "Callable[[Callable], Callable]":
     """
-    Decorator that registers a toggle control for each field in the list
+    Decorate a function to register a toggle control for each field in the list
 
     The decorated function must accept (self, index: int, enabled: bool) where
     index is 1-based (i.e. 1 for the first field, 2 for the second, etc.).
