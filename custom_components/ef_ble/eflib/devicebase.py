@@ -121,6 +121,11 @@ class DeviceBase(abc.ABC):
     def is_connected(self) -> bool:
         return self._conn is not None and self._conn.is_connected
 
+    def update_ble_device(self, ble_dev: BLEDevice):
+        self._ble_dev = ble_dev
+        if self._conn is not None:
+            self._conn.update_ble_device(ble_dev)
+
     @property
     def packet_version(self) -> int:
         return self._packet_version
