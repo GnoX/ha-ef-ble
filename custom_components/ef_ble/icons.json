@@ -18,6 +18,18 @@
         "state": {
           "off": "mdi:flash-alert-outline"
         }
+      },
+      "bms_run_state": {
+        "default": "mdi:battery-heart-variant",
+        "state": {
+          "off": "mdi:battery-off-outline"
+        }
+      },
+      "error_occurred": {
+        "default": "mdi:alert-circle",
+        "state": {
+          "off": "mdi:alert-circle-outline"
+        }
       }
     },
     "sensor": {
@@ -237,6 +249,18 @@
         }
       },
       "ac_ports": {
+        "default": "mdi:power-plug",
+        "state": {
+          "off": "mdi:power-plug-off"
+        }
+      },
+      "ac_lv_port": {
+        "default": "mdi:power-plug",
+        "state": {
+          "off": "mdi:power-plug-off"
+        }
+      },
+      "ac_hv_port": {
         "default": "mdi:power-plug",
         "state": {
           "off": "mdi:power-plug-off"

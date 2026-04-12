@@ -337,6 +337,12 @@
       "grid_status": {
         "name": "Grid Status"
       },
+      "bms_run_state": {
+        "name": "BMS Run State"
+      },
+      "error_occurred": {
+        "name": "Error Occurred"
+      },
       "backup_force_charge": {
         "name": "Channel {channel} Force Charge"
       },
@@ -996,6 +1002,12 @@
       },
       "ac_ports": {
         "name": "AC Ports"
+      },
+      "ac_lv_port": {
+        "name": "AC LV Port"
+      },
+      "ac_hv_port": {
+        "name": "AC HV Port"
       },
       "dc_12v_port": {
         "name": "DC 12V Port"
