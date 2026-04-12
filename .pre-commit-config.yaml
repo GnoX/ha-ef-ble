@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: mixed-line-ending
         name: line-endings formatting
@@ -13,8 +13,11 @@ repos:
         name: yaml coding style check (check-yaml)
       - id: check-toml
         name: toml coding style check (check-toml)
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: ['--maxkb=500']
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.4
+    rev: v0.15.10
     hooks:
       - id: ruff
         args: ["--fix"]
@@ -26,8 +29,12 @@ repos:
       - id: yamlfmt
         args: [--mapping, "2", --sequence, "4", --offset, "2", --preserve-quotes, "--implicit_start"]
         name: yaml formatting (yamlfmt)
-  - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.38.0
+  - repo: https://github.com/rvben/rumdl-pre-commit
+    rev: v0.1.69
     hooks:
-      - id: markdownlint
-      - id: markdownlint-fix
+      - id: rumdl
+      - id: rumdl-fmt
+  - repo: https://github.com/tox-dev/pyproject-fmt
+    rev: v2.21.0
+    hooks:
+      - id: pyproject-fmt

@@ -74,13 +74,6 @@ class NumberSensorBuilder(EntityDescriptionBuilder):
         self._native_max_value = max_value
         return self
 
-    def availability_prop(self, availability_prop: str | Field):
-        if field := self._get_field(availability_prop):
-            self._availability_prop = field.public_name
-            return self
-        self._availability_prop = availability_prop
-        return self
-
     def native_unit_of_measurement_field(self, func: Callable[[DeviceBase], str]):
         self._native_unit_of_measurement_field = func
         return self
@@ -128,39 +121,29 @@ def _liquefied_gas_unit(dev: DeviceBase) -> str:
 
 _BUILDERS: dict[type[controls.NumberType], _Builder] = {
     controls.power: _Builder[controls.power](
-        lambda number, builder: (
-            builder.device_class(NumberDeviceClass.POWER).native_unit_of_measurement(
-                number.unit
-            )
-        )
+        lambda number, builder: builder.device_class(
+            NumberDeviceClass.POWER
+        ).native_unit_of_measurement(number.unit)
     ),
     controls.battery: _Builder[controls.battery](
-        lambda number, builder: (
-            builder.device_class(NumberDeviceClass.BATTERY).native_unit_of_measurement(
-                PERCENTAGE
-            )
-        )
+        lambda number, builder: builder.device_class(
+            NumberDeviceClass.BATTERY
+        ).native_unit_of_measurement(PERCENTAGE)
     ),
     controls.current: _Builder[controls.current](
-        lambda number, builder: (
-            builder.device_class(NumberDeviceClass.CURRENT).native_unit_of_measurement(
-                number.unit
-            )
-        ),
+        lambda number, builder: builder.device_class(
+            NumberDeviceClass.CURRENT
+        ).native_unit_of_measurement(number.unit),
     ),
     controls.temperature: _Builder[controls.temperature](
-        lambda number, builder: (
-            builder.device_class(
-                NumberDeviceClass.TEMPERATURE
-            ).native_unit_of_measurement(number.unit)
-        ),
+        lambda number, builder: builder.device_class(
+            NumberDeviceClass.TEMPERATURE
+        ).native_unit_of_measurement(number.unit),
     ),
     controls.weight: _Builder[controls.weight](
-        lambda number, builder: (
-            builder.device_class(
-                NumberDeviceClass.WEIGHT
-            ).native_unit_of_measurement_field(_liquefied_gas_unit)
-        )
+        lambda number, builder: builder.device_class(
+            NumberDeviceClass.WEIGHT
+        ).native_unit_of_measurement_field(_liquefied_gas_unit)
     ),
 }
 

@@ -95,7 +95,7 @@ class DeviceBase(abc.ABC):
 
     @property
     def device(self):
-        return self.__doc__ if self.__doc__ else ""
+        return self.__doc__ or ""
 
     @property
     def address(self):
@@ -238,7 +238,7 @@ class DeviceBase(abc.ABC):
             self._conn.on_packet_data_received(self._listeners.on_packet_received)
             self._conn.on_packet_parsed(self._listeners.on_packet_parsed)
             self._conn.on_state_change(self._listeners.on_connection_state_change)
-            self._conn.on_state_change(lambda state: self.connection_log.append(state))
+            self._conn.on_state_change(self.connection_log.append)
             self._conn.on_data_received(self._listeners.on_data_received)
             self._conn.on_data_send(self._listeners.on_data_send)
 
