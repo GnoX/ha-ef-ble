@@ -352,7 +352,6 @@ class Device(DeviceBase, ProtobufProps):
 
     @controls.power(
         charging_grid_power_limit,
-        step=100,
         max=dynamic(max_bp_input),
         availability=dynamic(charging_grid_power_limit_enabled),
     )
@@ -448,7 +447,6 @@ class Device(DeviceBase, ProtobufProps):
 
     @controls.power(
         discharging_power_limit,
-        step=100,
         max=dynamic(max_ac_out_power),
         availability=dynamic(discharging_task_available),
     )
