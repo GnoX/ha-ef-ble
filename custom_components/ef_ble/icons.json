@@ -298,6 +298,36 @@
         "state": {
           "off": "mdi:power-plug-off"
         }
+      },
+      "ac_1": {
+        "default": "mdi:power-plug",
+        "state": {
+          "off": "mdi:power-plug-off"
+        }
+      },
+      "ac_2": {
+        "default": "mdi:power-plug",
+        "state": {
+          "off": "mdi:power-plug-off"
+        }
+      },
+      "feed_grid": {
+        "default": "mdi:transmission-tower-export",
+        "state": {
+          "off": "mdi:transmission-tower-off"
+        }
+      },
+      "charging_task_enabled": {
+        "default": "mdi:battery-charging",
+        "state": {
+          "off": "mdi:battery-off"
+        }
+      },
+      "discharging_task_enabled": {
+        "default": "mdi:battery-arrow-down",
+        "state": {
+          "off": "mdi:battery-off-outline"
+        }
       }
     },
     "select": {
@@ -318,6 +348,15 @@
       },
       "operating_mode_select": {
         "default": "mdi:state-machine"
+      },
+      "energy_strategy": {
+        "default": "mdi:state-machine",
+        "state": {
+          "self_powered": "mdi:solar-power",
+          "scheduled": "mdi:calendar-clock",
+          "tou": "mdi:clock-time-eight",
+          "intelligent_schedule": "mdi:head-lightbulb"
+        }
       }
     },
     "number": {
@@ -356,6 +395,27 @@
       },
       "ac_5p8_charging_power": {
         "default": "mdi:lightning-bolt"
+      },
+      "feed_grid_pow_limit": {
+        "default": "mdi:transmission-tower"
+      },
+      "base_load_power": {
+        "default": "mdi:home-lightning-bolt"
+      },
+      "grid_in_power_limit": {
+        "default": "mdi:transmission-tower"
+      },
+      "charging_grid_power_limit": {
+        "default": "mdi:lightning-bolt"
+      },
+      "charging_grid_target_soc": {
+        "default": "mdi:battery-arrow-up"
+      },
+      "feed_grid_mode_power_limit": {
+        "default": "mdi:transmission-tower"
+      },
+      "discharging_power_limit": {
+        "default": "mdi:battery-arrow-down"
       }
     }
   }
