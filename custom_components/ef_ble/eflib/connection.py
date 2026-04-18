@@ -317,6 +317,9 @@ class Connection:
         self._reconnect = not is_disabled
         return self
 
+    def update_ble_device(self, ble_dev: BLEDevice):
+        self._ble_dev = ble_dev
+
     def with_options(self, options: "Connection.Options"):
         """Set connection options."""
         self._options = options
@@ -402,6 +405,12 @@ class Connection:
     def disconnected(self, *args, **kwargs) -> None:
         self._logger.warning("Disconnected from device")
         self._client = None
+
+        # NOTE(gnox): don't trigger disconnect/reconnect logic while
+        # establish_connection is still retrying internally (bleak_retry_connector
+        # manages its own retries and will raise on final failure)
+        if self._state is ConnectionState.ESTABLISHING_CONNECTION:
+            return
 
         if not self._retry_on_disconnect:
             if self._reconnect_task:
