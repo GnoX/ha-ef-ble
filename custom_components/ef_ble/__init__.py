@@ -1,10 +1,17 @@
 """The unofficial EcoFlow BLE devices integration"""
 
 import logging
+from collections.abc import Callable
 from functools import partial
 
 import homeassistant.helpers.issue_registry as ir
 from homeassistant.components import bluetooth
+from homeassistant.components.bluetooth import (
+    BluetoothCallbackMatcher,
+    BluetoothChange,
+    BluetoothScanningMode,
+    BluetoothServiceInfoBleak,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ADDRESS, Platform
 from homeassistant.core import HomeAssistant
@@ -56,6 +63,8 @@ _LOGGER = logging.getLogger(__name__)
 ConfigEntryNotReady = partial(ConfigEntryNotReady, translation_domain=DOMAIN)
 ConfigEntryError = partial(ConfigEntryError, translation_domain=DOMAIN)
 
+_REAPPEAR_CALLBACKS_KEY = f"{DOMAIN}_reappear_callbacks"
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bool:
     """Set up EF BLE device from a config entry."""
@@ -73,19 +82,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
         return False
 
     if not bluetooth.async_address_present(hass, address):
+        _register_reappear_callback(hass, entry, address)
         raise ConfigEntryNotReady(translation_key="device_not_present")
+
+    _cancel_reappear_callback(hass, entry)
 
     _LOGGER.debug("Connecting Device")
     device: eflib.DeviceBase | None = getattr(entry, "runtime_data", None)
+    discovery_info = bluetooth.async_last_service_info(hass, address, connectable=True)
+
     if device is None:
-        discovery_info = bluetooth.async_last_service_info(
-            hass, address, connectable=True
-        )
         device = eflib.NewDevice(discovery_info.device, discovery_info.advertisement)
         if device is None:
             raise ConfigEntryNotReady(translation_key="unable_to_create_device")
 
         entry.runtime_data = device
+    elif discovery_info is not None:
+        device.update_ble_device(discovery_info.device)
 
     diag_options = merged_options.get(CONF_DIAGNOSTICS_OPTIONS, {})
     packet_collection_enabled = diag_options.get(
@@ -173,6 +186,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
 
 async def async_unload_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bool:
     """Unload a config entry."""
+    _cancel_reappear_callback(hass, entry)
     device = entry.runtime_data
     await device.disconnect()
     device.with_logging_options(LogOptions.no_options())
@@ -180,6 +194,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> b
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: DeviceConfigEntry):
+    _cancel_reappear_callback(hass, entry)
     ConnectionLog.clean_cache_for(entry.data[CONF_ADDRESS])
 
 
@@ -223,6 +238,41 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
             )
 
     return True
+
+
+def _register_reappear_callback(
+    hass: HomeAssistant, entry: ConfigEntry, address: str
+) -> None:
+    callbacks: dict[str, Callable] = hass.data.setdefault(_REAPPEAR_CALLBACKS_KEY, {})
+
+    if entry.entry_id in callbacks:
+        return
+
+    def _on_device_reappear(
+        service_info: BluetoothServiceInfoBleak,
+        change: BluetoothChange,
+    ) -> None:
+        _LOGGER.info(
+            "Device %s reappeared via BLE advertisement, scheduling reload",
+            address,
+        )
+        _cancel_reappear_callback(hass, entry)
+        hass.config_entries.async_schedule_reload(entry.entry_id)
+
+    cancel = bluetooth.async_register_callback(
+        hass,
+        _on_device_reappear,
+        BluetoothCallbackMatcher(address=address, connectable=True),
+        BluetoothScanningMode.PASSIVE,
+    )
+    callbacks[entry.entry_id] = cancel
+    _LOGGER.debug("Registered BLE reappear callback for %s", address)
+
+
+def _cancel_reappear_callback(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    callbacks: dict[str, Callable] = hass.data.get(_REAPPEAR_CALLBACKS_KEY, {})
+    if cancel := callbacks.pop(entry.entry_id, None):
+        cancel()
 
 
 async def _update_listener(hass: HomeAssistant, entry: DeviceConfigEntry):
