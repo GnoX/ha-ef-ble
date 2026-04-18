@@ -153,6 +153,31 @@ class DeviceBase(abc.ABC):
 
         self.on_connection_state_change(_register_timer_task)
 
+    def call_later(
+        self,
+        delay: float,
+        callback: Callable[[], None],
+        key: str | None = None,
+    ) -> None:
+        """
+        Schedule `callback` to run after `delay` seconds on the event loop
+
+        All scheduled callbacks are automatically cancelled on disconnect. When `key` is
+        provided, any previously scheduled callback with the same key is cancelled
+        first, making repeated calls act as a debounce/reschedule.
+
+        Parameters
+        ----------
+        delay
+            Seconds to wait before invoking the callback.
+        callback
+            Function to call when the timer fires.
+        key
+            Optional deduplication key. When set, a new call with the same key cancels
+            the previous one.
+        """
+        self._conn.call_later(delay, callback, key)
+
     def with_update_period(self, period: int):
         self._update_period = period
         return self
