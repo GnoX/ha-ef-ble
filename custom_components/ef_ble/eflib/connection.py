@@ -954,10 +954,9 @@ class Connection:
         await self.getAuthStatus()
 
     async def getAuthStatus(self):
-        self._set_state(ConnectionState.REQUESTING_AUTH_STATUS)
-        self._logger.log_filtered(
-            LogOptions.CONNECTION_DEBUG, "getKeyInfoReq: Receiving auth status"
-        )
+        max_attempts = 5
+        per_attempt_timeout = 2
+        retry_delay = 1.0
 
         packet = Packet(
             0x21,
@@ -970,7 +969,48 @@ class Connection:
             self._packet_version,
         )
 
-        await self.sendPacket(packet=packet, response_handler=self.getAuthStatusHandler)
+        for attempt in range(max_attempts):
+            if attempt == 0:
+                self._set_state(ConnectionState.REQUESTING_AUTH_STATUS)
+            elif self._state != ConnectionState.REQUESTING_AUTH_STATUS:
+                return
+            self._logger.log_filtered(
+                LogOptions.CONNECTION_DEBUG,
+                "getAuthStatus: sending (attempt %d/%d)",
+                attempt + 1,
+                max_attempts,
+            )
+
+            await self.sendPacket(
+                packet=packet, response_handler=self.getAuthStatusHandler
+            )
+
+            try:
+                await asyncio.wait_for(
+                    self._wait_state_change_from(
+                        ConnectionState.REQUESTING_AUTH_STATUS
+                    ),
+                    timeout=per_attempt_timeout,
+                )
+            except TimeoutError:
+                if attempt >= max_attempts - 1:
+                    break
+                self._logger.log_filtered(
+                    LogOptions.CONNECTION_DEBUG,
+                    "getAuthStatus: no response within %.1fs, retrying",
+                    per_attempt_timeout,
+                )
+                await asyncio.sleep(retry_delay)
+            else:
+                return
+
+        raise PacketReceiveError(
+            f"getAuthStatus: no response after {max_attempts} attempts"
+        )
+
+    async def _wait_state_change_from(self, state: ConnectionState) -> None:
+        while self._state == state:
+            await self._state_changed.wait()
 
     @_auth_handler(ConnectionState.REQUESTING_AUTH_STATUS)
     async def getAuthStatusHandler(
