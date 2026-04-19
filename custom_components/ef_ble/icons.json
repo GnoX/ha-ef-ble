@@ -357,6 +357,16 @@
           "tou": "mdi:clock-time-eight",
           "intelligent_schedule": "mdi:head-lightbulb"
         }
+      },
+      "operating_submode": {
+        "default": "mdi:tune-variant",
+        "state": {
+          "none": "mdi:circle-off-outline",
+          "normal": "mdi:circle-outline",
+          "max": "mdi:speedometer",
+          "sleep": "mdi:power-sleep",
+          "eco": "mdi:leaf"
+        }
       }
     },
     "number": {
@@ -416,6 +426,21 @@
       },
       "discharging_power_limit": {
         "default": "mdi:battery-arrow-down"
+      }
+    },
+    "climate": {
+      "climate": {
+        "state_attributes": {
+          "fan_mode": {
+            "state": {
+              "low": "mdi:fan-chevron-down",
+              "medium_low": "mdi:fan-speed-1",
+              "medium": "mdi:fan-speed-2",
+              "medium_high": "mdi:fan-speed-3",
+              "high": "mdi:fan-chevron-up"
+            }
+          }
+        }
       }
     }
   }

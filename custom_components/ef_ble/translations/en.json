@@ -965,6 +965,16 @@
           "tou": "Time of Use",
           "intelligent_schedule": "Intelligent Schedule"
         }
+      },
+      "operating_submode": {
+        "name": "Operating Submode",
+        "state": {
+          "none": "None",
+          "normal": "Normal",
+          "max": "Max",
+          "sleep": "Sleep",
+          "eco": "Eco"
+        }
       }
     },
     "number": {

@@ -215,9 +215,12 @@ class climate(ControlType):
 
     current_temperature_field: Any = None
     target_temperature_field: Any = None
+    target_temperature_low_field: Any = None
+    target_temperature_high_field: Any = None
     fan_speed_field: Any = None
     power_field: Any = None
 
+    range_hvac_modes: frozenset[str] = dataclasses.field(default_factory=frozenset)
     min_temp: float = 16.0
     max_temp: float = 30.0
     temperature_step: float = 1.0
@@ -230,6 +233,9 @@ class climate(ControlType):
         default=None, repr=False, init=False
     )
     set_target_temperature: "Callable | None" = dataclasses.field(
+        default=None, repr=False, init=False
+    )
+    set_target_temperature_range: "Callable | None" = dataclasses.field(
         default=None, repr=False, init=False
     )
     set_fan_speed: "Callable | None" = dataclasses.field(
@@ -253,6 +259,10 @@ class climate(ControlType):
 
     def target_temp(self, func: Any) -> Any:
         self.set_target_temperature = _virtual_dispatch(func)
+        return func
+
+    def target_temp_range(self, func: Any) -> Any:
+        self.set_target_temperature_range = _virtual_dispatch(func)
         return func
 
     def fan(self, func: Any) -> Any:

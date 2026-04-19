@@ -62,10 +62,11 @@ class FanSpeed(IntFieldValue):
 class SubMode(IntFieldValue):
     UNKNOWN = -1
 
-    MAX = 0
-    SLEEP = 1
-    ECO = 2
-    MANUAL = 3
+    NONE = 0
+    NORMAL = 1
+    MAX = 2
+    SLEEP = 3
+    ECO = 4
 
 
 class TemperatureDisplayType(IntFieldValue):
@@ -127,6 +128,13 @@ class Device(DeviceBase, ProtobufProps):
     _wave_mode_info = pb_field(pb_disp.wave_mode_info)
     target_temperature_climate = pb_field(pb_mode.temp_set, pround(1))
     fan_speed_climate = pb_field(pb_mode.airflow_speed, FanSpeed.from_value)
+    operating_submode = pb_field(pb_mode.submode, SubMode.from_value)
+    target_temp_thermostatic_upper = pb_field(
+        pb_mode.temp_thermostatic_upper_limit, pround(1)
+    )
+    target_temp_thermostatic_lower = pb_field(
+        pb_mode.temp_thermostatic_lower_limit, pround(1)
+    )
 
     @classmethod
     def check(cls, sn):
@@ -151,9 +159,12 @@ class Device(DeviceBase, ProtobufProps):
             )
             processed = True
 
-        self.target_temperature_climate = self.fan_speed_climate = (
-            self._current_mode_item
-        )
+        if (mode_item := self._current_mode_item) is not None:
+            self.target_temperature_climate = mode_item
+            self.fan_speed_climate = mode_item
+            self.operating_submode = mode_item
+            self.target_temp_thermostatic_upper = mode_item
+            self.target_temp_thermostatic_lower = mode_item
 
         for field_name in self.updated_fields:
             self.update_callback(field_name)
@@ -191,12 +202,13 @@ class Device(DeviceBase, ProtobufProps):
 
     _climate = controls.climate(
         operating_mode,
+        translation_key="climate",
         hvac_modes={
             "cool": OperatingMode.COOLING,
             "heat": OperatingMode.HEATING,
             "fan_only": OperatingMode.VENTING,
             "dry": OperatingMode.DEHUMIDIFYING,
-            "auto": OperatingMode.THERMOSTATIC,
+            "heat_cool": OperatingMode.THERMOSTATIC,
         },
         fan_modes={
             "low": FanSpeed.LOW,
@@ -208,6 +220,9 @@ class Device(DeviceBase, ProtobufProps):
         power_field=power,
         current_temperature_field=ambient_temperature,
         target_temperature_field=target_temperature_climate,
+        target_temperature_low_field=target_temp_thermostatic_lower,
+        target_temperature_high_field=target_temp_thermostatic_upper,
+        range_hvac_modes=frozenset({"heat_cool"}),
         fan_speed_field=fan_speed_climate,
         min_temp=16,
         max_temp=30,
@@ -235,6 +250,17 @@ class Device(DeviceBase, ProtobufProps):
         )
         self.notify_field(Device.target_temperature_climate, temperature)
 
+    @_climate.target_temp_range
+    async def set_target_temperature_range(self, low: float, high: float):
+        await self._send_config_packet(
+            ac517_apl_comm_pb2.ConfigWrite(
+                cfg_temp_thermostatic_lower_limit=low,
+                cfg_temp_thermostatic_upper_limit=high,
+            )
+        )
+        self.notify_field(Device.target_temp_thermostatic_lower, low)
+        self.notify_field(Device.target_temp_thermostatic_upper, high)
+
     @_climate.fan
     async def set_fan_speed(self, speed: FanSpeed):
         await self._send_config_packet(
@@ -246,6 +272,12 @@ class Device(DeviceBase, ProtobufProps):
     async def enable_en_pet_care(self, enabled: bool):
         await self._send_config_packet(
             ac517_apl_comm_pb2.ConfigWrite(cfg_en_pet_care=enabled)
+        )
+
+    @controls.select(operating_submode, options=SubMode)
+    async def set_operating_submode(self, submode: SubMode):
+        await self._send_config_packet(
+            ac517_apl_comm_pb2.ConfigWrite(cfg_wave_operating_submode=submode.value)
         )
 
     async def _request_full_upload(self):

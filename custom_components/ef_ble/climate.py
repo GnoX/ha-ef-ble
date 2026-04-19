@@ -4,9 +4,14 @@ import dataclasses
 from typing import Any
 
 from homeassistant.components.climate import ClimateEntity, ClimateEntityDescription
-from homeassistant.components.climate.const import ClimateEntityFeature, HVACMode
+from homeassistant.components.climate.const import (
+    ATTR_TARGET_TEMP_HIGH,
+    ATTR_TARGET_TEMP_LOW,
+    ClimateEntityFeature,
+    HVACMode,
+)
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import DeviceConfigEntry
@@ -23,8 +28,12 @@ class EcoflowClimateEntityDescription(ClimateEntityDescription):
     power_prop: str | None = None
     operating_mode_prop: str | None = None
     target_temperature_prop: str | None = None
+    target_temperature_low_prop: str | None = None
+    target_temperature_high_prop: str | None = None
     current_temperature_prop: str | None = None
     fan_speed_prop: str | None = None
+
+    range_hvac_modes: frozenset[HVACMode] = frozenset()
 
     min_temp: float | None = None
     max_temp: float | None = None
@@ -34,6 +43,7 @@ class EcoflowClimateEntityDescription(ClimateEntityDescription):
     set_power_func: Any = None
     set_operating_mode_func: Any = None
     set_target_temp_func: Any = None
+    set_target_temp_range_func: Any = None
     set_fan_speed_func: Any = None
 
 
@@ -43,8 +53,11 @@ class ClimateBuilder(EntityDescriptionBuilder):
     _fan_mode_mapping: dict[str, Any] = dataclasses.field(default_factory=dict)
     _power_prop: str | None = None
     _target_temperature_prop: str | None = None
+    _target_temperature_low_prop: str | None = None
+    _target_temperature_high_prop: str | None = None
     _current_temperature_prop: str | None = None
     _fan_speed_prop: str | None = None
+    _range_hvac_modes: frozenset[HVACMode] = frozenset()
     _min_temp: float | None = None
     _max_temp: float | None = None
     _temperature_step: float = 1.0
@@ -52,6 +65,7 @@ class ClimateBuilder(EntityDescriptionBuilder):
     _set_power_func: Any = None
     _set_operating_mode_func: Any = None
     _set_target_temp_func: Any = None
+    _set_target_temp_range_func: Any = None
     _set_fan_speed_func: Any = None
 
     def hvac_modes(self, mapping: dict[HVACMode, Any]):
@@ -74,6 +88,24 @@ class ClimateBuilder(EntityDescriptionBuilder):
             self._target_temperature_prop = field.public_name
         else:
             self._target_temperature_prop = prop
+        return self
+
+    def target_temperature_low_prop(self, prop: Any):
+        if field := self._get_field(prop):
+            self._target_temperature_low_prop = field.public_name
+        else:
+            self._target_temperature_low_prop = prop
+        return self
+
+    def target_temperature_high_prop(self, prop: Any):
+        if field := self._get_field(prop):
+            self._target_temperature_high_prop = field.public_name
+        else:
+            self._target_temperature_high_prop = prop
+        return self
+
+    def range_hvac_modes(self, modes: frozenset[HVACMode]):
+        self._range_hvac_modes = modes
         return self
 
     def current_temperature_prop(self, prop: Any):
@@ -118,6 +150,10 @@ class ClimateBuilder(EntityDescriptionBuilder):
         self._set_target_temp_func = func
         return self
 
+    def set_target_temp_range_func(self, func: Any):
+        self._set_target_temp_range_func = func
+        return self
+
     def set_fan_speed_func(self, func: Any):
         self._set_fan_speed_func = func
         return self
@@ -131,8 +167,11 @@ class ClimateBuilder(EntityDescriptionBuilder):
             power_prop=self._power_prop,
             operating_mode_prop=self._entity_key,
             target_temperature_prop=self._target_temperature_prop,
+            target_temperature_low_prop=self._target_temperature_low_prop,
+            target_temperature_high_prop=self._target_temperature_high_prop,
             current_temperature_prop=self._current_temperature_prop,
             fan_speed_prop=self._fan_speed_prop,
+            range_hvac_modes=self._range_hvac_modes,
             min_temp=self._min_temp,
             max_temp=self._max_temp,
             temperature_step=self._temperature_step,
@@ -140,6 +179,7 @@ class ClimateBuilder(EntityDescriptionBuilder):
             set_power_func=self._set_power_func,
             set_operating_mode_func=self._set_operating_mode_func,
             set_target_temp_func=self._set_target_temp_func,
+            set_target_temp_range_func=self._set_target_temp_range_func,
             set_fan_speed_func=self._set_fan_speed_func,
             translation_key=self._entity_translation_key,
             icon=self._icon,
@@ -154,8 +194,11 @@ def _build_from_control(
         .fan_modes(dict(ctrl.fan_modes))
         .power_prop(ctrl.power_field)
         .target_temperature_prop(ctrl.target_temperature_field)
+        .target_temperature_low_prop(ctrl.target_temperature_low_field)
+        .target_temperature_high_prop(ctrl.target_temperature_high_field)
         .current_temperature_prop(ctrl.current_temperature_field)
         .fan_speed_prop(ctrl.fan_speed_field)
+        .range_hvac_modes(frozenset(HVACMode(m) for m in ctrl.range_hvac_modes))
         .min_temp(ctrl.min_temp)
         .max_temp(ctrl.max_temp)
         .temperature_step(ctrl.temperature_step)
@@ -163,6 +206,7 @@ def _build_from_control(
         .set_power_func(ctrl.set_power)
         .set_operating_mode_func(ctrl.set_operating_mode)
         .set_target_temp_func(ctrl.set_target_temperature)
+        .set_target_temp_range_func(ctrl.set_target_temperature_range)
         .set_fan_speed_func(ctrl.set_fan_speed)
     )
 
@@ -201,19 +245,22 @@ class EcoflowClimateEntity(EcoflowEntity, ClimateEntity):
         self._attr_target_temperature_step = description.temperature_step
         self._attr_temperature_unit = description.temperature_unit
 
-        features = ClimateEntityFeature(0)
-        if description.set_target_temp_func:
-            features |= ClimateEntityFeature.TARGET_TEMPERATURE
+        base_features = ClimateEntityFeature(0)
         if description.set_fan_speed_func:
-            features |= ClimateEntityFeature.FAN_MODE
+            base_features |= ClimateEntityFeature.FAN_MODE
         if description.set_power_func:
-            features |= ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
-        self._attr_supported_features = features
+            base_features |= (
+                ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
+            )
+        self._base_features = base_features
 
         self._set_power = description.set_power_func
         self._set_operating_mode = description.set_operating_mode_func
         self._set_target_temp = description.set_target_temp_func
+        self._set_target_temp_range = description.set_target_temp_range_func
         self._set_fan_speed = description.set_fan_speed_func
+
+        self._range_hvac_modes = description.range_hvac_modes
 
         self._hvac_to_operating = description.hvac_mode_mapping
         self._operating_to_hvac: dict[Any, HVACMode] = {
@@ -261,6 +308,14 @@ class EcoflowClimateEntity(EcoflowEntity, ClimateEntity):
             description.target_temperature_prop,
         )
         self._register_update_callback(
+            "_attr_target_temperature_low",
+            description.target_temperature_low_prop,
+        )
+        self._register_update_callback(
+            "_attr_target_temperature_high",
+            description.target_temperature_high_prop,
+        )
+        self._register_update_callback(
             "_attr_current_temperature",
             description.current_temperature_prop,
         )
@@ -269,6 +324,22 @@ class EcoflowClimateEntity(EcoflowEntity, ClimateEntity):
             description.fan_speed_prop,
             get_state=self._speed_to_fan.get,
         )
+
+        self._update_supported_features()
+
+    @callback
+    def async_write_ha_state(self) -> None:
+        self._update_supported_features()
+        super().async_write_ha_state()
+
+    def _update_supported_features(self) -> None:
+        features = self._base_features
+        if self._attr_hvac_mode in self._range_hvac_modes:
+            if self._set_target_temp_range is not None:
+                features |= ClimateEntityFeature.TARGET_TEMPERATURE_RANGE
+        elif self._set_target_temp is not None:
+            features |= ClimateEntityFeature.TARGET_TEMPERATURE
+        self._attr_supported_features = features
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         if hvac_mode == HVACMode.OFF:
@@ -288,6 +359,13 @@ class EcoflowClimateEntity(EcoflowEntity, ClimateEntity):
             await self._set_operating_mode(self._device, operating)
 
     async def async_set_temperature(self, **kwargs) -> None:
+        if self._set_target_temp_range:
+            if (low := kwargs.get(ATTR_TARGET_TEMP_LOW)) is not None and (
+                high := kwargs.get(ATTR_TARGET_TEMP_HIGH)
+            ) is not None:
+                await self._set_target_temp_range(self._device, float(low), float(high))
+                return
+
         temperature = kwargs.get(ATTR_TEMPERATURE)
         if temperature is not None and self._set_target_temp:
             await self._set_target_temp(self._device, float(temperature))
