@@ -458,27 +458,21 @@ Click on any device below to see available sensors, switches, and controls:
 
 <br>
 
-| *Sensors*                        | *Switches*    | *Sliders*       | *Selects*                | *Climate*                          |
-|----------------------------------|---------------|-----------------|--------------------------|-------------------------------------|
-| Battery Level                    | Power         | Charge Limit    | Temperature Display Type | HVAC (Cool, Heat, Fan, Dry, Auto)   |
-| Ambient Temperature              | Pet Care Mode | Discharge Limit | Fan Speed                | Target Temperature                  |
-| Ambient Humidity                 |               |                 |                          | Fan Speed                           |
-| Operating Mode                   |               |                 |                          |                                     |
-| Condensate Water Level           |               |                 |                          |                                     |
-| Cell Temperature (disabled)      |               |                 |                          |                                     |
-| Sleep State                      |               |                 |                          |                                     |
-| In Drainage                      |               |                 |                          |                                     |
-| Drainage Mode                    |               |                 |                          |                                     |
-| Input Power                      |               |                 |                          |                                     |
-| Output Power                     |               |                 |                          |                                     |
-| AC Input Power                   |               |                 |                          |                                     |
-| Battery Power                    |               |                 |                          |                                     |
-| Indoor Supply Air Temperature    |               |                 |                          |                                     |
-| Indoor Return Air Temperature    |               |                 |                          |                                     |
-| Outdoor Ambient Temperature      |               |                 |                          |                                     |
-| Condenser Temperature            |               |                 |                          |                                     |
-| Evaporator Temperature           |               |                 |                          |                                     |
-| Compressor Discharge Temperature |               |                 |                          |                                     |
+| *Sensors*                     | *Climate*                              | *Switches*    | *Selects*         |
+|-------------------------------|----------------------------------------|---------------|-------------------|
+| Battery Level                 | HVAC (Off, Cool, Heat, Fan, Dry, Auto) | Pet Care Mode | Operating Submode |
+| Ambient Temperature           | Target Temperature                     |               |                   |
+| Ambient Humidity              | Fan Speed                              |               |                   |
+| Condensate Water Level        |                                        |               |                   |
+| Cell Temperature (disabled)   |                                        |               |                   |
+| Sleep State                   |                                        |               |                   |
+| In Drainage                   |                                        |               |                   |
+| Drainage Mode                 |                                        |               |                   |
+| Input Power                   |                                        |               |                   |
+| Output Power                  |                                        |               |                   |
+| AC Input Power                |                                        |               |                   |
+| Battery Power                 |                                        |               |                   |
+| Indoor Supply Air Temperature |                                        |               |                   |
 
 </details>
 

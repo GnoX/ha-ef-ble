@@ -440,7 +440,7 @@ class DeviceBase(abc.ABC):
         """Notify listeners that a field has been updated."""
         name = field.public_name
         if value is not None:
-            setattr(self, name, value)
+            setattr(self, field.private_name, value)
         else:
             value = getattr(self, name)
 
