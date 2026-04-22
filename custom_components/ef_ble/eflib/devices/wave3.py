@@ -2,9 +2,10 @@ import logging
 
 from ..devicebase import DeviceBase
 from ..entity import controls
+from ..entity.controls import HvacMode
 from ..packet import Packet
 from ..pb import ac517_apl_comm_pb2
-from ..props import ProtobufProps, pb_field
+from ..props import ProtobufProps, computed_field, pb_field
 from ..props.enums import IntFieldValue
 from ..props.protobuf_field import proto_attr_mapper
 from ..props.transforms import pround
@@ -129,12 +130,18 @@ class Device(DeviceBase, ProtobufProps):
     target_temperature_climate = pb_field(pb_mode.temp_set, pround(1))
     fan_speed_climate = pb_field(pb_mode.airflow_speed, FanSpeed.from_value)
     operating_submode = pb_field(pb_mode.submode, SubMode.from_value)
+
+    target_humidity_climate = pb_field(pb_mode.humi_set, pround(0))
     target_temp_thermostatic_upper = pb_field(
         pb_mode.temp_thermostatic_upper_limit, pround(1)
     )
     target_temp_thermostatic_lower = pb_field(
         pb_mode.temp_thermostatic_lower_limit, pround(1)
     )
+
+    @computed_field
+    def is_submode_available(self) -> bool:
+        return self.operating_mode in (OperatingMode.COOLING, OperatingMode.HEATING)
 
     @classmethod
     def check(cls, sn):
@@ -163,12 +170,11 @@ class Device(DeviceBase, ProtobufProps):
             self.target_temperature_climate = mode_item
             self.fan_speed_climate = mode_item
             self.operating_submode = mode_item
+            self.target_humidity_climate = mode_item
             self.target_temp_thermostatic_upper = mode_item
             self.target_temp_thermostatic_lower = mode_item
 
-        for field_name in self.updated_fields:
-            self.update_callback(field_name)
-            self.update_state(field_name, getattr(self, field_name))
+        self._notify_updated()
         return processed
 
     async def _send_config_packet(self, message: ac517_apl_comm_pb2.ConfigWrite):
@@ -204,11 +210,11 @@ class Device(DeviceBase, ProtobufProps):
         operating_mode,
         translation_key="climate",
         hvac_modes={
-            "cool": OperatingMode.COOLING,
-            "heat": OperatingMode.HEATING,
-            "fan_only": OperatingMode.VENTING,
-            "dry": OperatingMode.DEHUMIDIFYING,
-            "heat_cool": OperatingMode.THERMOSTATIC,
+            HvacMode.COOL: OperatingMode.COOLING,
+            HvacMode.HEAT: OperatingMode.HEATING,
+            HvacMode.FAN_ONLY: OperatingMode.VENTING,
+            HvacMode.DRY: OperatingMode.DEHUMIDIFYING,
+            HvacMode.HEAT_COOL: OperatingMode.THERMOSTATIC,
         },
         fan_modes={
             "low": FanSpeed.LOW,
@@ -217,18 +223,10 @@ class Device(DeviceBase, ProtobufProps):
             "medium_high": FanSpeed.MEDIUM_HIGH,
             "high": FanSpeed.HIGH,
         },
-        power_field=power,
         current_temperature_field=ambient_temperature,
-        target_temperature_field=target_temperature_climate,
-        target_temperature_low_field=target_temp_thermostatic_lower,
-        target_temperature_high_field=target_temp_thermostatic_upper,
-        range_hvac_modes=frozenset({"heat_cool"}),
-        fan_speed_field=fan_speed_climate,
-        min_temp=16,
-        max_temp=30,
     )
 
-    @_climate.power
+    @_climate.power(power)
     async def enable_power(self, enabled: bool):
         cfg = ac517_apl_comm_pb2.ConfigWrite()
         if enabled:
@@ -237,20 +235,32 @@ class Device(DeviceBase, ProtobufProps):
             cfg.cfg_power_off = True
         await self._send_config_packet(cfg)
 
-    @_climate.mode
+    @_climate.mode()
     async def set_operating_mode(self, mode: OperatingMode):
         await self._send_config_packet(
             ac517_apl_comm_pb2.ConfigWrite(cfg_wave_operating_mode=mode.value)
         )
 
-    @_climate.target_temp
+    @_climate.target_temp(
+        target_temperature_climate,
+        modes={HvacMode.COOL, HvacMode.HEAT},
+        step=0.5,
+        min=16,
+        max=30,
+    )
     async def set_target_temperature(self, temperature: float):
         await self._send_config_packet(
             ac517_apl_comm_pb2.ConfigWrite(cfg_temp_set=temperature)
         )
-        self.notify_field(Device.target_temperature_climate, temperature)
 
-    @_climate.target_temp_range
+    @_climate.target_temp_range(
+        target_temp_thermostatic_lower,
+        target_temp_thermostatic_upper,
+        modes={HvacMode.HEAT_COOL},
+        step=0.5,
+        min=16,
+        max=30,
+    )
     async def set_target_temperature_range(self, low: float, high: float):
         await self._send_config_packet(
             ac517_apl_comm_pb2.ConfigWrite(
@@ -258,15 +268,26 @@ class Device(DeviceBase, ProtobufProps):
                 cfg_temp_thermostatic_upper_limit=high,
             )
         )
-        self.notify_field(Device.target_temp_thermostatic_lower, low)
-        self.notify_field(Device.target_temp_thermostatic_upper, high)
 
-    @_climate.fan
+    @_climate.humidity(
+        target_humidity_climate,
+        min=40,
+        max=80,
+        modes={HvacMode.DRY},
+    )
+    async def set_target_humidity(self, humidity: int):
+        await self._send_config_packet(
+            ac517_apl_comm_pb2.ConfigWrite(cfg_humi_set=float(humidity))
+        )
+
+    @_climate.fan(
+        fan_speed_climate,
+        modes={HvacMode.COOL, HvacMode.HEAT, HvacMode.FAN_ONLY, HvacMode.DRY},
+    )
     async def set_fan_speed(self, speed: FanSpeed):
         await self._send_config_packet(
             ac517_apl_comm_pb2.ConfigWrite(cfg_airflow_speed=speed.value)
         )
-        self.notify_field(Device.fan_speed_climate, speed)
 
     @controls.switch(en_pet_care)
     async def enable_en_pet_care(self, enabled: bool):
@@ -274,7 +295,9 @@ class Device(DeviceBase, ProtobufProps):
             ac517_apl_comm_pb2.ConfigWrite(cfg_en_pet_care=enabled)
         )
 
-    @controls.select(operating_submode, options=SubMode)
+    @controls.select(
+        operating_submode, options=SubMode, availability=is_submode_available
+    )
     async def set_operating_submode(self, submode: SubMode):
         await self._send_config_packet(
             ac517_apl_comm_pb2.ConfigWrite(cfg_wave_operating_submode=submode.value)
