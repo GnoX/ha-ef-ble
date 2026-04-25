@@ -85,7 +85,7 @@ class UnsupportedDevice(DeviceBase):
 
     async def data_parse(self, packet: Packet) -> bool:
         self._logger.log_filtered(
-            LogOptions.DESERIALIZED_MESSAGES, "Device message: %r", packet.payloadHex
+            LogOptions.DESERIALIZED_MESSAGES, "Device message: %r", packet.payload_hex
         )
         processed = False
 
