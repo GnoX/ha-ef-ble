@@ -137,10 +137,15 @@ class PassthroughAssembler(FrameAssembler):
                 continue
 
             payload_length = struct.unpack("<H", data[2:4])[0]
-            version = data[1] & 0x0F
+            version_byte = data[1]
 
-            inner_overhead = 15 if version >= 3 else 13
-            frame_len = 5 + inner_overhead + payload_length
+            if version_byte == 4:
+                # V4: 8-byte outer header + payload + 2-byte CRC16
+                frame_len = 8 + payload_length + 2
+            else:
+                # V2/V3: 5-byte header + inner-cmd block + payload + 2-byte CRC16
+                inner_overhead = 15 if (version_byte & 0x0F) >= 3 else 13
+                frame_len = 5 + inner_overhead + payload_length
 
             if len(data) < frame_len:
                 break

@@ -318,6 +318,42 @@ Click on any device below to see available sensors, switches, and controls:
 </details>
 
 <details>
+<summary><b>Delta Pro Ultra X</b></summary>
+
+<br>
+
+| *Sensors*                           |
+|-------------------------------------|
+| Battery Level                       |
+| Input Power Total                   |
+| Output Power Total                  |
+| AC Input Power                      |
+| AC Input Voltage                    |
+| AC Input Current                    |
+| Solar Input Power                   |
+| Solar Input Power 2                 |
+| PV Voltage 1                        |
+| PV Voltage 2                        |
+| PV Current 1                        |
+| PV Current 2                        |
+| AC Plugged In                       |
+| Storm Mode                          |
+| Cell Temperature (disabled)         |
+| Charge Time Remaining (disabled)    |
+| Discharge Time Remaining (disabled) |
+| Error Occurred (disabled) ²         |
+| Sleep State (disabled)              |
+| WiFi RSSI (disabled)                |
+
+<sup>² Includes error code as an extra attribute</sup>
+
+> **📝 Note:** Delta Pro Ultra X does not expose energy sensors. To use with the energy
+> dashboard, you must create them yourself. See the [Home Assistant FAQ](https://www.home-assistant.io/docs/energy/faq/#creating-an-energy-sensor-out-of-a-power-sensor)
+> for instructions.
+
+</details>
+
+<details>
 <summary><b>Smart Generator</b> <i>(3000, 4000)</i></summary>
 
 <br>
