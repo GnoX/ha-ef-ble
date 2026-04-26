@@ -688,6 +688,9 @@
       "load_from_pv": {
         "name": "Load From PV"
       },
+      "load_total": {
+        "name": "Total Load"
+      },
       "grid_connection_status": {
         "name": "Grid Connection Status",
         "state": {

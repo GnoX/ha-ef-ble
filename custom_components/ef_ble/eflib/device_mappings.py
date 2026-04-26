@@ -160,9 +160,9 @@ ECOFLOW_DEVICE_LIST = {
     # =====================
     "SP10":{"name": "EcoFlow Smart Home Panel", "packets": "?"},
     "HD31":{"name": "EcoFlow Smart Home Panel 2", "packets": "v3"},
-    "HR62":{"name": "EcoFlow Smart Home Panel 3", "packets": "v3"},
-    "HR63":{"name": "EcoFlow Smart Home Panel 3", "packets": "v3"},
-    "HR6C":{"name": "EcoFlow Smart Home Panel 3", "packets": "v3"},
+    "HR62":{"name": "EcoFlow Smart Home Panel 3", "packets": "v4"},
+    "HR63":{"name": "EcoFlow Smart Home Panel 3", "packets": "v4"},
+    "HR6C":{"name": "EcoFlow Smart Home Panel 3", "packets": "v4"},
 
     "HJ31":{"name": "EcoFlow PowerOcean", "packets": "?"},
     "HJ32":{"name": "EcoFlow PowerOcean Battery", "packets": "?"},

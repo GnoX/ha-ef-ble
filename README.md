@@ -73,6 +73,23 @@ Click on any device below to see available sensors, switches, and controls:
 
 </details>
 <details>
+<summary><b>Smart Home Panel 3</b></summary>
+
+<br>
+
+| *Sensors*       |
+|-----------------|
+| Battery Level   |
+| Battery Power   |
+| Load Total      |
+| Load From Grid  |
+| L1 Power        |
+| L2 Power        |
+| L3 Power        |
+| PV Power Sum    |
+
+</details>
+<details>
 <summary><b>Delta Pro Ultra</b></summary>
 
 <br>
