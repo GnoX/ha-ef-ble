@@ -38,6 +38,7 @@ from .exceptions import (
 )
 from .frame_assembler import (
     EncPacketAssembler,
+    PassthroughAssembler,
     RawHeaderAssembler,
     SimplePacketAssembler,
 )
@@ -848,10 +849,21 @@ class Connection:
         self._add_task(self.sendPacket(reply_packet))
 
     async def initBleSessionKey(self):
-        if self._encrypt_type == 1:
-            await self._type_1_session()
-        else:
-            await self._ecdh_key_exchange()
+        match self._encrypt_type:
+            case 0:
+                await self._type_0_session()
+            case 1:
+                await self._type_1_session()
+            case _:
+                await self._ecdh_key_exchange()
+
+    async def _type_0_session(self):
+        self._encryption = None
+
+        await self._start_notify(self.listenForDataHandler)
+
+        await self.send_auth_status_packet()
+        await self.autoAuthentication()
 
     async def _type_1_session(self):
         session_key = hashlib.md5(self._dev_sn.encode()).digest()
@@ -1129,6 +1141,8 @@ class Connection:
 
     def _create_frame_assembler(self):
         match self._encrypt_type:
+            case 0:
+                return PassthroughAssembler()
             case 1:
                 return RawHeaderAssembler(self._encryption)
             case 7:
