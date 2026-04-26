@@ -101,6 +101,57 @@ class EncPacketAssembler(FrameAssembler):
         return payloads
 
 
+class PassthroughAssembler(FrameAssembler):
+    """Frame assembler for encrypt_type 0: plain V3 packets, no outer encryption"""
+
+    def __init__(self, encryption: EncryptionStrategy | None = None) -> None:
+        super().__init__(encryption)  # type: ignore[arg-type]
+
+    @property
+    def write_with_response(self) -> bool:
+        return False
+
+    async def encode(self, packet: Packet) -> bytes:
+        return packet.toBytes()
+
+    async def reassemble(self, data: bytes) -> list[bytes]:
+        if self._buffer:
+            data = self._buffer + data
+            self._buffer = b""
+
+        payloads: list[bytes] = []
+        while data:
+            start = data.find(Packet.PREFIX)
+            if start < 0:
+                data = b""
+                break
+            if start > 0:
+                data = data[start:]
+
+            if len(data) < 5:
+                break
+
+            if crc8(data[:4]) != data[4]:
+                # not a valid header here - skip this byte and keep scanning
+                data = data[1:]
+                continue
+
+            payload_length = struct.unpack("<H", data[2:4])[0]
+            version = data[1] & 0x0F
+
+            inner_overhead = 15 if version >= 3 else 13
+            frame_len = 5 + inner_overhead + payload_length
+
+            if len(data) < frame_len:
+                break
+
+            payloads.append(data[:frame_len])
+            data = data[frame_len:]
+
+        self._buffer = data
+        return payloads
+
+
 class RawHeaderAssembler(FrameAssembler):
     """Frame codec for encrypt_type 1: 5-byte plaintext header (0xAA) + AES body"""
 

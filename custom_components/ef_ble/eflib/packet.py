@@ -83,30 +83,31 @@ class Packet:
         return self._product_id
 
     @staticmethod
-    def fromBytes(
-        data: bytes, xor_payload: bool = False
-    ) -> "Packet | PacketV4 | InvalidPacket":
+    def fromBytes(data: bytes, xor_payload: bool = False):
+        """Deserialize bytes stream into internal data"""
         if not data.startswith(Packet.PREFIX):
             error_msg = "Unable to parse packet - prefix is incorrect: %s"
             _LOGGER.error(error_msg, bytearray(data).hex())
             return InvalidPacket(error_msg % bytearray(data).hex())
 
-        version = data[1]
+        version_byte = data[1]
 
-        if version == 4:
+        if version_byte == 4:
             return PacketV4.fromBytes(data)
 
-        if (version == 2 and len(data) < 18) or (
-            version in [3, 0x13] and len(data) < 20
-        ):
+        version = version_byte & 0x0F
+        sentinel_format = (version_byte & 0x10) != 0
+
+        if (version == 2 and len(data) < 18) or (version == 3 and len(data) < 20):
             error_msg = "Unable to parse packet - too small: %s"
             _LOGGER.error(error_msg, bytearray(data).hex())
             return InvalidPacket(error_msg % bytearray(data).hex())
 
         payload_length = struct.unpack("<H", data[2:4])[0]
 
-        # Version 19 (0x13, V4 protocol stack) has no CRC16 checksum
-        if version in [2, 3]:
+        # Sentinel-format frames (high-nibble bit set, e.g. 0x13) carry a 0xBB
+        # 0xBB sentinel inside the payload instead of a trailing CRC16.
+        if version in (2, 3) and not sentinel_format:
             if crc16(data[:-2]) != struct.unpack("<H", data[-2:])[0]:
                 error_msg = "Unable to parse packet - incorrect CRC16: %s"
                 _LOGGER.error(error_msg, bytearray(data).hex())
@@ -139,12 +140,12 @@ class Packet:
         if payload_length > 0:
             payload = data[payload_start : payload_start + payload_length]
 
-            # If first byte of seq is set - we need to xor payload with it to get the
-            # real data
+            # When the high-nibble bit is set, the device XORs the payload
+            # with seq[0] before transmission - undo it here.
             if xor_payload and seq[0] != 0:
-                payload = bytes([c ^ seq[0] for c in payload])
+                payload = bytes(c ^ seq[0] for c in payload)
 
-            if version == 0x13 and payload[-2:] == b"\xbb\xbb":
+            if sentinel_format and payload[-2:] == b"\xbb\xbb":
                 payload = payload[:-2]
 
         return Packet(
@@ -155,7 +156,7 @@ class Packet:
             payload=payload,
             dsrc=dsrc,
             ddst=ddst,
-            version=version,
+            version=version_byte,
             seq=seq,
         )
 
