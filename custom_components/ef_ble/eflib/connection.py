@@ -1113,12 +1113,14 @@ class Connection:
         for packet in packets:
             processed = False
 
-            # Handling autoAuthentication response
-            if (
+            is_auth_reply = (
                 packet.src == self._auth_header_dst
                 and packet.cmdSet == 0x35
                 and packet.cmdId == 0x86
-            ):
+            )
+            authenticating = self._state == ConnectionState.AUTHENTICATING
+
+            if is_auth_reply and authenticating:
                 await self._check_auth(packet)
                 self._connection_attempt = 0
                 self._reconnect_attempt = 0
@@ -1127,6 +1129,13 @@ class Connection:
                 self._set_state(ConnectionState.AUTHENTICATED)
                 self._connected.set()
             else:
+                if authenticating and not is_auth_reply:
+                    self._connection_attempt = 0
+                    self._reconnect_attempt = 0
+                    self._logger.info("Auth completed - first data packet received")
+                    self._set_state(ConnectionState.AUTHENTICATED)
+                    self._connected.set()
+
                 try:
                     # Processing the packet with specific device
                     processed = await self._data_parse(packet)
