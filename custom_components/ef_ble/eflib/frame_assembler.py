@@ -140,7 +140,17 @@ class RawHeaderAssembler(FrameAssembler):
             payload_length = struct.unpack("<H", data[2:4])[0]
             version = data[1]
 
-            inner_overhead = 15 if version >= 3 else 13
+            # Bytes after the 5-byte unencrypted header that are NOT payload_length:
+            #   V4  (0x04): outer[5..7] (3 B) + CRC16 (2 B) = 5   (payload_length includes 8-B inner cmd)
+            #   V3  (0x03): product+seq+zeros+addr+cmd (13 B) + CRC16 (2 B) = 15
+            #   V19 (0x13): same 13-B cmd section; no CRC16; \xbb\xbb is inside payload_length = 13
+            #   V2  (0x02): product+seq+zeros+addr+cmd (11 B) + CRC16 (2 B) = 13
+            if version == 4:
+                inner_overhead = 5
+            if version in (3, 4):
+                inner_overhead = 15
+            else:
+                inner_overhead = 13
             inner_len = inner_overhead + payload_length
             encrypted_len = (inner_len + 15) // 16 * 16
             frame_len = 5 + encrypted_len
