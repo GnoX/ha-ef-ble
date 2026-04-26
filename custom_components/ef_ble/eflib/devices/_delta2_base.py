@@ -119,7 +119,7 @@ class Delta2Base(DeviceBase, RawDataProps):
         processed = False
         self.reset_updated()
 
-        match packet.src, packet.cmdSet, packet.cmdId:
+        match packet.src, packet.cmd_set, packet.cmd_id:
             case 0x02, 0x20, 0x02:
                 self.update_from_bytes(self.pd_heart_type, packet.payload)
                 processed = True

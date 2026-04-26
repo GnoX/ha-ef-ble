@@ -119,12 +119,12 @@ class Device(DeviceBase, RawDataProps):
         )
 
     async def packet_parse(self, data: bytes):
-        return Packet.fromBytes(data, xor_payload=True)
+        return Packet.from_bytes(data, xor_payload=True)
 
     async def data_parse(self, packet: Packet) -> bool:
         self.reset_updated()
 
-        match packet.src, packet.cmdSet, packet.cmdId:
+        match packet.src, packet.cmd_set, packet.cmd_id:
             case 0x03, 0x03, 0x0E:
                 async with self._lock:
                     self._initialized = True

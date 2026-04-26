@@ -72,6 +72,7 @@ class PacketVersion(enum.StrEnum):
 
     V2 = "v2"
     V3 = "v3"
+    V4 = "v4"
 
     def to_num(self):
         """Get packet version as number used for device config"""

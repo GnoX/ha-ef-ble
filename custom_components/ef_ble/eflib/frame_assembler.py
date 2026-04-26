@@ -40,7 +40,7 @@ class EncPacketAssembler(FrameAssembler):
         return EncPacket(
             EncPacket.FRAME_TYPE_PROTOCOL,
             EncPacket.PAYLOAD_TYPE_VX_PROTOCOL,
-            packet.toBytes(),
+            packet.to_bytes(),
             0,
             0,
             self._encryption.session_key,
@@ -109,7 +109,7 @@ class RawHeaderAssembler(FrameAssembler):
         return False
 
     async def encode(self, packet: Packet) -> bytes:
-        raw = packet.toBytes()
+        raw = packet.to_bytes()
         header = raw[:5]
         inner = raw[5:]
         encrypted = await self._encryption.encrypt(inner)

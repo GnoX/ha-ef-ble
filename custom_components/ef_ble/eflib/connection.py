@@ -829,14 +829,14 @@ class Connection:
         reply_packet = Packet(
             packet.dst,  # Switching src to dst
             packet.src,  # Switching dst to src
-            packet.cmdSet,
-            packet.cmdId,
+            packet.cmd_set,
+            packet.cmd_id,
             packet.payload,
             0x01,
             0x01,  # Replacing 0 with 1
             packet.version,
             packet.seq,
-            packet.productId,
+            packet.product_id,
         )
         # Running reply asynchroneously
         self._add_task(self.sendPacket(reply_packet))
@@ -1057,8 +1057,8 @@ class Connection:
             # Handling autoAuthentication response
             if (
                 packet.src == self._auth_header_dst
-                and packet.cmdSet == 0x35
-                and packet.cmdId == 0x86
+                and packet.cmd_set == 0x35
+                and packet.cmd_id == 0x86
             ):
                 await self._check_auth(packet)
                 self._connection_attempt = 0
