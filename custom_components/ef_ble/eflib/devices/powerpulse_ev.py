@@ -81,13 +81,13 @@ class Device(DeviceBase, ProtobufProps):
         return f"PowerPulse EV Charger ({model})"
 
     async def packet_parse(self, data: bytes):
-        return Packet.fromBytes(data, xor_payload=True)
+        return Packet.from_bytes(data, xor_payload=True)
 
     async def data_parse(self, packet: Packet) -> bool:
         processed = False
         self.reset_updated()
 
-        match packet.src, packet.cmdSet, packet.cmdId:
+        match packet.src, packet.cmd_set, packet.cmd_id:
             case (0x02, 0x02, 0x21):
                 self.update_from_bytes(cp307_iot_pb2.HeartBeat, packet.payload)
                 processed = True

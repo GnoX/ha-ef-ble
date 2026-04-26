@@ -230,7 +230,7 @@ class DeviceBase(abc.ABC):
 
     async def packet_parse(self, data: bytes):
         """Parse packet"""
-        return Packet.fromBytes(data)
+        return Packet.from_bytes(data)
 
     @property
     def connection_log(self):

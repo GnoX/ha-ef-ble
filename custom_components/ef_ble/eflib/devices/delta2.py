@@ -30,7 +30,7 @@ class Device(Delta2Base):
     xt60_input_power = raw_field(pb_pd.dc_pv_input_watts)
 
     async def packet_parse(self, data: bytes):
-        return Packet.fromBytes(data, xor_payload=True)
+        return Packet.from_bytes(data, xor_payload=True)
 
     @property
     def pd_heart_type(self):

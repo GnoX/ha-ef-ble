@@ -99,13 +99,13 @@ class Device(DeviceBase, RawDataProps):
         return sn.startswith(cls.SN_PREFIX)
 
     async def packet_parse(self, data: bytes):
-        return Packet.fromBytes(data, xor_payload=True)
+        return Packet.from_bytes(data, xor_payload=True)
 
     async def data_parse(self, packet: Packet) -> bool:
         processed = False
         self.reset_updated()
 
-        if packet.src == 0x42 and packet.cmdSet == 0x42 and packet.cmdId == 0x50:
+        if packet.src == 0x42 and packet.cmd_set == 0x42 and packet.cmd_id == 0x50:
             self.update_from_bytes(KT210SAC, packet.payload)
             processed = True
 

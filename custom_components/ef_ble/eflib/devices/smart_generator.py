@@ -123,19 +123,19 @@ class Device(DeviceBase, ProtobufProps):
         return sn.startswith(cls.SN_PREFIX)
 
     async def packet_parse(self, data: bytes):
-        return Packet.fromBytes(data, xor_payload=True)
+        return Packet.from_bytes(data, xor_payload=True)
 
     async def data_parse(self, packet: Packet):
         processed = False
         self.reset_updated()
 
-        if packet.src == 0x08 and packet.cmdSet == 0xFE and packet.cmdId == 0x15:
+        if packet.src == 0x08 and packet.cmd_set == 0xFE and packet.cmd_id == 0x15:
             self.update_from_bytes(ge305_sys_pb2.DisplayPropertyUpload, packet.payload)
             processed = True
         elif (
             packet.src == 0x35
-            and packet.cmdSet == 0x01
-            and packet.cmdId == Packet.NET_BLE_COMMAND_CMD_SET_RET_TIME
+            and packet.cmd_set == 0x01
+            and packet.cmd_id == Packet.NET_BLE_COMMAND_CMD_SET_RET_TIME
         ):
             if len(packet.payload) == 0:
                 self._time_commands.async_send_all()

@@ -224,16 +224,16 @@ class Device(DeviceBase, ProtobufProps):
 
         prev_error_count = self.error_count
 
-        if packet.src == 0x0B and packet.cmdSet == 0x0C:
+        if packet.src == 0x0B and packet.cmd_set == 0x0C:
             if (
-                packet.cmdId == 0x01
+                packet.cmd_id == 0x01
             ):  # master_info, load_info, backup_info, watt_info, master_ver_info
                 self._logger.debug("Parsed data: %r", packet)
 
                 await self._conn.replyPacket(packet)
                 self.update_from_bytes(pd303_pb2.ProtoTime, packet.payload)
                 processed = True
-            elif packet.cmdId == 0x20:  # backup_incre_info
+            elif packet.cmd_id == 0x20:  # backup_incre_info
                 self._logger.debug("Parsed data: %r", packet)
 
                 await self._conn.replyPacket(packet)
@@ -241,19 +241,19 @@ class Device(DeviceBase, ProtobufProps):
 
                 processed = True
 
-            elif packet.cmdId == 0x21:  # is_get_cfg_flag
+            elif packet.cmd_id == 0x21:  # is_get_cfg_flag
                 self._logger.debug("Parsed data: %r", packet)
                 self.update_from_bytes(pd303_pb2.ProtoPushAndSet, packet.payload)
                 processed = True
 
-        elif packet.src == 0x35 and packet.cmdSet == 0x35 and packet.cmdId == 0x20:
+        elif packet.src == 0x35 and packet.cmd_set == 0x35 and packet.cmd_id == 0x20:
             self._logger.debug("Ping received: %r", packet)
             processed = True
 
         elif (
             packet.src == 0x35
-            and packet.cmdSet == 0x01
-            and packet.cmdId == Packet.NET_BLE_COMMAND_CMD_SET_RET_TIME
+            and packet.cmd_set == 0x01
+            and packet.cmd_id == Packet.NET_BLE_COMMAND_CMD_SET_RET_TIME
         ):
             # Device requested for time and timezone offset, so responding with that
             # otherwise it will not be able to send us predictions and config data
@@ -261,7 +261,7 @@ class Device(DeviceBase, ProtobufProps):
                 self._time_commands.async_send_all()
             processed = True
 
-        elif packet.src == 0x0B and packet.cmdSet == 0x01 and packet.cmdId == 0x55:
+        elif packet.src == 0x0B and packet.cmd_set == 0x01 and packet.cmd_id == 0x55:
             # Device reply that it's online and ready
             self._conn._add_task(self.set_config_flag(True))
             processed = True

@@ -126,7 +126,7 @@ class Delta3Base(DeviceBase, ProtobufProps):
         self._time_commands = TimeCommands(self)
 
     async def packet_parse(self, data: bytes):
-        return Packet.fromBytes(data, xor_payload=True)
+        return Packet.from_bytes(data, xor_payload=True)
 
     @classmethod
     def check(cls, sn):
@@ -136,14 +136,14 @@ class Delta3Base(DeviceBase, ProtobufProps):
         processed = False
         self.reset_updated()
 
-        if packet.src == 0x02 and packet.cmdSet == 0xFE and packet.cmdId == 0x15:
+        if packet.src == 0x02 and packet.cmd_set == 0xFE and packet.cmd_id == 0x15:
             self.update_from_bytes(pd335_sys_pb2.DisplayPropertyUpload, packet.payload)
 
             processed = True
         elif (
             packet.src == 0x35
-            and packet.cmdSet == 0x01
-            and packet.cmdId == Packet.NET_BLE_COMMAND_CMD_SET_RET_TIME
+            and packet.cmd_set == 0x01
+            and packet.cmd_id == Packet.NET_BLE_COMMAND_CMD_SET_RET_TIME
         ):
             if len(packet.payload) == 0:
                 self._time_commands.async_send_all()

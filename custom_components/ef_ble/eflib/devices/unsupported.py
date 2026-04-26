@@ -76,7 +76,7 @@ class UnsupportedDevice(DeviceBase):
                 f"/{self._diagnostics.packet_buffer_size}"
             )
 
-        packet = Packet.fromBytes(data)
+        packet = Packet.from_bytes(data)
         if Packet.is_invalid(packet):
             self.collecting_data = "error"
 
@@ -91,8 +91,8 @@ class UnsupportedDevice(DeviceBase):
 
         if (
             packet.src == 0x35
-            and packet.cmdSet == 0x01
-            and packet.cmdId == Packet.NET_BLE_COMMAND_CMD_SET_RET_TIME
+            and packet.cmd_set == 0x01
+            and packet.cmd_id == Packet.NET_BLE_COMMAND_CMD_SET_RET_TIME
         ):
             if len(packet.payload) == 0:
                 self._time_commands.async_send_all()

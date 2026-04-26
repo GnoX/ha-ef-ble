@@ -181,7 +181,7 @@ class Device(DeviceBase, ProtobufProps):
         self._timer_task_chain: _TimerTaskChain | None = None
 
     async def packet_parse(self, data: bytes):
-        return Packet.fromBytes(data, xor_payload=True)
+        return Packet.from_bytes(data, xor_payload=True)
 
     @classmethod
     def check(cls, sn):
@@ -191,7 +191,7 @@ class Device(DeviceBase, ProtobufProps):
         processed = False
         self.reset_updated()
 
-        if packet.src == 0x02 and packet.cmdSet == 0xFE and packet.cmdId == 0x15:
+        if packet.src == 0x02 and packet.cmd_set == 0xFE and packet.cmd_id == 0x15:
             self.update_from_bytes(bk_series_pb2.DisplayPropertyUpload, packet.payload)
             processed = True
 

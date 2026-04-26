@@ -106,7 +106,7 @@ class Device(DeviceBase, RawDataProps):
         self.reset_updated()
         processed = False
 
-        match (packet.src, packet.cmdSet, packet.cmdId):
+        match (packet.src, packet.cmd_set, packet.cmd_id):
             case 0x02, 0x20, 0x02:
                 self.update_from_bytes(DirectPdHeartbeatPack, packet.payload)
                 processed = True

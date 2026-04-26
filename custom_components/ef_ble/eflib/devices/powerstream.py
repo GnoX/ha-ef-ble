@@ -72,13 +72,13 @@ class Device(DeviceBase, ProtobufProps):
         await self._conn.send_auth_status_packet()
 
     async def packet_parse(self, data: bytes):
-        return Packet.fromBytes(data, xor_payload=True)
+        return Packet.from_bytes(data, xor_payload=True)
 
     async def data_parse(self, packet: Packet) -> bool:
         self.reset_updated()
 
         msg = None
-        match packet.src, packet.cmdSet, packet.cmdId:
+        match packet.src, packet.cmd_set, packet.cmd_id:
             case (0x35, 0x14, 0x01):
                 msg = self.update_from_bytes(
                     wn511_sys_pb2.inverter_heartbeat, packet.payload

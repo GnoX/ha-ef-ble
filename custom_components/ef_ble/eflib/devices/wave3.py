@@ -139,19 +139,19 @@ class Device(DeviceBase, ProtobufProps):
         return sn[:4] in cls.SN_PREFIX
 
     async def packet_parse(self, data: bytes):
-        return Packet.fromBytes(data, xor_payload=True)
+        return Packet.from_bytes(data, xor_payload=True)
 
     async def data_parse(self, packet: Packet):
         processed = False
         self.reset_updated()
 
-        if packet.src == 0x42 and packet.cmdSet == 0xFE and packet.cmdId == 0x15:
+        if packet.src == 0x42 and packet.cmd_set == 0xFE and packet.cmd_id == 0x15:
             self.update_from_bytes(
                 ac517_apl_comm_pb2.DisplayPropertyUpload, packet.payload
             )
             processed = True
 
-        if packet.src == 0x42 and packet.cmdSet == 0xFE and packet.cmdId == 0x16:
+        if packet.src == 0x42 and packet.cmd_set == 0xFE and packet.cmd_id == 0x16:
             self.update_from_bytes(
                 ac517_apl_comm_pb2.RuntimePropertyUpload, packet.payload
             )
