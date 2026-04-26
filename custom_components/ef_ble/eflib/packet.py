@@ -88,23 +88,26 @@ class Packet:
 
     @staticmethod
     def fromBytes(data: bytes, xor_payload: bool = False):
-        """Deserializes bytes stream into internal data"""
+        """Deserialize bytes stream into internal data"""
         if not data.startswith(Packet.PREFIX):
             error_msg = "Unable to parse packet - prefix is incorrect: %s"
             _LOGGER.error(error_msg, bytearray(data).hex())
             return InvalidPacket(error_msg % bytearray(data).hex())
 
-        version = data[1]
-        if (version == 2 and len(data) < 18) or (version in [3, 4] and len(data) < 20):
+        version_byte = data[1]
+        version = version_byte & 0x0F
+        sentinel_format = (version_byte & 0x10) != 0
+
+        if (version == 2 and len(data) < 18) or (version in (3, 4) and len(data) < 20):
             error_msg = "Unable to parse packet - too small: %s"
             _LOGGER.error(error_msg, bytearray(data).hex())
             return InvalidPacket(error_msg % bytearray(data).hex())
 
         payload_length = struct.unpack("<H", data[2:4])[0]
 
-        # there are also version 19 packets that do not contain crc16 checksum
-        if version in [2, 3, 4]:
-            # Check whole packet CRC16
+        # sentinel-format frames (high-nibble bit set) carry a 0xBB 0xBB sentinel inside
+        # the payload instead of a trailing CRC16
+        if version in (2, 3, 4) and not sentinel_format:
             if crc16(data[:-2]) != struct.unpack("<H", data[-2:])[0]:
                 error_msg = "Unable to parse packet - incorrect CRC16: %s"
                 _LOGGER.error(error_msg, bytearray(data).hex())
@@ -137,12 +140,10 @@ class Packet:
         if payload_length > 0:
             payload = data[payload_start : payload_start + payload_length]
 
-            # If first byte of seq is set - we need to xor payload with it to get the
-            # real data
-            if xor_payload and seq[0] != b"\x00":
-                payload = bytes([c ^ seq[0] for c in payload])
+            if xor_payload and seq[0] != 0:
+                payload = bytes(c ^ seq[0] for c in payload)
 
-            if version == 0x13 and payload[-2:] == b"\xbb\xbb":
+            if sentinel_format and payload[-2:] == b"\xbb\xbb":
                 payload = payload[:-2]
 
         return Packet(
@@ -153,7 +154,7 @@ class Packet:
             payload=payload,
             dsrc=dsrc,
             ddst=ddst,
-            version=version,
+            version=version_byte,
             seq=seq,
         )
 
