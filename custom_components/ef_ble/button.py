@@ -23,6 +23,9 @@ class EcoflowButtonEntityDescription(ButtonEntityDescription):
 BUTTON_TYPES = [
     # DPU
     EcoflowButtonEntityDescription(key="unpause_solar"),
+    # DPUX
+    EcoflowButtonEntityDescription(key="turn_on_ac_ports", name="Turn On AC Ports"),
+    EcoflowButtonEntityDescription(key="turn_off_ac_ports", name="Turn Off AC Ports"),
 ]
 
 

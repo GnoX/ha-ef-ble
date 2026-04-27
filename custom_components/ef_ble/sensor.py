@@ -477,6 +477,16 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     "remaining_time_charging": duration(enabled=False),
     "remaining_time_discharging": duration(enabled=False),
     "total_energy": energy(),
+    
+    # DPUX NEMA Ports
+    "ac_nema_5_20_1_power": power(name="AC NEMA 5-20 1 Power"),
+    "ac_nema_5_20_1_current": current(name="AC NEMA 5-20 1 Current"),
+    "ac_nema_5_20_2_power": power(name="AC NEMA 5-20 2 Power"),
+    "ac_nema_5_20_2_current": current(name="AC NEMA 5-20 2 Current"),
+    "ac_nema_l14_30_power": power(name="AC NEMA L14-30 Power"),
+    "ac_nema_l14_30_current": current(name="AC NEMA L14-30 Current"),
+    "ac_nema_14_50_power": power(name="AC NEMA 14-50 Power"),
+    "ac_nema_14_50_current": current(name="AC NEMA 14-50 Current"),
     # SHP2
     "grid_power": power(precision=1),
     "power_status": enum(options=shp2.PowerStatus),

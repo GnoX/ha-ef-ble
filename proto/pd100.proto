@@ -334,6 +334,7 @@ message ConfigWrite {
   optional TimezoneChangeList cfg_timezone_change_list = 378;
   optional CfgIntelligentScheduleMode cfg_cfg_intelligent_schedule_mode = 546;
   optional CfgTimeScheduleTask cfg_cfg_time_schedule_task = 547;
+  optional uint32 cfg_panel_max_charge_pow_set = 542;
 }
 
 message ConfigWriteAck {
