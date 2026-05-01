@@ -116,7 +116,7 @@ class Device(DeviceBase, RawDataProps):
                 self.update_callback("drain_mode")
                 self.update_state("drain_mode", self.drain_mode)
 
-        # elif packet.src == 0x06 and packet.cmdSet == 0x20 and packet.cmdId == 0x32:
+        # elif packet.src == 0x06 and packet.cmd_set == 0x20 and packet.cmd_id == 0x32:
         #     processed = False
 
         for field_name in self.updated_fields:

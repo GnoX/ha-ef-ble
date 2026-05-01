@@ -33,11 +33,11 @@ async def test_wave3_parses_all_packets_successfully(device, packet_sequence):
 
         assert packet is not None, f"Packet {i} failed to parse"
         assert packet.src == 0x42, f"Packet {i} has unexpected src: {packet.src:#04x}"
-        assert packet.cmdSet == 0xFE, (
-            f"Packet {i} has unexpected cmdSet: {packet.cmdSet:#04x}"
+        assert packet.cmd_set == 0xFE, (
+            f"Packet {i} has unexpected cmd_set: {packet.cmd_set:#04x}"
         )
-        assert packet.cmdId == 0x15, (
-            f"Packet {i} has unexpected cmdId: {packet.cmdId:#04x}"
+        assert packet.cmd_id == 0x15, (
+            f"Packet {i} has unexpected cmd_id: {packet.cmd_id:#04x}"
         )
 
 

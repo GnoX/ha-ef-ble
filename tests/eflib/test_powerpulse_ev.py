@@ -9,7 +9,7 @@ def packet_sequence():
     """
     Raw packet sequence captured from a PowerPulse 9.6 kW EV charger (C101)
 
-    Heartbeat packets are src=0x02, cmdSet=0x02, cmdId=0x21 (HeartBeat).
+    Heartbeat packets are src=0x02, cmd_set=0x02, cmd_id=0x21 (HeartBeat).
     The charger is idle/unplugged (system_state=1) with line voltage ~239 V.
     """
     return [
@@ -35,11 +35,11 @@ async def test_powerpulse_ev_parses_all_packets_successfully(device, packet_sequ
 
         assert packet is not None, f"Packet {i} failed to parse"
         assert packet.src == 0x02, f"Packet {i} has unexpected src: {packet.src:#04x}"
-        assert packet.cmdSet == 0x02, (
-            f"Packet {i} has unexpected cmdSet: {packet.cmdSet:#04x}"
+        assert packet.cmd_set == 0x02, (
+            f"Packet {i} has unexpected cmd_set: {packet.cmd_set:#04x}"
         )
-        assert packet.cmdId == 0x21, (
-            f"Packet {i} has unexpected cmdId: {packet.cmdId:#04x}"
+        assert packet.cmd_id == 0x21, (
+            f"Packet {i} has unexpected cmd_id: {packet.cmd_id:#04x}"
         )
 
 
