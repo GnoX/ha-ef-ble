@@ -246,6 +246,7 @@ message BpGroupInfo {
 message ReqIntelligentSchedule {
   optional uint32 req_intelligent_schedule_state = 1;
   repeated ReqSmartCharge smart_charge_info_list = 2;
+  optional uint32 firmware_version = 3;
 }
 
 message GetIntelligentSchedule {
@@ -278,6 +279,10 @@ message CfgIntelligentScheduleChannelItem {
   optional string sn = 1;
   repeated uint32 channel_num = 2;
   repeated uint32 cfg_turn_off = 3;
+}
+
+message CfgIntelligentColdBootMode {
+  optional uint32 cfg_is_in_cold_state = 1;
 }
 
 message ConfigWrite {
@@ -334,6 +339,7 @@ message ConfigWrite {
   optional TimezoneChangeList cfg_timezone_change_list = 378;
   optional CfgIntelligentScheduleMode cfg_cfg_intelligent_schedule_mode = 546;
   optional CfgTimeScheduleTask cfg_cfg_time_schedule_task = 547;
+  optional CfgIntelligentColdBootMode cfg_cfg_intelligent_cold_boot_mode = 597;
 }
 
 message ConfigWriteAck {
@@ -392,6 +398,7 @@ message ConfigWriteAck {
   optional TimezoneChangeList cfg_timezone_change_list = 378;
   optional CfgIntelligentScheduleMode cfg_cfg_intelligent_schedule_mode = 546;
   optional CfgTimeScheduleTask cfg_cfg_time_schedule_task = 547;
+  optional CfgIntelligentColdBootMode cfg_cfg_intelligent_cold_boot_mode = 597;
 }
 
 message ConfigRead {
@@ -420,10 +427,12 @@ message DisplayPropertyUpload {
   optional TimezoneChangeList timezone_change_list = 976;
   optional uint32 errcode = 1;
   optional uint32 pd_err_code = 213;
+  optional uint32 mppt_err_code = 215;
   optional uint32 dcdc_err_code = 437;
   optional uint32 plug_in_info_dcp_err_code = 438;
   optional uint32 plug_in_info_dcp2_err_code = 439;
   optional uint32 bms_err_code = 140;
+  optional uint32 inv_err_code = 450;
   optional DevErrcodeList dev_errcode_list = 627;
   optional DevModuleErrcodeList dev_module_errcode_list = 628;
   optional float cms_batt_soc = 262;
@@ -537,6 +546,7 @@ message DisplayPropertyUpload {
   optional PlugInInfoAcOutAmpList plug_in_info_ac_out_amp_list = 973;
   optional bool bp_soc_equal_flag = 1453;
   optional OutputPowerFactorList output_power_factor_list = 1461;
+  optional uint32 power_limit_flag = 1680;
 }
 
 message RuntimePropertyUpload {
@@ -565,6 +575,8 @@ message RuntimePropertyUpload {
   optional float plug_in_info_pv_amp = 381;
   optional float plug_in_info_pv2_vol = 442;
   optional float plug_in_info_pv2_amp = 71;
+  optional float plug_in_info_5p8_vol = 69;
+  optional float plug_in_info_5p8_amp = 225;
   optional float plug_in_info_bms_vol = 169;
   optional float temp_pcs_dc = 26;
   optional float temp_pcs_ac = 27;
@@ -609,6 +621,25 @@ message RuntimePropertyUpload {
   optional float llc_bat_vol = 384;
   optional float llc_bat_cur = 385;
   optional float llc_bus_vol = 386;
+  optional float mppt_input_curr_ref = 411;
+  optional float grid_load_apparent_power_L1 = 1603;
+  optional float grid_load_apparent_power_L2 = 1604;
+  optional float grid_load_vol_L1 = 1605;
+  optional float grid_load_vol_L2 = 1606;
+  optional uint32 mppt_fanspeed_out = 1607;
+  optional uint32 inv_monitor_run_cmd = 1608;
+  optional uint32 inv_monitor_run_sta = 1609;
+  optional int32 inv_ntc_temp1 = 1610;
+  optional int32 inv_ntc_temp4 = 1611;
+  optional int32 dab2_ntc_temp = 1612;
+  optional int32 bat_pos_ntc_temp = 1613;
+  optional int32 bat_neg_ntc_temp = 1614;
+  optional int32 pv_mos_ntc_temp = 1615;
+  optional float plug_in_info_5p8_l2_vol = 1646;
+  optional float plug_in_info_5p8_l2_amp = 1647;
+  optional uint32 pv1_fsm = 1648;
+  optional uint32 pv2_fsm = 1649;
+  optional uint32 pv_input_type = 1650;
 }
 
 message DevRequest {
