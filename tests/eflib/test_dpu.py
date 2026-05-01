@@ -9,9 +9,9 @@ def packet_sequence():
     """
     Raw packet sequence captured from a DPU device
 
-    Packet 1 (cmdId=0x04): BpInfoReport - battery pack info (3 battery packs)
-    Packet 2 (src=0x06, cmdId=0x10): APPParaHeartbeatReport - system parameters
-    Packet 3 (cmdId=0x03): AppShowHeartbeatReport - system status and power data
+    Packet 1 (cmd_id=0x04): BpInfoReport - battery pack info (3 battery packs)
+    Packet 2 (src=0x06, cmd_id=0x10): APPParaHeartbeatReport - system parameters
+    Packet 3 (cmd_id=0x03): AppShowHeartbeatReport - system status and power data
     """
     return [
         "aa134500662c14a1c602011d0221010102041e011c150c363114141494391414d4512caf2b54704c331e011c160c393114141494391414d4512cfe4154704c311e011c170c3f3114141494391414d4512cbb4454704c37f209",
@@ -34,24 +34,24 @@ async def test_dpu_parses_all_packets_successfully(device, packet_sequence):
     expected_packets = [
         (0x02, 0x02, 0x04),  # BpInfoReport
         (0x06, 0xFE, 0x10),  # APPParaHeartbeatReport (not handled by device)
-        (0x02, 0x02, 0x03),  # AppShowHeartbeatReport (cmdId=0x03, not 0x01)
+        (0x02, 0x02, 0x03),  # AppShowHeartbeatReport (cmd_id=0x03, not 0x01)
     ]
 
     for i, hex_packet in enumerate(packet_sequence):
         packet = await device.packet_parse(bytes.fromhex(hex_packet))
-        expected_src, expected_cmdSet, expected_cmdId = expected_packets[i]
+        expected_src, expected_cmd_set, expected_cmd_id = expected_packets[i]
 
         assert packet is not None, f"Packet {i} failed to parse"
         assert packet.src == expected_src, (
             f"Packet {i} has unexpected src: {packet.src:#04x} != {expected_src:#04x}"
         )
-        assert packet.cmdSet == expected_cmdSet, (
-            f"Packet {i} has unexpected cmdSet: "
-            f"{packet.cmdSet:#04x} != {expected_cmdSet:#04x}"
+        assert packet.cmd_set == expected_cmd_set, (
+            f"Packet {i} has unexpected cmd_set: "
+            f"{packet.cmd_set:#04x} != {expected_cmd_set:#04x}"
         )
-        assert packet.cmdId == expected_cmdId, (
-            f"Packet {i} has unexpected cmdId: "
-            f"{packet.cmdId:#04x} != {expected_cmdId:#04x}"
+        assert packet.cmd_id == expected_cmd_id, (
+            f"Packet {i} has unexpected cmd_id: "
+            f"{packet.cmd_id:#04x} != {expected_cmd_id:#04x}"
         )
 
 

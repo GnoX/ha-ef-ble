@@ -26,7 +26,7 @@ class FrameAssembler(ABC):
 
     @abstractmethod
     async def reassemble(self, data: bytes) -> list[bytes]:
-        """Decode wire bytes into decrypted payloads ready for Packet.fromBytes()"""
+        """Decode wire bytes into decrypted payloads ready for Packet.from_bytes()"""
 
 
 class EncPacketAssembler(FrameAssembler):
@@ -45,7 +45,7 @@ class EncPacketAssembler(FrameAssembler):
             0,
             self._encryption.session_key,
             self._encryption.iv,
-        ).toBytes()
+        ).to_bytes()
 
     async def reassemble(self, data: bytes) -> list[bytes]:
         if self._buffer:
@@ -147,7 +147,7 @@ class RawHeaderAssembler(FrameAssembler):
             #   V2  (0x02): product+seq+zeros+addr+cmd (11 B) + CRC16 (2 B) = 13
             if version == 4:
                 inner_overhead = 5
-            if version in (3, 4):
+            elif version >= 3:
                 inner_overhead = 15
             else:
                 inner_overhead = 13
@@ -182,7 +182,7 @@ class SimplePacketAssembler:
             EncPacket.FRAME_TYPE_COMMAND,
             EncPacket.PAYLOAD_TYPE_VX_PROTOCOL,
             payload,
-        ).toBytes()
+        ).to_bytes()
 
     def parse(self, data: bytes) -> bytes | None:
         """

@@ -10,8 +10,8 @@ def packet_sequence():
     Raw packet sequence captured from a PowerStream device
 
     Packet types cover all main modules:
-    - src=0x35, cmdSet=0x14, cmdId=0x01: inverter_heartbeat (PV, battery, grid data)
-    - src=0x35, cmdSet=0x14, cmdId=0x04: inv_heartbeat_type2 (system parameters)
+    - src=0x35, cmd_set=0x14, cmd_id=0x01: inverter_heartbeat (PV, battery, grid data)
+    - src=0x35, cmd_set=0x14, cmd_id=0x04: inv_heartbeat_type2 (system parameters)
     """
     return [
         "aa13fe01b90de03d00000000352101011401e8e0f0e0f8e0c0e0c8e0d0e0d8e0a0e0a8e0b0e0b8e480e488e590e398e660e14ae268e148f770e1e278e1dc40e156e248e130e250e145fa58e1e520e154e128e14ce230e16be438e149e400e1e008e1e010e132e118e1ff60e2e068e20fc170e256e278e2e040e26ff248e201e250e210e158e2e020e213e330e2e238e2f100e2e008e2e010e2e018e2e060e310e168e3e070e3e078e3e040e38448e3e150e3e058e3e020e36de128e3e230e320de38e345b600e300c608e3e010e310e118e3e060e4e068e4e070e410e178e410e140e4e748e4e050e4e058e4e020e4e028e4e030e4400bc138e43010d300e4e508e4e810e4e018e420de60e5e068e5e070e510e178e5391f1f1f1f1f1f1f1fe140e5e048e55ee150e53fd058e510ce70e600d078e620de40e6e148e6c350e66d1f15c258e6e120e64c53745ee628e624755e0de630e6203166601d1f1f1f1fe138e6e100e6e008e605e110e6e068e7e170e76c79372ce678e7aa40e7d448e7e050e7e058e78820e720de28e7e038e774ba00e7e608e7e315e7b9d699a918e73ce660e856f168e872f870e8e078e8e040e8e048e872f850e8c858e8e020e8391f1f1f1f1f1f1f1fe128e8e038e8e000e8e008e8fa10e8e018e8e360e9e068e9e070e9e078e9e040e9e048e9e050e9e020e970fc28e967433c2ce630e970fc38e9e000e9e008e9e010e9e018e9e060eae0ef43",
@@ -37,19 +37,19 @@ async def test_powerstream_parses_all_packets_successfully(device, packet_sequen
 
     for i, hex_packet in enumerate(packet_sequence):
         packet = await device.packet_parse(bytes.fromhex(hex_packet))
-        expected_src, expected_cmdSet, expected_cmdId = expected_packets[i]
+        expected_src, expected_cmd_set, expected_cmd_id = expected_packets[i]
 
         assert packet is not None, f"Packet {i} failed to parse"
         assert packet.src == expected_src, (
             f"Packet {i} has unexpected src: {packet.src:#04x} != {expected_src:#04x}"
         )
-        assert packet.cmdSet == expected_cmdSet, (
-            f"Packet {i} has unexpected cmdSet: "
-            f"{packet.cmdSet:#04x} != {expected_cmdSet:#04x}"
+        assert packet.cmd_set == expected_cmd_set, (
+            f"Packet {i} has unexpected cmd_set: "
+            f"{packet.cmd_set:#04x} != {expected_cmd_set:#04x}"
         )
-        assert packet.cmdId == expected_cmdId, (
-            f"Packet {i} has unexpected cmdId: "
-            f"{packet.cmdId:#04x} != {expected_cmdId:#04x}"
+        assert packet.cmd_id == expected_cmd_id, (
+            f"Packet {i} has unexpected cmd_id: "
+            f"{packet.cmd_id:#04x} != {expected_cmd_id:#04x}"
         )
 
 

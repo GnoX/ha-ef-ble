@@ -46,9 +46,9 @@ async def test_shp2_parses_all_packets_successfully(device, packet_sequence):
         packet = await device.packet_parse(bytes.fromhex(hex_packet))
         assert packet is not None, f"Packet {i} failed to parse"
         assert packet.src == 0x0B, f"Packet {i} has unexpected src"
-        assert packet.cmdSet == 0x0C, f"Packet {i} has unexpected cmdSet"
-        assert packet.cmdId == expected_cmd_ids[i], (
-            f"Packet {i} has unexpected cmdId: 0x{packet.cmdId:02x}"
+        assert packet.cmd_set == 0x0C, f"Packet {i} has unexpected cmd_set"
+        assert packet.cmd_id == expected_cmd_ids[i], (
+            f"Packet {i} has unexpected cmd_id: 0x{packet.cmd_id:02x}"
         )
 
 

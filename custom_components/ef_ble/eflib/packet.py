@@ -1,7 +1,6 @@
 import logging
 import struct
 from dataclasses import dataclass
-from functools import cached_property
 from typing import ClassVar, TypeGuard
 
 from .crc import crc8, crc16
@@ -9,13 +8,12 @@ from .crc import crc8, crc16
 _LOGGER = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclass(slots=True)
 class Packet:
     """
-    V2 / V3 / V0x13 packet codec.
+    V2 / V3 / V0x13 packet codec
 
     V4 (version 0x04) is a different wire format and lives in `PacketV4`.
-    `Packet.fromBytes` dispatches to it transparently for v4 frames.
     """
 
     src: int
@@ -33,7 +31,7 @@ class Packet:
     NET_BLE_COMMAND_CMD_CHECK_RET_TIME: ClassVar[int] = 0x53
     NET_BLE_COMMAND_CMD_SET_RET_TIME: ClassVar[int] = 0x52
 
-    @cached_property
+    @property
     def payload_hex(self) -> str:
         return self.payload.hex()
 
@@ -169,10 +167,10 @@ class Packet:
         return isinstance(packet, InvalidPacket)
 
 
-@dataclass
+@dataclass(slots=True)
 class PacketV4:
     """
-    V4 (version 0x04) packet codec.
+    V4 (version 0x04) packet codec
 
     Wire format:
       [0]      0xaa prefix
@@ -226,7 +224,7 @@ class PacketV4:
     def version(self) -> int:
         return self.VERSION
 
-    @cached_property
+    @property
     def payload_hex(self) -> str:
         return self.payload.hex()
 
@@ -238,6 +236,11 @@ class PacketV4:
             return InvalidPacket(error_msg % bytearray(data).hex())
 
         payload_length = struct.unpack("<H", data[2:4])[0]
+
+        if len(data) != 8 + payload_length + 2:
+            error_msg = "Unable to parse packet - V4 length mismatch: %s"
+            _LOGGER.error(error_msg, bytearray(data).hex())
+            return InvalidPacket(error_msg % bytearray(data).hex())
 
         if crc16(data[:-2]) != struct.unpack("<H", data[-2:])[0]:
             error_msg = "Unable to parse packet - incorrect CRC16: %s"
@@ -372,8 +375,10 @@ class PacketV4:
 class InvalidPacket(Packet):
     """Represents an invalid packet that could not be parsed."""
 
+    __slots__ = ("error_message",)
+
     def __init__(self, error_message: str):
-        super().__init__(src=0, dst=0, cmd_set=0, cmd_id=0)
+        Packet.__init__(self, src=0, dst=0, cmd_set=0, cmd_id=0)
         self.error_message = error_message
 
     def __bool__(self) -> bool:

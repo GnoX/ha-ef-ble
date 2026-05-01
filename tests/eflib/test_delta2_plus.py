@@ -10,13 +10,13 @@ def packet_sequence():
     Raw packet sequence captured from a Delta 3 1500 (Delta 2 Plus) device
 
     Packet types cover all main modules:
-    - src=0x02, cmdSet=0x20, cmdId=0x02: PdHeart (power delivery)
-    - src=0x03, cmdSet=0x03, cmdId=0x0e: AllKitDetailData
-    - src=0x03, cmdSet=0x20, cmdId=0x02: EmsDeltaHeartbeatPack (energy management)
-    - src=0x03, cmdSet=0x20, cmdId=0x32: BmsHeartbeatBatteryMain (main battery)
-    - src=0x04, cmdSet=0x20, cmdId=0x02: InvDeltaHeartbeatPack (inverter)
-    - src=0x05, cmdSet=0x20, cmdId=0x02: MpptHeart (solar controller)
-    - src=0x06, cmdSet=0x20, cmdId=0x32: BmsHeartbeatBattery1 (addon battery)
+    - src=0x02, cmd_set=0x20, cmd_id=0x02: PdHeart (power delivery)
+    - src=0x03, cmd_set=0x03, cmd_id=0x0e: AllKitDetailData
+    - src=0x03, cmd_set=0x20, cmd_id=0x02: EmsDeltaHeartbeatPack (energy management)
+    - src=0x03, cmd_set=0x20, cmd_id=0x32: BmsHeartbeatBatteryMain (main battery)
+    - src=0x04, cmd_set=0x20, cmd_id=0x02: InvDeltaHeartbeatPack (inverter)
+    - src=0x05, cmd_set=0x20, cmd_id=0x02: MpptHeart (solar controller)
+    - src=0x06, cmd_set=0x20, cmd_id=0x32: BmsHeartbeatBattery1 (addon battery)
     """
     return [
         "aa028500422c000000000200022120024e000000004d0000010000000000623e01b501cde8ffff0000000000000000000000002978000000030000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b5013e0100000000010000005005000000000000000c55",
@@ -52,19 +52,19 @@ async def test_delta2_plus_parses_all_packets_successfully(device, packet_sequen
 
     for i, hex_packet in enumerate(packet_sequence):
         packet = await device.packet_parse(bytes.fromhex(hex_packet))
-        expected_src, expected_cmdSet, expected_cmdId = expected_packets[i]
+        expected_src, expected_cmd_set, expected_cmd_id = expected_packets[i]
 
         assert packet is not None, f"Packet {i} failed to parse"
         assert packet.src == expected_src, (
             f"Packet {i} has unexpected src: {packet.src:#04x} != {expected_src:#04x}"
         )
-        assert packet.cmdSet == expected_cmdSet, (
-            f"Packet {i} has unexpected cmdSet: "
-            f"{packet.cmdSet:#04x} != {expected_cmdSet:#04x}"
+        assert packet.cmd_set == expected_cmd_set, (
+            f"Packet {i} has unexpected cmd_set: "
+            f"{packet.cmd_set:#04x} != {expected_cmd_set:#04x}"
         )
-        assert packet.cmdId == expected_cmdId, (
-            f"Packet {i} has unexpected cmdId: "
-            f"{packet.cmdId:#04x} != {expected_cmdId:#04x}"
+        assert packet.cmd_id == expected_cmd_id, (
+            f"Packet {i} has unexpected cmd_id: "
+            f"{packet.cmd_id:#04x} != {expected_cmd_id:#04x}"
         )
 
 
