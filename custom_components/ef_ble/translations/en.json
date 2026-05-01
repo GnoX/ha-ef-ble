@@ -959,7 +959,8 @@
           "none": "None",
           "time_of_use": "TOU",
           "self_powered": "Self Powered",
-          "scheduled": "Scheduled Tasks"
+          "scheduled": "Scheduled Tasks",
+          "intelligent": "Intelligent Schedule"
         }
       },
       "energy_strategy": {
