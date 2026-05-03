@@ -114,39 +114,7 @@ class Device(DeviceBase, ProtobufProps):
         return sn[:4] in cls.SN_PREFIX
 
     async def packet_parse(self, data: bytes):
-        """Parse incoming BLE data.
-        
-        DPUX often sends multiple packets concatenated in a single BLE notification.
-        This method iterates through the buffer to parse all valid packets.
-        """
-        import struct
-        pos = 0
-        last_packet = None
-        while pos < len(data):
-            if data[pos] != 0xAA:
-                pos += 1
-                continue
-            if pos + 4 > len(data):
-                break
-            version = data[pos+1]
-            payload_len = struct.unpack("<H", data[pos+2:pos+4])[0]
-            header_len = 18 if version in [3, 4] else 16
-            total_len = header_len + payload_len + 2 # 2 for CRC16
-            
-            if pos + total_len > len(data):
-                break
-                
-            packet_data = data[pos:pos+total_len]
-            try:
-                packet = Packet.fromBytes(packet_data, xor_payload=True)
-                await self.data_parse(packet)
-                last_packet = packet
-            except Exception as e:
-                self._logger.warning("Failed to parse sub-packet: %s", e)
-                
-            pos += total_len
-            
-        return last_packet if last_packet else Packet.fromBytes(data, xor_payload=True)
+        return Packet.fromBytes(data, xor_payload=True)
 
     async def data_parse(self, packet: Packet):
         processed = False
