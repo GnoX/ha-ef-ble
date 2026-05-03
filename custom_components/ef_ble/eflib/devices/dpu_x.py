@@ -77,7 +77,7 @@ class Device(DeviceBase, ProtobufProps):
     error_code = pb_field(pb.errcode)
 
     wifi_rssi = pb_field(pb.module_wifi_rssi)
-    sleep_state = pb_field(pb.dev_sleep_state)
+    dev_sleep_state = pb_field(pb.dev_sleep_state)
 
     ac_ports = pb_field(pb.flow_info_ac_out, flow_is_on)
 
@@ -142,7 +142,7 @@ class Device(DeviceBase, ProtobufProps):
         return bool(self.error_code)
 
     @computed_field
-    def operating_mode(self) -> OperatingMode:
+    def operating_mode_select(self) -> OperatingMode:
         mode = self._energy_strategy_operate_mode
         if mode is None:
             return OperatingMode.NONE
@@ -158,7 +158,7 @@ class Device(DeviceBase, ProtobufProps):
     async def enable_ac_ports(self, enabled: bool):
         await self._send_config_packet(pd100_pb2.ConfigWrite(cfg_ac_out_open=enabled))
 
-    @controls.select(operating_mode, options=OperatingMode)
+    @controls.select(operating_mode_select, options=OperatingMode)
     async def set_operating_mode(self, mode: OperatingMode):
         message = pd100_pb2.ConfigWrite()
         cfg = message.cfg_energy_strategy_operate_mode
