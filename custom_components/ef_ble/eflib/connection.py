@@ -504,7 +504,7 @@ class Connection:
         raise exc
 
     @staticmethod
-    def _auth_handler(expected_state: "ConnectionState"):
+    def _auth_handler(expected_state: ConnectionState):
         def decorator(
             fn: Callable[
                 ["Connection", BleakGATTCharacteristic, bytearray], Awaitable[None]

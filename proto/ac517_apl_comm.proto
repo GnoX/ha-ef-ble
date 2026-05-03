@@ -1,8 +1,7 @@
-/* AUTO-GENERATED FILE. DO NOT MODIFY.
-*/
 syntax = "proto3";
 
 package ac517_apl_comm;
+
 
 enum TIME_TASK_MODE {
   TIME_TASK_MODE_RESV = 0;
@@ -64,7 +63,7 @@ message EventPush {
 
   optional uint32 event_ver = 1;
   optional uint32 event_seq = 2;
-  repeated LogItem event_item = 3;
+  repeated EventPush.LogItem event_item = 3;
 }
 
 message EventAck {

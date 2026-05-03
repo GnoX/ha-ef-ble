@@ -54,6 +54,8 @@ class EcoflowEntity(Entity):
 
         if value := getattr(self._device, prop_name, None):
             setattr(self, entity_attr, get_state(value))
+        else:
+            setattr(self, entity_attr, None)
 
         @callback
         def state_updated(state: Any):

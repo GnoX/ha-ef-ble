@@ -865,6 +865,9 @@
       "temp_compressor_discharge": {
         "name": "Compressor Discharge Temp"
       },
+      "en_pet_care": {
+        "name": "Pet Care Mode"
+      },
       "battery_charge_limit_min": {
         "name": "Discharge Limit"
       },
@@ -986,6 +989,16 @@
           "tou": "Time of Use",
           "intelligent_schedule": "Intelligent Schedule"
         }
+      },
+      "operating_submode": {
+        "name": "Operating Submode",
+        "state": {
+          "none": "None",
+          "normal": "Normal",
+          "max": "Max",
+          "sleep": "Sleep",
+          "eco": "Eco"
+        }
       }
     },
     "number": {
@@ -1036,6 +1049,19 @@
       },
       "dc_charging_max_amps_2": {
         "name": "DC (2) Charging Max Amps"
+      }
+    },
+    "climate": {
+      "climate": {
+        "name": "Climate",
+        "state_attributes": {
+          "fan_mode": {
+            "state": {
+              "medium_low": "Medium Low",
+              "medium_high": "Medium High"
+            }
+          }
+        }
       }
     },
     "switch": {
