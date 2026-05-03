@@ -1,7 +1,7 @@
 from ..entity import controls
 from ..entity.base import dynamic
 from ..pb import pd335_sys_pb2
-from ..props import pb_field
+from ..props import computed_field, pb_field
 from ..props.transforms import flow_is_on, out_power
 from ._delta3_base import Delta3Base, pb
 
@@ -12,8 +12,7 @@ class Device(Delta3Base):
     SN_PREFIX = (b"P321",)
     NAME_PREFIX = "EF-P3"
 
-    energy_backup = pb_field(pb.energy_backup_en)
-    energy_backup_battery_level = pb_field(pb.energy_backup_start_soc)
+    energy_backup_battery_level = pb_field(pb.backup_reverse_soc)
 
     dc_12v_port = pb_field(pb.flow_info_12v, flow_is_on)
     dc12v_output_power = pb_field(pb.pow_get_12v, out_power)
@@ -33,6 +32,10 @@ class Device(Delta3Base):
         pb.energy_strategy_operate_mode,
         lambda x: x.operate_tou_mode_open if x else None,
     )
+
+    @computed_field
+    def energy_backup(self):
+        return self.energy_strategy_self_powered
 
     @controls.switch(disable_grid_bypass, enabled=False)
     async def enable_disable_grid_bypass(self, enabled: bool):
@@ -61,11 +64,10 @@ class Device(Delta3Base):
     @controls.switch(energy_backup)
     async def enable_energy_backup(self, enabled: bool):
         config = pd335_sys_pb2.ConfigWrite()
-        config.cfg_energy_backup.energy_backup_en = enabled
+        config.cfg_energy_strategy_operate_mode.operate_self_powered_open = enabled
         if enabled and self.energy_backup_battery_level is not None:
-            config.cfg_energy_backup.energy_backup_start_soc = (
-                self.energy_backup_battery_level or 50
-            )
+            config.cfg_backup_reverse_soc = self.energy_backup_battery_level or 50
+
         await self._send_config_packet(config)
 
     @controls.battery(
