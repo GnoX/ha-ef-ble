@@ -77,7 +77,7 @@ class Device(DeviceBase, ProtobufProps):
     error_code = pb_field(pb.errcode)
 
     wifi_rssi = pb_field(pb.module_wifi_rssi)
-    sleep_state = pb_field(pb.dev_sleep_state)
+    dev_sleep_state = pb_field(pb.dev_sleep_state)
 
     ac_ports = pb_field(pb.flow_info_ac_out, flow_is_on)
 

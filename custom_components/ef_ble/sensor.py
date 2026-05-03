@@ -677,6 +677,7 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     "ac_5p8_out_current": port_current("AC 5P8 Out"),
     "ac_5p8_out_power_factor": port_power_factor("AC 5P8 Out"),
     # DPU X
+    "dev_sleep_state": raw(),
     "ac_nema_5_20_1_power": port_power("AC NEMA 5-20 (1) Out", precision=2),
     "ac_nema_5_20_1_current": port_current("AC NEMA 5-20 (1) Out"),
     "ac_nema_5_20_2_power": port_power("AC NEMA 5-20 (2) Out", precision=2),
