@@ -90,6 +90,8 @@ class Delta3Base(DeviceBase, ProtobufProps):
     cell_temperature = pb_field(pb.bms_max_cell_temp)
     ac_ports = pb_field(pb.flow_info_ac_out, flow_is_on)
 
+    pcs_fan_level = pb_field(pb.pcs_fan_level)
+
     remaining_time_charging = pb_field(pb.cms_chg_rem_time)
     remaining_time_discharging = pb_field(pb.cms_dsg_rem_time)
 

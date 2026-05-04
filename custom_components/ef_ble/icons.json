@@ -33,6 +33,9 @@
       }
     },
     "sensor": {
+      "pcs_fan_level": {
+        "default": "mdi:fan"
+      },
       "input_power": {
         "default": "mdi:home-lightning-bolt-outline"
       },

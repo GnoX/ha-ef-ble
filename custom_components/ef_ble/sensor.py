@@ -717,6 +717,11 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     "battery_input_power": power(enabled=False),
     "battery_output_power": power(enabled=False),
     "cell_temperature": temperature(enabled=False),
+    "pcs_fan_level": raw(
+        enabled=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
     "dc_port_input_power": power(precision=2),
     "dc_port_2_input_power": power("dc_port_input_power_2", precision=2),
     "dc_port_state": enum(options=_delta3_base.DCPortState),

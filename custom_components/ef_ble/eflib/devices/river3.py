@@ -84,6 +84,8 @@ class Device(DeviceBase, ProtobufProps):
 
     cell_temperature = pb_field(pb.bms_max_cell_temp)
 
+    pcs_fan_level = pb_field(pb.pcs_fan_level)
+
     dc_12v_port = pb_field(pb.flow_info_12v, flow_is_on)
     ac_ports = pb_field(pb.flow_info_ac_out, flow_is_on)
 
