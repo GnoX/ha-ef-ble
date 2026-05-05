@@ -142,7 +142,7 @@ class Device(DeviceBase, ProtobufProps):
         return bool(self.error_code)
 
     @computed_field
-    def energy_strategy_operate_mode(self) -> OperatingMode:
+    def dpux_operating_mode(self) -> OperatingMode:
         mode = self._energy_strategy_operate_mode
         if mode is None:
             return OperatingMode.NONE
@@ -158,7 +158,7 @@ class Device(DeviceBase, ProtobufProps):
     async def enable_ac_ports(self, enabled: bool):
         await self._send_config_packet(pd100_pb2.ConfigWrite(cfg_ac_out_open=enabled))
 
-    @controls.select(energy_strategy_operate_mode, options=OperatingMode)
+    @controls.select(dpux_operating_mode, options=OperatingMode)
     async def set_operating_mode(self, mode: OperatingMode):
         message = pd100_pb2.ConfigWrite()
         cfg = message.cfg_energy_strategy_operate_mode
