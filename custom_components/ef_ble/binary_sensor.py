@@ -121,6 +121,17 @@ def shp2_channel(
 _BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
     "error_happened": problem("error", entity_category=EntityCategory.DIAGNOSTIC),
     "plugged_in_ac": plug(),
+    "fan_running": _make_desc(
+        BinarySensorDeviceClass.RUNNING,
+        enabled=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    "error_occurred": problem(
+        enabled=False,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        state_attribute_fields=["error_code"],
+    ),
+    "bms_run_state": power(enabled=False, entity_category=EntityCategory.DIAGNOSTIC),
     # SHP2 backup channel binary sensors
     "ch{n}_backup_is_ready": shp2_channel(
         battery, "channel_backup_is_ready", enabled=False
