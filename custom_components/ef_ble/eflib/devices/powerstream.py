@@ -38,6 +38,13 @@ class Device(DeviceBase, ProtobufProps):
     battery_power = pb_field(pb.bat_input_watts, pdiv(10, 1))
     battery_temperature = pb_field(pb.bat_temp, pdiv(10, 1))
 
+    battery_level_psdr_soc = pb_field(pb_inv2.new_psdr_heartbeat.soc)
+    battery_level_psdr_lcd_soc = pb_field(
+        pb_inv2.new_psdr_heartbeat.f32_lcd_show_soc, pround(2)
+    )
+    battery_level_psdr_lcd_soc_1 = pb_field(pb_inv2.new_psdr_heartbeat.lcd_show_soc)
+    battery_level_main = pb_field(pb.bat_soc, pround(2))
+
     inverter_power = pb_field(pb.inv_output_watts, pdiv(10, 1))
     inverter_voltage = pb_field(pb.inv_op_volt, pdiv(10, 1))
     inverter_current = pb_field(pb.inv_output_cur, pdiv(1000, 2))

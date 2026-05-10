@@ -486,6 +486,9 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     # Common
     "battery_level": battery(),
     "battery_level_main": battery(),
+    "battery_level_psdr_soc": battery(entity_category=EntityCategory.DIAGNOSTIC),
+    "battery_level_psdr_lcd_soc": battery(entity_category=EntityCategory.DIAGNOSTIC),
+    "battery_level_psdr_lcd_soc_1": battery(entity_category=EntityCategory.DIAGNOSTIC),
     "input_power": power(precision=0),
     "output_power": power(precision=0),
     "remaining_time_charging": duration(enabled=False),

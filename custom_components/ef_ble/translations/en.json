@@ -390,6 +390,15 @@
       "battery_level_main": {
         "name": "Main Battery Level"
       },
+      "battery_level_psdr_soc": {
+        "name": "PSDR Battery Level"
+      },
+      "battery_level_psdr_lcd_soc": {
+        "name": "PSDR LCD Battery Level"
+      },
+      "battery_level_psdr_lcd_soc_1": {
+        "name": "PSDR LCD Battery Level Int"
+      },
       "input_power": {
         "name": "Input Power"
       },
