@@ -35,7 +35,7 @@ class DCPortState(IntFieldValue):
 class Device(DeviceBase, ProtobufProps):
     """Delta Pro 3"""
 
-    SN_PREFIX = (b"MR51",)
+    SN_PREFIX = (b"MR51", b"MR54")
     NAME_PREFIX = "EF-DP3"
 
     battery_level = pb_field(pb.cms_batt_soc, pround(2))
