@@ -49,7 +49,7 @@ class EcoflowEntity(Entity):
         get_state: Callable[[Any], SkipWrite | Any] = lambda x: x,
         default_state: Any = None,
     ):
-        if prop_name is None:
+        if prop_name is None or not hasattr(self._device, prop_name):
             return
 
         if value := getattr(self._device, prop_name, None):
