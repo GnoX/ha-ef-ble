@@ -59,8 +59,8 @@ class Packet:
 
         payload_length = struct.unpack("<H", data[2:4])[0]
 
-        # Sentinel-format frames (high-nibble bit set, e.g. 0x13) carry a 0xBB
-        # 0xBB sentinel inside the payload instead of a trailing CRC16.
+        # Sentinel-format frames (high-nibble bit set, e.g. 0x13) carry a 0xBB sentinel
+        # inside the payload instead of a trailing CRC16.
         if version in (2, 3) and not sentinel_format:
             if crc16(data[:-2]) != struct.unpack("<H", data[-2:])[0]:
                 error_msg = "Unable to parse packet - incorrect CRC16: %s"
@@ -94,8 +94,8 @@ class Packet:
         if payload_length > 0:
             payload = data[payload_start : payload_start + payload_length]
 
-            # When the high-nibble bit is set, the device XORs the payload
-            # with seq[0] before transmission - undo it here.
+            # When the high-nibble bit is set, the device XORs the payload with seq[0]
+            # before transmission - undo it here.
             if xor_payload and seq[0] != 0:
                 payload = bytes(c ^ seq[0] for c in payload)
 

@@ -1,10 +1,9 @@
 """
 Script to generate/regenerate protocol buffer source code and typing stubs.
 
-Uses `protoc` shipped with `grpcio-tools` so no system install is required.
-Typing stubs are heavily used for typing of device fields and instantly catch
-errors. They should not be versioned as they can be quite large and useless at
-runtime.
+Uses `protoc` shipped with `grpcio-tools` so no system install is required.  Typing
+stubs are heavily used for typing of device fields and instantly catch errors. They
+should not be versioned as they can be quite large and useless at runtime.
 """  # noqa: INP001
 
 from pathlib import Path
