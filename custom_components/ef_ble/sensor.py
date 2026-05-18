@@ -43,6 +43,7 @@ from .eflib.devices import (
     wave2,
     wave3,
 )
+from .eflib.entity import units
 from .eflib.props.enums import IntFieldValue
 from .entity import (
     EcoflowBatteryAddonEntity,
@@ -213,15 +214,12 @@ def temperature(
     )
 
 
-def _wave_unit(dev: wave3.Device):
-    match dev:
-        case wave3.Device:
-            return (
-                UnitOfTemperature.FAHRENHEIT
-                if dev.temp_unit is wave3.TemperatureUnit.FAHRENHEIT
-                else UnitOfTemperature.CELSIUS
-            )
-    return UnitOfTemperature.CELSIUS
+def _wave_unit(dev: "wave2.Device | wave3.Device"):
+    return (
+        UnitOfTemperature.FAHRENHEIT
+        if dev.temp_unit in (units.Temperature.F, wave3.TemperatureUnit.FAHRENHEIT)
+        else UnitOfTemperature.CELSIUS
+    )
 
 
 def wave_temperature(
@@ -859,7 +857,7 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
         enabled=False,
     ),
     # Wave 2
-    "outlet_temperature": temperature(),
+    "outlet_temperature": wave_temperature(),
     "power_battery": power(precision=0),
     "power_psdr": power(precision=0),
     "power_mppt": power(precision=0),
