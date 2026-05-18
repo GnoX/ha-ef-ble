@@ -1,6 +1,7 @@
 from ..devicebase import DeviceBase
 from ..entity import controls, units
 from ..entity.base import dynamic
+from ..entity.controls import HvacMode
 from ..model.kt210_sac import KT210SAC
 from ..packet import Packet
 from ..props import Field, computed_field
@@ -88,6 +89,7 @@ class Device(DeviceBase, RawDataProps):
 
     target_temperature = raw_field(pb.set_temp)
     power_mode = raw_field(pb.power_mode, PowerMode.from_value)
+    power = raw_field(pb.power_mode, lambda x: PowerMode.from_value(x) is PowerMode.ON)
     _temp_sys = raw_field(pb.temp_sys)
 
     @computed_field
@@ -135,10 +137,7 @@ class Device(DeviceBase, RawDataProps):
         # elif packet.src == 0x06 and packet.cmd_set == 0x20 and packet.cmd_id == 0x32:
         #     processed = False
 
-        for field_name in self.updated_fields:
-            self.update_callback(field_name)
-            self.update_state(field_name, getattr(self, field_name))
-
+        self._notify_updated()
         return processed
 
     async def _send_config_packet(self, cmd_id: int, payload: bytes):
@@ -152,6 +151,30 @@ class Device(DeviceBase, RawDataProps):
         )
 
         await self._conn.sendPacket(packet)
+
+    @computed_field
+    def _climate_main_mode(self) -> MainMode | None:
+        return self.main_mode
+
+    _climate = controls.climate(
+        _climate_main_mode,
+        translation_key="climate",
+        hvac_modes={
+            HvacMode.COOL: MainMode.COLD,
+            HvacMode.HEAT: MainMode.WARM,
+            HvacMode.FAN_ONLY: MainMode.FAN,
+        },
+        fan_modes={
+            "low": FanGear.LOW,
+            "medium": FanGear.MEDIUM,
+            "high": FanGear.HIGH,
+        },
+        current_temperature_field=ambient_temperature,
+    )
+
+    @_climate.power(power)
+    async def enable_power(self, enabled: bool):
+        await self.set_power_mode(PowerMode.ON if enabled else PowerMode.STANDBY)
 
     @controls.switch(ambient_light)
     async def enable_ambient_light(self, enabled: bool):
@@ -184,10 +207,15 @@ class Device(DeviceBase, RawDataProps):
             payload = 0 if mode is DrainMode.EXTERNAL else 1
         await self._send_config_packet(0x59, payload.to_bytes())
 
+    @_climate.fan(
+        fan_speed,
+        modes={HvacMode.COOL, HvacMode.HEAT, HvacMode.FAN_ONLY},
+    )
     @controls.select(fan_speed, options=FanGear)
     async def set_fan_speed(self, fan_gear: FanGear):
         await self._send_config_packet(0x5E, fan_gear.to_bytes())
 
+    @_climate.mode()
     @controls.select(main_mode, options=MainMode)
     async def set_main_mode(self, mode: MainMode):
         set_drain_mode = False
@@ -209,6 +237,14 @@ class Device(DeviceBase, RawDataProps):
     async def set_power_mode(self, mode: PowerMode):
         await self._send_config_packet(0x5B, mode.to_bytes())
 
+    @_climate.target_temp(
+        target_temperature,
+        modes={HvacMode.COOL, HvacMode.HEAT},
+        step=1,
+        min=dynamic(target_temperature_min),
+        max=dynamic(target_temperature_max),
+        unit=dynamic(temp_unit),
+    )
     @controls.temperature(
         target_temperature,
         min=dynamic(target_temperature_min),
