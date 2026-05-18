@@ -1,5 +1,6 @@
 import dataclasses
 import enum
+import functools
 import inspect
 from collections.abc import Awaitable, Callable, Iterable
 from typing import TYPE_CHECKING, Any, cast, get_type_hints
@@ -82,6 +83,7 @@ class NumberType(ControlType):
 
         control = self
 
+        @functools.wraps(func)
         async def _check_limits(
             device: "DeviceBase", value: float, *args, **kwargs
         ) -> bool:
@@ -154,6 +156,7 @@ class select[E: IntFieldValue](ControlType):
 
         value_type = self._value_type
 
+        @functools.wraps(func)
         async def _func(device: D, value: E | str) -> None:
             if isinstance(value, str) and value_type is not None:
                 value = value_type[value.upper()]
@@ -214,10 +217,10 @@ def for_each(
 
 type _PowerSetter = Callable[[Any, bool], Awaitable[None]]
 type _ModeSetter = Callable[[Any, Any], Awaitable[None]]
-type _TargetTempSetter = Callable[[Any, float], Awaitable[None]]
-type _TargetTempRangeSetter = Callable[[Any, float, float], Awaitable[None]]
-type _HumiditySetter = Callable[[Any, int], Awaitable[None]]
-type _FanSpeedSetter = Callable[[Any, Any], Awaitable[None]]
+type _TargetTempSetter = Callable[[Any, float], Awaitable[Any]]
+type _TargetTempRangeSetter = Callable[[Any, float, float], Awaitable[Any]]
+type _HumiditySetter = Callable[[Any, int], Awaitable[Any]]
+type _FanSpeedSetter = Callable[[Any, Any], Awaitable[Any]]
 type _Decorator[F] = Callable[[F], F]
 
 
@@ -337,6 +340,7 @@ class climate(ControlType):
         step: float | None = None,
         min: float | None = None,
         max: float | None = None,
+        unit: units.Temperature | None = None,
     ) -> _Decorator[_TargetTempSetter]:
         def bind(f: _TargetTempSetter) -> _TargetTempSetter:
             self.set_target_temperature = _virtual_dispatch(f, notify_fields=[field])
@@ -350,6 +354,8 @@ class climate(ControlType):
                 self.min_temp = min
             if max is not None:
                 self.max_temp = max
+            if unit is not None:
+                self.temperature_unit = unit
             return f
 
         return bind
