@@ -94,10 +94,16 @@ class Packet:
             _LOGGER.error(error_msg, bytearray(data).hex())
             return InvalidPacket(error_msg % bytearray(data).hex())
 
-        version = data[1]
+        version_byte = data[1]
+
         # V4 is a different wire format - dispatch to its dedicated codec.
-        if version == 0x04:
+        if version_byte == 0x04:
             return PacketV4.fromBytes(data)
+
+        # Sentinel-format frames (high-nibble bit set, e.g. 0x13) carry a 0xBB sentinel
+        # inside the payload instead of a trailing CRC16.
+        version = version_byte & 0x0F
+        sentinel_format = (version_byte & 0x10) != 0
 
         if (version == 2 and len(data) < 18) or (version == 3 and len(data) < 20):
             error_msg = "Unable to parse packet - too small: %s"
@@ -106,9 +112,7 @@ class Packet:
 
         payload_length = struct.unpack("<H", data[2:4])[0]
 
-        # there are also version 19 packets that do not contain crc16 checksum
-        if version in [2, 3]:
-            # Check whole packet CRC16
+        if version in (2, 3) and not sentinel_format:
             if crc16(data[:-2]) != struct.unpack("<H", data[-2:])[0]:
                 error_msg = "Unable to parse packet - incorrect CRC16: %s"
                 _LOGGER.error(error_msg, bytearray(data).hex())
@@ -141,12 +145,12 @@ class Packet:
         if payload_length > 0:
             payload = data[payload_start : payload_start + payload_length]
 
-            # If first byte of seq is set - we need to xor payload with it to get the
-            # real data
-            if xor_payload and seq[0] != b"\x00":
-                payload = bytes([c ^ seq[0] for c in payload])
+            # When xor_payload is set, the device XORs the payload with seq[0] before
+            # transmission - undo it here.
+            if xor_payload and seq[0] != 0:
+                payload = bytes(c ^ seq[0] for c in payload)
 
-            if version == 0x13 and payload[-2:] == b"\xbb\xbb":
+            if sentinel_format and payload[-2:] == b"\xbb\xbb":
                 payload = payload[:-2]
 
         return Packet(
@@ -157,7 +161,7 @@ class Packet:
             payload=payload,
             dsrc=dsrc,
             ddst=ddst,
-            version=version,
+            version=version_byte,
             seq=seq,
         )
 
