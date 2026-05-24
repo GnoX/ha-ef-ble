@@ -20,6 +20,7 @@ class Device(Delta2Base):
     NAME_PREFIX = "EF-R33"
 
     ac_input_power = raw_field(pb_pd.ac_input_watts)
+    ac_ports = raw_field(pb_mppt.cfg_ac_enabled, lambda x: x == 1)
     energy_backup = raw_field(pb_pd.watthis_config, lambda x: x == 1)
     energy_backup_battery_level = raw_field(pb_pd.bp_power_soc)
     dc_output_power = raw_field(pb_pd.dc_pv_output_watts)
