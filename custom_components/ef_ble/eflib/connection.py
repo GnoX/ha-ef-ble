@@ -782,6 +782,8 @@ class Connection:
                 )
                 if err is None:
                     err = e
+                if self._client is None or not self._client.is_connected:
+                    await self._disconnect_error(ConnectionState.ERROR_BLEAK, err)
                 await asyncio.sleep(retry + 1)
                 continue
             else:

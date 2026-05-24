@@ -124,12 +124,13 @@ class ProtobufProps(UpdatableProps):
         message_type: type[T_MSG],
         serialized_message: bytes,
         reset: bool = False,
+        log_decode_errors: bool = True,
     ) -> T_MSG | None:
         msg = message_type()
         try:
             msg.ParseFromString(serialized_message)
         except DecodeError:
-            if isinstance(self, devicebase.DeviceBase):
+            if log_decode_errors and isinstance(self, devicebase.DeviceBase):
                 self._logger.warning(
                     "Failed to decode %s (%d bytes)",
                     message_type.DESCRIPTOR.full_name,

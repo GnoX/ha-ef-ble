@@ -80,9 +80,17 @@ class Device(DeviceBase, ProtobufProps):
         msg = None
         match packet.src, packet.cmd_set, packet.cmd_id:
             case (0x35, 0x14, 0x01):
+                # PowerStream firmware occasionally emits an inv_heartbeat_type2 payload
+                # on cmd_id 0x01 instead of the usual inverter_heartbeat.
                 msg = self.update_from_bytes(
-                    wn511_sys_pb2.inverter_heartbeat, packet.payload
+                    wn511_sys_pb2.inverter_heartbeat,
+                    packet.payload,
+                    log_decode_errors=False,
                 )
+                if msg is None:
+                    msg = self.update_from_bytes(
+                        wn511_sys_pb2.inv_heartbeat_type2, packet.payload
+                    )
             case (0x35, 0x14, 0x04):
                 msg = self.update_from_bytes(
                     wn511_sys_pb2.inv_heartbeat_type2, packet.payload
