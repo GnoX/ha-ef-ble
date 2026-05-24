@@ -17,7 +17,7 @@ import ecdsa
 from bleak import BleakClient
 from bleak.backends.characteristic import BleakGATTCharacteristic
 from bleak.backends.device import BLEDevice
-from bleak.exc import BleakError
+from bleak.exc import BleakDBusError, BleakError
 from bleak_retry_connector import (
     MAX_CONNECT_ATTEMPTS,
     BleakNotFoundError,
@@ -49,6 +49,12 @@ from .props.utils import classproperty
 
 MAX_RECONNECT_ATTEMPTS = 2
 MAX_CONNECTION_ATTEMPTS = 10
+
+# BlueZ D-Bus error raised when start_notify is attempted on a characteristic whose
+# notify session is still acquired by another client (or a stale handle from a prior
+# session). Mirrors bleak.backends.bluezdbus.defs.BLUEZ_ERROR_NOT_PERMITTED without
+# importing the Linux-only backend module.
+_BLUEZ_ERROR_NOT_PERMITTED = "org.bluez.Error.NotPermitted"
 
 
 _BT_PROTOCOL_UUIDS = {
@@ -787,7 +793,24 @@ class Connection:
         kwargs = {}
         if self._options.bluez_start_notify:
             kwargs["bluez"] = {"use_start_notify": True}
-        await self._client.start_notify(self._notify_characteristic, callback, **kwargs)
+        try:
+            await self._client.start_notify(
+                self._notify_characteristic, callback, **kwargs
+            )
+        except BleakDBusError as err:
+            # BlueZ retains a stale notify subscription when the device drops
+            # mid-session (i.e. solar-only powered devices at dusk), leaving the next
+            # start_notify wedged with NotPermitted. Tear the BLE client down so the
+            # normal reconnect path can rebuild from a clean state instead of looping on
+            # a poisoned handle.
+            if err.dbus_error != _BLUEZ_ERROR_NOT_PERMITTED:
+                raise
+
+            self._logger.warning(
+                "start_notify failed with NotPermitted; dropping connection to "
+                "clear stale BlueZ subscription"
+            )
+            await self._disconnect_error(ConnectionState.ERROR_BLEAK, err)
 
     async def _sendRequest(self, send_data: bytes, response_handler=None):
         # Make sure the connection is here, otherwise just skipping
