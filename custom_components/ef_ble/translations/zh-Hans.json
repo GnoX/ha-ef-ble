@@ -1,0 +1,1115 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "设备已配置",
+      "not_supported": "设备不支持",
+      "no_devices_found": "未找到支持的 EcoFlow 设备。请确保您的设备未通过蓝牙连接到 EcoFlow App。",
+      "reconfigure_successful": "重新配置成功"
+    },
+    "error": {
+      "cannot_connect": "无法连接",
+      "invalid_auth": "认证无效",
+      "unknown": "发生意外错误，请查看日志了解详情",
+      "email_empty": "邮箱不能为空",
+      "password_empty": "密码不能为空",
+      "device_auth_failed": "设备认证失败 - {reason_failed}",
+      "auth_failed_need_refresh_token": "认证失败 - 令牌需要刷新，请重试",
+      "auth_failed_device_internal_error": "认证失败 - 设备内部错误",
+      "auth_failed_device_already_bound": "认证失败 - 设备已绑定到其他账户",
+      "auth_failed_need_bind_install_first": "认证失败 - 需要先在 EcoFlow App 中绑定设备",
+      "auth_failed_app_send_data_error": "认证失败 - 向设备发送数据时出错",
+      "auth_failed_wrong_key": "认证失败 - 密钥错误，用户 ID 不正确、区域不同或账户不同",
+      "auth_failed_unknown": "认证失败 - 未知错误，请查看日志了解更多信息",
+      "auth_failed_key_info": "认证失败 - 无法请求密钥信息",
+      "bt_timeout": "无法连接到设备 - 连接超时",
+      "bt_not_found": "未找到设备 - 如果此错误反复出现，请尝试刷新蓝牙集成",
+      "bt_general_error": "无法连接到设备 - 请查看日志了解更多详情",
+      "error_try_refresh": "设备在认证前断开连接 - 请查看日志了解更多信息",
+      "error_try_refresh_unsupported": "设备在认证前断开连接 - 请尝试更改数据包版本。如果这没有帮助，重新提交后重新加载也不起作用，则此设备可能使用不同的认证流程，需要进行逆向工程。"
+    },
+    "step": {
+      "bluetooth_confirm": {
+        "title": "发现的设备配置",
+        "data": {
+          "user_id": "EcoFlow 用户 ID",
+          "address": "BLE 设备",
+          "update_period": "更新周期"
+        },
+        "data_description": {
+          "update_period": "处理下一次设备更新前等待的秒数。值为 0 表示立即处理所有更新（会导致大量数据库写入）。"
+        },
+        "sections": {
+          "login": {
+            "name": "EcoFlow 登录（如果您已有用户 ID，可跳过）",
+            "description": "填写登录信息后点击提交，您的 EcoFlow 用户 ID 将自动填充，此表单将清空。只有用户 ID 是必需的，因此除非此部分为空，否则您无法进入下一页。",
+            "data": {
+              "email": "邮箱 / 手机号",
+              "password": "密码",
+              "region": "区域"
+            },
+            "data_description": {
+              "region": "中国区手机号登录请选择 CN。如果收到 \"账户不存在\" 的提示，请尝试选择其他区域。"
+            }
+          },
+          "log_options": {
+            "name": "日志选项",
+            "description": "详细的日志选项。大多数选项会大量占用日志空间，请避免长时间启用。",
+            "data": {
+              "log_masked": "遮盖敏感信息（公开分享日志时有用）",
+              "log_connection": "记录设备连接请求和响应",
+              "log_messages": "记录反序列化的设备更新消息",
+              "log_packets": "记录数据包对象",
+              "log_encrypted_payloads": "记录加密载荷",
+              "log_payloads": "记录解密后的载荷",
+              "log_bleak": "启用 bleak 调试日志级别（未遮盖且未过滤到此设备）"
+            }
+          },
+          "advanced_connection_options": {
+            "name": "高级连接选项",
+            "description": "这些选项会影响蓝牙连接行为。只有在遇到连接问题时才应更改。",
+            "data": {
+              "connection_timeout": "连接超时",
+              "bluez_start_notify": "使用 BlueZ start notify"
+            },
+            "data_description": {
+              "connection_timeout": "等待设备连接和认证的秒数。",
+              "bluez_start_notify": "如果在连接多个 BLE 设备时经常断开连接，或者您在日志中看到 `AcquireNotify: Read error` / `Unexpected EOF on notification file handle`，请尝试启用此选项。"
+            }
+          }
+        }
+      },
+      "user": {
+        "title": "添加 EcoFlow 设备",
+        "description": "标记为 **[不支持]** 的设备不会显示任何传感器，但可以用于提供实现支持所需的数据。更多信息请参阅[此 wiki]({wiki_link})页面。",
+        "data": {
+          "address": "BLE 设备"
+        }
+      },
+      "device_confirm": {
+        "title": "{name} 配置选项",
+        "data": {
+          "user_id": "EcoFlow 用户 ID",
+          "address": "BLE 设备",
+          "update_period": "更新周期"
+        },
+        "data_description": {
+          "update_period": "处理下一次设备更新前等待的秒数。值为 0 表示立即处理所有更新（会导致大量数据库写入）。"
+        },
+        "sections": {
+          "login": {
+            "name": "EcoFlow 登录（如果您已有用户 ID，可跳过）",
+            "description": "填写登录信息后点击提交，您的 EcoFlow 用户 ID 将自动填充，此表单将清空。只有用户 ID 是必需的，因此除非此部分为空，否则您无法进入下一页。",
+            "data": {
+              "email": "邮箱 / 手机号",
+              "password": "密码",
+              "region": "区域"
+            },
+            "data_description": {
+              "region": "中国区手机号登录请选择 CN。如果收到 \"账户不存在\" 的提示，请尝试选择其他区域。"
+            }
+          },
+          "log_options": {
+            "name": "日志选项",
+            "description": "详细的日志选项。大多数选项会大量占用日志空间，请避免长时间启用。",
+            "data": {
+              "log_masked": "遮盖敏感信息（公开分享日志时有用）",
+              "log_connection": "记录设备连接请求和响应",
+              "log_messages": "记录反序列化的设备更新消息",
+              "log_packets": "记录数据包对象",
+              "log_encrypted_payloads": "记录加密载荷",
+              "log_payloads": "记录解密后的载荷",
+              "log_bleak": "启用 bleak 调试日志级别（未遮盖且未过滤到此设备）"
+            }
+          },
+          "advanced_connection_options": {
+            "name": "高级连接选项",
+            "description": "这些选项会影响蓝牙连接行为。只有在遇到连接问题时才应更改。",
+            "data": {
+              "connection_timeout": "连接超时",
+              "bluez_start_notify": "使用 BlueZ start notify"
+            },
+            "data_description": {
+              "connection_timeout": "等待设备连接和认证的秒数。",
+              "bluez_start_notify": "如果在连接多个 BLE 设备时经常断开连接，或者您在日志中看到 `AcquireNotify: Read error` / `Unexpected EOF on notification file handle`，请尝试启用此选项。"
+            }
+          }
+        }
+      },
+      "unsupported_device": {
+        "title": "{name} 配置选项",
+        "description": "此设备目前不受支持，但可以连接以收集原始数据。更多信息请参阅[此 wiki]({wiki_link})页面。",
+        "data": {
+          "user_id": "EcoFlow 用户 ID",
+          "update_period": "更新周期",
+          "packet_version": "数据包版本"
+        },
+        "data_description": {
+          "update_period": "处理下一次设备更新前等待的秒数。默认值为 0 表示立即处理所有更新（可能会导致大量数据库写入）。",
+          "packet_version": "要使用的数据包版本 - 取决于设备的代际和固件。如果连接/认证失败，请尝试不同的版本。\n请注意，某些设备可能使用此集成尚不支持的数据包版本。"
+        },
+        "sections": {
+          "login": {
+            "name": "EcoFlow 登录（如果您已有用户 ID，可跳过）",
+            "description": "填写登录信息后点击提交，您的 EcoFlow 用户 ID 将自动填充，此表单将清空。只有用户 ID 是必需的，因此除非此部分为空，否则您无法进入下一页。",
+            "data": {
+              "email": "邮箱 / 手机号",
+              "password": "密码",
+              "region": "区域"
+            },
+            "data_description": {
+              "region": "中国区手机号登录请选择 CN。如果收到 \"账户不存在\" 的提示，请尝试选择其他区域。"
+            }
+          },
+          "log_options": {
+            "name": "日志选项",
+            "description": "高级日志选项。大多数设置会生成大量日志输出，建议不要长时间启用。",
+            "data": {
+              "log_masked": "遮盖敏感信息（公开分享日志时有用）",
+              "log_connection": "记录设备连接请求和响应",
+              "log_messages": "记录反序列化的设备更新消息",
+              "log_packets": "记录数据包对象",
+              "log_encrypted_payloads": "记录加密载荷",
+              "log_payloads": "记录解密后的载荷",
+              "log_bleak": "启用 bleak 调试日志级别（未遮盖且未过滤到此设备）"
+            }
+          },
+          "advanced_connection_options": {
+            "name": "高级连接选项",
+            "description": "这些选项会影响蓝牙连接行为。只有在遇到连接问题时才应更改。",
+            "data": {
+              "connection_timeout": "连接超时",
+              "bluez_start_notify": "使用 BlueZ start notify"
+            },
+            "data_description": {
+              "connection_timeout": "等待设备连接和认证的秒数。",
+              "bluez_start_notify": "如果在连接多个 BLE 设备时经常断开连接，或者您在日志中看到 `AcquireNotify: Read error` / `Unexpected EOF on notification file handle`，请尝试启用此选项。"
+            }
+          }
+        }
+      },
+      "reconfigure": {
+        "data": {
+          "user_id": "EcoFlow 用户 ID",
+          "extra_battery": "已启用的额外电池"
+        }
+      },
+      "connecting": {
+        "title": "正在连接设备"
+      }
+    },
+    "progress": {
+      "connecting": "正在连接设备...",
+      "authenticating": "连接成功，正在运行认证程序...",
+      "disconnecting": "成功！正在断开设备连接..."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "{device_name} 的选项",
+        "data": {
+          "update_period": "更新周期"
+        },
+        "data_description": {
+          "update_period": "处理下一次设备更新前等待的秒数。值为 0 表示立即处理所有更新（会导致大量数据库写入）。"
+        },
+        "sections": {
+          "diagnostics_options": {
+            "name": "诊断",
+            "description": "配置诊断数据收集和加密。",
+            "data": {
+              "diagnostics_on_exception": "异常时保存诊断数据",
+              "collect_packets": "启用数据包收集",
+              "collect_packets_amount": "要存储的数据包数量",
+              "diagnostics_encrypt": "加密诊断数据"
+            },
+            "data_description": {
+              "diagnostics_on_exception": "启用后，每次连接尝试开始时就会收集数据包。如果发生连接错误，收集的数据会自动保存到磁盘以供调试。",
+              "collect_packets": "启用此选项将开始存储诊断信息的数据包 - 启用后请等待一分钟再下载诊断信息，别忘了关闭。\n某些设备的消息中可能包含您的精确位置等身份信息，分享前请确保已启用加密。",
+              "diagnostics_encrypt": "启用后，敏感的诊断数据（数据包、会话密钥、制造商数据）会在下载诊断信息之前加密。仅在需要本地调试的原始数据时才禁用。"
+            }
+          },
+          "log_options": {
+            "name": "日志选项",
+            "description": "详细的日志选项。大多数选项会大量占用日志空间，请避免长时间启用。",
+            "data": {
+              "log_masked": "遮盖敏感信息（公开分享日志时有用）",
+              "log_connection": "记录设备连接请求和响应",
+              "log_messages": "记录反序列化的设备更新消息",
+              "log_packets": "记录数据包对象",
+              "log_encrypted_payloads": "记录加密载荷",
+              "log_payloads": "记录解密后的载荷",
+              "log_bleak": "启用 bleak 调试日志级别（未遮盖且未过滤到此设备）"
+            }
+          },
+          "advanced_connection_options": {
+            "name": "高级连接选项",
+            "description": "这些选项会影响蓝牙连接行为。只有在遇到连接问题时才应更改。",
+            "data": {
+              "connection_timeout": "连接超时",
+              "bluez_start_notify": "使用 BlueZ start notify"
+            },
+            "data_description": {
+              "connection_timeout": "等待设备连接和认证的秒数。",
+              "bluez_start_notify": "如果在连接多个 BLE 设备时经常断开连接，或者您在日志中看到 `AcquireNotify: Read error` / `Unexpected EOF on notification file handle`，请尝试启用此选项。"
+            }
+          }
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "unknown_error": {
+      "message": "未知错误: {error}"
+    },
+    "unable_to_create_device": {
+      "message": "无法创建 EcoFlow BLE 设备"
+    },
+    "device_not_present": {
+      "message": "EcoFlow BLE 设备不存在"
+    },
+    "could_not_connect": {
+      "message": "{time} 秒后仍无法连接到设备，请检查日志。\n错误信息: {error_msg}"
+    },
+    "error_after_connected": {
+      "message": "设备在能够认证之前发生错误"
+    },
+    "authentication_failed": {
+      "message": "认证失败"
+    },
+    "could_not_reconnect_after_max_attempts": {
+      "message": "失去连接 {attempts} 次后仍无法重新连接。"
+    },
+    "could_not_connect_no_retry": {
+      "message": "{attempts} 次尝试后仍无法连接到设备"
+    },
+    "failed_after_successful_connection": {
+      "message": "设备已连接但未进入认证程序，上一个状态: {last_state}"
+    }
+  },
+  "issues": {
+    "max_connection_attempts_reached": {
+      "title": "{attempts} 次尝试后仍无法连接到 {device_name}",
+      "description": "{attempts} 次尝试后仍无法连接到 {device_name}。请查看日志了解更多信息。\n\n为避免日志 spam，自动重试已被禁用，需要手动重新加载集成。成功连接后此错误会清除。"
+    }
+  },
+  "entity": {
+    "button": {
+      "unpause_solar": {
+        "name": "恢复太阳能"
+      }
+    },
+    "binary_sensor": {
+      "channel_backup_is_ready": {
+        "name": "通道 {channel} 备用就绪"
+      },
+      "channel_is_enabled": {
+        "name": "通道 {channel} 已启用"
+      },
+      "channel_is_connected": {
+        "name": "通道 {channel} 已连接"
+      },
+      "channel_is_ac_open": {
+        "name": "通道 {channel} 交流输出"
+      },
+      "channel_is_power_output": {
+        "name": "通道 {channel} 功率输出"
+      },
+      "channel_is_grid_charge": {
+        "name": "通道 {channel} 电网充电"
+      },
+      "channel_is_mppt_charge": {
+        "name": "通道 {channel} 太阳能充电"
+      },
+      "channel_ems_charging": {
+        "name": "通道 {channel} EMS 充电"
+      },
+      "channel_hw_connected": {
+        "name": "通道 {channel} 硬件已连接"
+      },
+      "error_happened": {
+        "name": "错误"
+      },
+      "plugged_in_ac": {
+        "name": "交流已插入"
+      },
+      "fan_running": {
+        "name": "风扇运行中"
+      },
+      "storm_mode": {
+        "name": "暴风雨模式"
+      },
+      "grid_status": {
+        "name": "电网状态"
+      },
+      "bms_run_state": {
+        "name": "BMS 运行状态"
+      },
+      "error_occurred": {
+        "name": "发生错误"
+      },
+      "backup_force_charge": {
+        "name": "通道 {channel} 强制充电"
+      },
+      "is_charging": {
+        "name": "正在充电"
+      },
+      "slow_charging": {
+        "name": "慢充开关"
+      },
+      "ac_allowed": {
+        "name": "交流允许"
+      },
+      "hv_solar_weak": {
+        "name": "高压太阳能源弱"
+      },
+      "lv_solar_weak": {
+        "name": "低压太阳能源弱"
+      },
+      "hv_solar_low_voltage": {
+        "name": "高压太阳能电压低"
+      },
+      "lv_solar_low_voltage": {
+        "name": "低压太阳能电压低"
+      }
+    },
+    "sensor": {
+      "collecting_data": {
+        "name": "正在收集诊断数据"
+      },
+      "battery_level": {
+        "name": "电池电量"
+      },
+      "battery_time_remaining": {
+        "name": "电池剩余时间"
+      },
+      "additional_battery_level": {
+        "name": "电池 {index} 电量"
+      },
+      "additional_battery_temperature": {
+        "name": "电池 {index} 电芯温度"
+      },
+      "battery_level_main": {
+        "name": "主电池电量"
+      },
+      "input_power": {
+        "name": "输入功率"
+      },
+      "output_power": {
+        "name": "输出功率"
+      },
+      "remaining_time_charging": {
+        "name": "充电剩余时间"
+      },
+      "remaining_time_discharging": {
+        "name": "放电剩余时间"
+      },
+      "ac_plug_state": {
+        "name": "交流插头状态",
+        "state": {
+          "unknown": "未知",
+          "unplugged": "未插入",
+          "plugged_in": "已插入",
+          "charging": "充电中",
+          "paused": "已暂停",
+          "charge_complete": "充电完成",
+          "standby": "待机",
+          "updating": "更新中"
+        }
+      },
+      "total_energy": {
+        "name": "总能量"
+      },
+      "grid_power": {
+        "name": "电网功率"
+      },
+      "in_use_power": {
+        "name": "使用中功率"
+      },
+      "power_status": {
+        "name": "功率状态",
+        "state": {
+          "grid_power": "电网功率",
+          "battery_power": "电池功率",
+          "oil_power": "发电机功率",
+          "emergency_stop": "紧急停止",
+          "off_power": "关闭功率"
+        }
+      },
+      "port_voltage": {
+        "name": "{name} 电压"
+      },
+      "port_current": {
+        "name": "{name} 电流"
+      },
+      "port_power": {
+        "name": "{name} 功率"
+      },
+      "port_energy_today": {
+        "name": "{name} 今日能量"
+      },
+      "port_energy": {
+        "name": "{name} 能量"
+      },
+      "port_temperature": {
+        "name": "{name} 温度"
+      },
+      "port_power_factor": {
+        "name": "{name} 功率因数"
+      },
+      "port_error_code": {
+        "name": "{name} 错误代码"
+      },
+      "grid_energy_today": {
+        "name": "电网今日能量"
+      },
+      "grid_energy": {
+        "name": "电网能量"
+      },
+      "circuit_power": {
+        "name": "电路功率 {index}"
+      },
+      "circuit_current": {
+        "name": "电路电流 {index}"
+      },
+      "channel_power": {
+        "name": "通道功率 {index}"
+      },
+      "input_energy": {
+        "name": "输入总能量"
+      },
+      "output_energy": {
+        "name": "输出总能量"
+      },
+      "ac_input_power": {
+        "name": "交流输入功率"
+      },
+      "ac_input_voltage": {
+        "name": "交流输入电压"
+      },
+      "ac_input_current": {
+        "name": "交流输入电流"
+      },
+      "ac_output_power": {
+        "name": "交流输出功率"
+      },
+      "ac_output_voltage": {
+        "name": "交流输出电压"
+      },
+      "ac_output_current": {
+        "name": "交流输出电流"
+      },
+      "ac_input_energy": {
+        "name": "交流输入能量"
+      },
+      "ac_output_energy": {
+        "name": "交流输出能量"
+      },
+      "dc_input_power": {
+        "name": "直流输入功率"
+      },
+      "car_input_power": {
+        "name": "车载输入功率"
+      },
+      "dc_input_energy": {
+        "name": "直流输入能量"
+      },
+      "dc_output_power": {
+        "name": "直流输出功率"
+      },
+      "dc12v_output_power": {
+        "name": "DC 12V 输出功率"
+      },
+      "dc12v_output_energy": {
+        "name": "DC 12V 输出能量"
+      },
+      "dc12v_output_current": {
+        "name": "DC 12V 输出电流"
+      },
+      "dc12v_output_voltage": {
+        "name": "DC 12V 输出电压"
+      },
+      "usbc_output_power": {
+        "name": "USB-C 输出功率"
+      },
+      "usbc_output_energy": {
+        "name": "USB-C 输出能量"
+      },
+      "usba_output_power": {
+        "name": "USB-A 输出功率"
+      },
+      "usba_output_energy": {
+        "name": "USB-A 输出能量"
+      },
+      "usbc2_output_power": {
+        "name": "USB-C (2) 输出功率"
+      },
+      "usbc3_output_power": {
+        "name": "USB-C (3) 输出功率"
+      },
+      "usbc2_output_energy": {
+        "name": "USB-C (2) 输出能量"
+      },
+      "usba2_output_power": {
+        "name": "USB-A (2) 输出功率"
+      },
+      "usba2_output_energy": {
+        "name": "USB-A (2) 输出能量"
+      },
+      "qc_usb1_output_power": {
+        "name": "USB-A QC (1) 功率"
+      },
+      "qc_usb2_output_power": {
+        "name": "USB-A QC (2) 功率"
+      },
+      "battery_input_power": {
+        "name": "电池输入功率"
+      },
+      "battery_output_power": {
+        "name": "电池输出功率"
+      },
+      "battery_power": {
+        "name": "电池功率"
+      },
+      "inverter_temperature": {
+        "name": "逆变器温度"
+      },
+      "cell_temperature": {
+        "name": "电芯温度"
+      },
+      "dc_port_input_power": {
+        "name": "直流端口输入功率"
+      },
+      "dc_port_input_power_2": {
+        "name": "直流端口 (2) 输入功率"
+      },
+      "dc_port_state": {
+        "name": "直流输入端口状态"
+      },
+      "dc_port_2_state": {
+        "name": "直流输入端口 (2) 状态"
+      },
+      "input_power_solar": {
+        "name": "太阳能功率"
+      },
+      "input_power_solar_2": {
+        "name": "太阳能功率 (2)"
+      },
+      "ac_lv_output_power": {
+        "name": "交流低压输出功率"
+      },
+      "ac_hv_output_power": {
+        "name": "交流高压输出功率"
+      },
+      "input_power_solar_lv": {
+        "name": "低压太阳能功率"
+      },
+      "input_power_solar_hv": {
+        "name": "高压太阳能功率"
+      },
+      "dc_lv_input_power": {
+        "name": "低压直流端口输入功率"
+      },
+      "dc_hv_input_power": {
+        "name": "高压直流端口输入功率"
+      },
+      "dc_lv_input_state": {
+        "name": "低压直流输入端口状态"
+      },
+      "dc_hv_input_state": {
+        "name": "高压直流输入端口状态"
+      },
+      "engine_state": {
+        "name": "引擎状态",
+        "state": {
+          "closed": "关闭",
+          "opened": "运行中",
+          "closing": "停止中"
+        }
+      },
+      "xt150_battery_level": {
+        "name": "XT150 电池电量"
+      },
+      "xt150_charge_type": {
+        "name": "XT150 充电类型"
+      },
+      "liquefied_gas_type": {
+        "name": "液化气类型"
+      },
+      "liquefied_gas": {
+        "name": "液化气"
+      },
+      "liquefied_gas_consumption": {
+        "name": "液化气每小时消耗量"
+      },
+      "liquefied_gas_remaining": {
+        "name": "液化气剩余量"
+      },
+      "generator_total_output": {
+        "name": "发电机总输出"
+      },
+      "generator_abnormal_state": {
+        "name": "异常状态",
+        "state": {
+          "no": "无",
+          "gasoline_low": "汽油不足"
+        }
+      },
+      "sub_battery_soc": {
+        "name": "内部电池电量"
+      },
+      "sub_battery_power": {
+        "name": "内部电池功率"
+      },
+      "sub_battery_state": {
+        "name": "内部电池状态",
+        "state": {
+          "idle": "空闲",
+          "no_input": "无输入",
+          "discharging": "放电中",
+          "charging": "充电中",
+          "normal_full": "已充满",
+          "normal_low_pressure": "正常低压"
+        }
+      },
+      "fuel_type": {
+        "name": "燃料类型"
+      },
+      "battery_temperature": {
+        "name": "电池温度"
+      },
+      "car_battery_voltage": {
+        "name": "电池电压"
+      },
+      "dc_power": {
+        "name": "直流功率"
+      },
+      "load_system": {
+        "name": "系统负载"
+      },
+      "load_from_battery": {
+        "name": "电池负载"
+      },
+      "load_from_grid": {
+        "name": "电网负载"
+      },
+      "load_from_pv": {
+        "name": "光伏负载"
+      },
+      "grid_connection_status": {
+        "name": "电网连接状态",
+        "state": {
+          "unknown": "未知",
+          "not_valid": "无效",
+          "grid_in": "电网接入",
+          "grid_offline": "电网离线",
+          "feed_grid": "馈送电网"
+        }
+      },
+      "wifi_rssi": {
+        "name": "WiFi 信号强度"
+      },
+      "grid_voltage": {
+        "name": "电网电压"
+      },
+      "grid_frequency": {
+        "name": "电网频率"
+      },
+      "grid_current": {
+        "name": "电网电流"
+      },
+      "inverter_voltage": {
+        "name": "逆变器电压"
+      },
+      "inverter_power": {
+        "name": "逆变器功率"
+      },
+      "inverter_current": {
+        "name": "逆变器电流"
+      },
+      "inverter_frequency": {
+        "name": "逆变器频率"
+      },
+      "llc_temperature": {
+        "name": "LLC 温度"
+      },
+      "backup_is_ready": {
+        "name": "通道 {channel} 备用就绪"
+      },
+      "backup_ctrl_status": {
+        "name": "通道 {channel} 控制状态",
+        "state": {
+          "off": "关闭",
+          "discharge": "放电中",
+          "charge": "充电中",
+          "emergency_stop": "紧急停止",
+          "standby": "待机"
+        }
+      },
+      "backup_force_charge": {
+        "name": "通道 {channel} 强制充电",
+        "state": {
+          "off": "关闭",
+          "on": "开启"
+        }
+      },
+      "backup_relay1_count": {
+        "name": "通道 {channel} 继电器 1 计数"
+      },
+      "backup_relay2_count": {
+        "name": "通道 {channel} 继电器 2 计数"
+      },
+      "backup_wakeup_charge": {
+        "name": "通道 {channel} 唤醒充电电量"
+      },
+      "backup_connector_type": {
+        "name": "通道 {channel} 连接器类型"
+      },
+      "channel_serial_number": {
+        "name": "通道 {channel} 序列号"
+      },
+      "channel_device_type": {
+        "name": "通道 {channel} 设备类型"
+      },
+      "channel_full_capacity": {
+        "name": "通道 {channel} 满容量"
+      },
+      "channel_rated_power": {
+        "name": "通道 {channel} 额定功率"
+      },
+      "channel_battery_level": {
+        "name": "通道 {channel} 电池电量"
+      },
+      "channel_output_power": {
+        "name": "通道 {channel} 输出功率"
+      },
+      "channel_battery_temperature": {
+        "name": "通道 {channel} 电池温度"
+      },
+      "channel_lcd_input_power": {
+        "name": "通道 {channel} LCD 输入功率"
+      },
+      "channel_pv_status": {
+        "name": "通道 {channel} 光伏状态",
+        "state": {
+          "none": "无",
+          "lv": "低压",
+          "hv": "高压",
+          "lv_and_hv": "低压和高压"
+        }
+      },
+      "channel_pv_lv_input_power": {
+        "name": "通道 {channel} 光伏低压输入功率"
+      },
+      "channel_pv_hv_input_power": {
+        "name": "通道 {channel} 光伏高压输入功率"
+      },
+      "channel_error_count": {
+        "name": "通道 {channel} 错误计数"
+      },
+      "ambient_temperature": {
+        "name": "环境温度"
+      },
+      "ambient_humidity": {
+        "name": "湿度"
+      },
+      "operating_mode": {
+        "name": "运行模式"
+      },
+      "condensate_water_level": {
+        "name": "水位"
+      },
+      "in_drainage": {
+        "name": "正在排水"
+      },
+      "drainage_mode": {
+        "name": "排水模式"
+      },
+      "lcd_show_temp_type": {
+        "name": "显示温度类型"
+      },
+      "temp_indoor_supply_air": {
+        "name": "室内送风温度"
+      },
+      "temp_indoor_return_air": {
+        "name": "室内回风温度"
+      },
+      "temp_outdoor_ambient": {
+        "name": "室外环境温度"
+      },
+      "temp_condenser": {
+        "name": "冷凝器温度"
+      },
+      "temp_evaporator": {
+        "name": "蒸发器温度"
+      },
+      "temp_compressor_discharge": {
+        "name": "压缩机排气温度"
+      },
+      "en_pet_care": {
+        "name": "宠物护理模式"
+      },
+      "battery_charge_limit_min": {
+        "name": "放电限制"
+      },
+      "battery_charge_limit_max": {
+        "name": "充电限制"
+      },
+      "sleep_state": {
+        "name": "睡眠状态"
+      },
+      "power": {
+        "name": "功率"
+      },
+      "power_battery": {
+        "name": "电池功率"
+      },
+      "power_psdr": {
+        "name": "PSDR 功率"
+      },
+      "power_mppt": {
+        "name": "MPPT 功率"
+      },
+      "water_level": {
+        "name": "水位"
+      },
+      "outlet_temperature": {
+        "name": "出水温度"
+      },
+      "pv_power_sum": {
+        "name": "光伏总功率"
+      },
+      "xt60_input_power": {
+        "name": "XT60 输入功率"
+      },
+      "xt60_1_input_power": {
+        "name": "XT60 (1) 输入功率"
+      },
+      "xt60_2_input_power": {
+        "name": "XT60 (2) 输入功率"
+      },
+      "dc_input_voltage": {
+        "name": "直流输入电压"
+      },
+      "dc_input_current": {
+        "name": "直流输入电流"
+      },
+      "ac_5p8_in_type": {
+        "name": "AC 5P8 输入类型",
+        "state": {
+          "in_idle": "空闲",
+          "in_ac_ev": "充电桩",
+          "in_pd303": "智能家庭面板 2",
+          "in_l14_trans": "L14"
+        }
+      },
+      "ac_5p8_out_type": {
+        "name": "AC 5P8 输出类型",
+        "state": {
+          "out_idle": "空闲",
+          "out_parallel_box": "并联盒",
+          "out_pd303": "智能家庭面板 2"
+        }
+      },
+      "ac_c20_in_type": {
+        "name": "AC C20 输入类型"
+      }
+    },
+    "select": {
+      "led_mode": {
+        "name": "LED"
+      },
+      "dc_charging_type": {
+        "name": "直流充电类型"
+      },
+      "performance_mode": {
+        "name": "性能模式"
+      },
+      "liquefied_gas_unit": {
+        "name": "燃气单位"
+      },
+      "charger_mode": {
+        "name": "充电器模式",
+        "state": {
+          "idle": "空闲",
+          "charge": "充电",
+          "reverse_charge": "反向充电",
+          "battery_maintenance": "电池维护"
+        }
+      },
+      "drain_mode": {
+        "name": "排水模式",
+        "state": {
+          "drain_free": "自由排水",
+          "external": "外部"
+        }
+      },
+      "smart_backup_mode": {
+        "name": "智能备用模式",
+        "state": {
+          "none": "无",
+          "time_of_use": "分时电价",
+          "self_powered": "自给自足",
+          "scheduled": "定时任务"
+        }
+      },
+      "operating_mode_select": {
+        "name": "运行模式",
+        "state": {
+          "none": "无",
+          "time_of_use": "分时电价",
+          "self_powered": "自给自足",
+          "scheduled": "定时任务",
+          "intelligent": "智能调度"
+        }
+      },
+      "energy_strategy": {
+        "name": "能源策略",
+        "state": {
+          "self_powered": "自给自足",
+          "scheduled": "定时任务",
+          "tou": "分时电价",
+          "intelligent_schedule": "智能调度"
+        }
+      },
+      "operating_submode": {
+        "name": "运行子模式",
+        "state": {
+          "none": "无",
+          "normal": "正常",
+          "max": "最大",
+          "sleep": "睡眠",
+          "eco": "节能"
+        }
+      }
+    },
+    "number": {
+      "backup_reserve_level": {
+        "name": "备用储备电量"
+      },
+      "backup_charge_limit": {
+        "name": "充电限制"
+      },
+      "backup_discharge_limit": {
+        "name": "放电限制"
+      },
+      "ac_charging_speed": {
+        "name": "交流充电速度"
+      },
+      "ac_c20_charging_power": {
+        "name": "AC C20 充电功率"
+      },
+      "feed_grid_pow_limit": {
+        "name": "馈送电网功率限制"
+      },
+      "base_load_power": {
+        "name": "基础负载功率"
+      },
+      "grid_in_power_limit": {
+        "name": "电网输入功率限制"
+      },
+      "charging_grid_power_limit": {
+        "name": "充电功率限制"
+      },
+      "charging_grid_target_soc": {
+        "name": "充电目标 SOC"
+      },
+      "feed_grid_mode_power_limit": {
+        "name": "最大输出功率"
+      },
+      "discharging_power_limit": {
+        "name": "放电功率限制"
+      },
+      "ac_5p8_charging_power": {
+        "name": "AC 5P8 充电功率"
+      },
+      "energy_backup_battery_level": {
+        "name": "备用储备"
+      },
+      "dc_charging_max_amps": {
+        "name": "直流充电最大安培数"
+      },
+      "dc_charging_max_amps_2": {
+        "name": "直流 (2) 充电最大安培数"
+      }
+    },
+    "climate": {
+      "climate": {
+        "name": "气候",
+        "state_attributes": {
+          "fan_mode": {
+            "state": {
+              "medium_low": "中低",
+              "medium_high": "中高"
+            }
+          }
+        }
+      }
+    },
+    "switch": {
+      "circuit_is_enabled": {
+        "name": "电路 {circuit}"
+      },
+      "channel_is_enabled": {
+        "name": "通道 {channel}"
+      },
+      "ch_force_charge": {
+        "name": "通道 {channel} 强制充电"
+      },
+      "eps_mode": {
+        "name": "EPS 模式"
+      },
+      "dc_ports": {
+        "name": "直流端口"
+      },
+      "ac_ports": {
+        "name": "交流端口"
+      },
+      "ac_lv_port": {
+        "name": "交流低压端口"
+      },
+      "ac_hv_port": {
+        "name": "交流高压端口"
+      },
+      "dc_12v_port": {
+        "name": "DC 12V 端口"
+      },
+      "energy_backup": {
+        "name": "备用储备"
+      },
+      "usb_ports": {
+        "name": "USB 端口"
+      },
+      "ac_ports_2": {
+        "name": "交流端口 (2)"
+      },
+      "disable_grid_bypass": {
+        "name": "禁用电网旁路"
+      },
+      "energy_strategy_self_powered": {
+        "name": "自给自足模式"
+      },
+      "energy_strategy_scheduled": {
+        "name": "定时任务模式"
+      },
+      "energy_strategy_tou": {
+        "name": "分时电价模式"
+      },
+      "ac_1": {
+        "name": "交流 (1)"
+      },
+      "ac_2": {
+        "name": "交流 (2)"
+      },
+      "feed_grid": {
+        "name": "馈送电网"
+      },
+      "charging_task_enabled": {
+        "name": "充电任务"
+      },
+      "discharging_task_enabled": {
+        "name": "放电任务"
+      }
+    }
+  }
+}
