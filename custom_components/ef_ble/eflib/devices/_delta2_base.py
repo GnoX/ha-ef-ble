@@ -1,3 +1,7 @@
+from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import AdvertisementData
+
+from ..connection import ConnectionState
 from ..devicebase import DeviceBase
 from ..entity import controls
 from ..entity.base import dynamic
@@ -85,6 +89,26 @@ class Delta2Base(DeviceBase, RawDataProps):
     dc_12v_port = raw_field(pb_pd.car_state, lambda x: x == 1)
     dc12v_output_voltage = raw_field(pb_mppt.car_out_vol, pdiv(1000, 2))
     dc12v_output_current = raw_field(pb_mppt.car_out_amp, pdiv(1000, 2))
+
+    def __init__(
+        self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
+    ) -> None:
+        super().__init__(ble_dev, adv_data, sn)
+        self.on_connection_state_change(self._default_ac_ports_off_when_missing)
+
+    def _default_ac_ports_off_when_missing(self, state: ConnectionState) -> None:
+        # The inverter stops sending its heartbeat entirely while AC output is off, so
+        # `ac_ports` never gets a value after a fresh connect and the switch stays
+        # `unavailable`. Default it to off if nothing arrives within 10s - a real
+        # heartbeat afterwards still overrides this.
+        if state != ConnectionState.AUTHENTICATED:
+            return
+
+        def _set_off_if_unknown() -> None:
+            if self.ac_ports is None:
+                self.notify_field(Delta2Base.ac_ports, False)
+
+        self.call_later(10, _set_off_if_unknown, key="default_ac_ports_off")
 
     @property
     def pd_heart_type(self):
