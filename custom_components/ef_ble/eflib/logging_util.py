@@ -352,6 +352,8 @@ class DeviceDiagnosticsCollector:
         }
         if session is not None:
             result["session"] = session.header.hex()
+        if extra := device.extra_diagnostics():
+            result["device_diagnostics"] = extra
         if self.is_enabled:
             result |= self.as_dict(session)
         return result

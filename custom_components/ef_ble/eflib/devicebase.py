@@ -152,6 +152,10 @@ class DeviceBase(abc.ABC):
     def diagnostics(self):
         return self._diagnostics
 
+    def extra_diagnostics(self) -> dict[str, Any]:
+        """Device-specific values merged into the diagnostics dump (override per device)"""
+        return {}
+
     @cached_property
     def scan_record(self):
         return _ScanRecordV2.from_manufacturer_data(self._manufacturer_data)

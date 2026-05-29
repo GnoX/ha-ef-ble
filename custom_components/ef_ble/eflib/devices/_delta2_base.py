@@ -1,3 +1,5 @@
+from typing import Any
+
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
@@ -94,6 +96,16 @@ class Delta2Base(DeviceBase, RawDataProps):
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
     ) -> None:
         super().__init__(ble_dev, adv_data, sn)
+        # Tracks the ac_ports fallback for diagnostics. `armed` counts AUTHENTICATED
+        # transitions that scheduled the timer; `fired` counts timer callbacks that
+        # actually ran; `ac_ports_at_fire` / `applied` show what happened on the last
+        # fire. Lets us tell from a diagnostics dump whether the fallback ran at all.
+        self._ac_ports_fallback = {
+            "armed": 0,
+            "fired": 0,
+            "ac_ports_at_fire": None,
+            "applied": False,
+        }
         self.on_connection_state_change(self._default_ac_ports_off_when_missing)
 
     def _default_ac_ports_off_when_missing(self, state: ConnectionState) -> None:
@@ -104,11 +116,19 @@ class Delta2Base(DeviceBase, RawDataProps):
         if state != ConnectionState.AUTHENTICATED:
             return
 
+        self._ac_ports_fallback["armed"] += 1
+
         def _set_off_if_unknown() -> None:
+            self._ac_ports_fallback["fired"] += 1
+            self._ac_ports_fallback["ac_ports_at_fire"] = self.ac_ports
             if self.ac_ports is None:
+                self._ac_ports_fallback["applied"] = True
                 self.notify_field(Delta2Base.ac_ports, False)
 
         self.call_later(10, _set_off_if_unknown, key="default_ac_ports_off")
+
+    def extra_diagnostics(self) -> dict[str, Any]:
+        return {"ac_ports_fallback": self._ac_ports_fallback}
 
     @property
     def pd_heart_type(self):
