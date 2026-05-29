@@ -208,6 +208,5 @@
         "PyCryptodome~=3.23",
         "protobuf~=6.30"
     ],
-
-    "version": "0.9.1"
+    "version": "0.42.0-h.2"
 }
