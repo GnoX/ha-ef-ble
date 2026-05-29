@@ -919,6 +919,9 @@
       "led_mode": {
         "name": "LED"
       },
+      "dc_mode": {
+        "name": "DC Mode"
+      },
       "dc_charging_type": {
         "name": "DC Charging Type"
       },
@@ -1031,6 +1034,12 @@
       },
       "dc_charging_max_amps_2": {
         "name": "DC (2) Charging Max Amps"
+      },
+      "battery_charge_limit_min": {
+        "name": "Discharge Limit"
+      },
+      "battery_charge_limit_max": {
+        "name": "Charge Limit"
       }
     },
     "climate": {
