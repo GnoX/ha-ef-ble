@@ -339,6 +339,9 @@
       "storm_mode": {
         "name": "Storm Mode"
       },
+      "grid_is_energized": {
+        "name": "Grid Energized"
+      },
       "grid_status": {
         "name": "Grid Status"
       },
@@ -471,6 +474,9 @@
       },
       "circuit_current": {
         "name": "Circuit Current {index}"
+      },
+      "circuit_voltage": {
+        "name": "Circuit Voltage {index}"
       },
       "channel_power": {
         "name": "Channel Power {index}"

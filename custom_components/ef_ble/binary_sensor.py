@@ -162,6 +162,8 @@ _BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
     # SHP2 generic binary sensors
     "grid_status": connectivity(enabled=True),
     "storm_mode": safety(enabled=True),
+    # SHP3
+    "grid_is_energized": connectivity(enabled=True),
     # DPU
     "is_charging": battery_charging(
         enabled=False, entity_category=EntityCategory.DIAGNOSTIC

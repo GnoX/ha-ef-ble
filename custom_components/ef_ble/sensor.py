@@ -37,6 +37,7 @@ from .eflib.devices import (
     dpu,
     powerpulse_ev,
     shp2,
+    shp3,
     smart_generator,
     stream_microinverter,
     wave2,
@@ -450,7 +451,9 @@ def port_error_code(
     )
 
 
-_shp2_circuit_range = range(1, shp2.Device.NUM_OF_CIRCUITS + 1)
+_circuit_range = range(
+    1, max(shp2.Device.NUM_OF_CIRCUITS, shp3.Device.NUM_OF_CIRCUITS) + 1
+)
 _shp2_channel_range = range(1, shp2.Device.NUM_OF_CHANNELS + 1)
 
 
@@ -477,7 +480,7 @@ def shp2_circuit(
     return fn(
         translation_key=translation_key,
         translation_placeholders=translation_placeholders or {"index": "{n:02d}"},
-        indexed_range=_shp2_circuit_range,
+        indexed_range=_circuit_range,
         **kwargs,
     )
 
@@ -503,6 +506,9 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     ),
     "circuit_current_{n}": shp2_circuit(
         current, "circuit_current", precision=2, enabled=False, state_class=None
+    ),
+    "circuit_voltage_{n}": shp2_circuit(
+        voltage, "circuit_voltage", precision=1, enabled=False
     ),
     "channel_power_{n}": shp2_channel(
         power,
