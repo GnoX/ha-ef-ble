@@ -164,6 +164,9 @@ _BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
     "storm_mode": safety(enabled=True),
     # SHP3
     "grid_is_energized": connectivity(enabled=True),
+    "ac1_input_connected": plug(),
+    "ac2_input_connected": plug(),
+    "ac3_input_connected": plug(),
     # DPU
     "is_charging": battery_charging(
         enabled=False, entity_category=EntityCategory.DIAGNOSTIC

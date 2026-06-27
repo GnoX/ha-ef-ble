@@ -342,6 +342,15 @@
       "grid_is_energized": {
         "name": "Grid Energized"
       },
+      "ac1_input_connected": {
+        "name": "AC 1 Input Connected"
+      },
+      "ac2_input_connected": {
+        "name": "AC 2 Input Connected"
+      },
+      "ac3_input_connected": {
+        "name": "AC 3 Input Connected"
+      },
       "grid_status": {
         "name": "Grid Status"
       },
@@ -477,6 +486,19 @@
       },
       "circuit_voltage": {
         "name": "Circuit Voltage {index}"
+      },
+      "circuit_status": {
+        "name": "Circuit {index} Status",
+        "state": {
+          "unknown": "Unknown",
+          "off": "Off",
+          "on_grid": "On (Grid)",
+          "on_back": "On (Backup)",
+          "em_stop": "Emergency Stop"
+        }
+      },
+      "circuit_name": {
+        "name": "Circuit {index} Name"
       },
       "channel_power": {
         "name": "Channel Power {index}"
@@ -1072,6 +1094,9 @@
       },
       "eps_mode": {
         "name": "EPS Mode"
+      },
+      "storm_guard": {
+        "name": "Storm Guard"
       },
       "dc_ports": {
         "name": "DC Ports"
