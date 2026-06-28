@@ -519,6 +519,13 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
         options=shp3.CircuitStatus,
         name_field="circuit_name_{n}",
     ),
+    "ch{n}_type": enum(
+        options=shp3.BackupChannelType,
+        translation_key="backup_channel_type",
+        translation_placeholders={"channel": "{n}"},
+        indexed_range=range(1, shp3.Device.NUM_OF_CHANNELS + 1),
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
     "channel_power_{n}": shp2_channel(
         power,
         "channel_power",

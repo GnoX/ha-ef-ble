@@ -63,6 +63,15 @@ class OperatingMode(IntFieldValue):
     INTELLIGENT = 6
 
 
+class BackupChannelType(IntFieldValue):
+    UNKNOWN = -1
+
+    NONE = 0
+    BATTERY = 1
+    OIL = 2
+    STATION_CHARGER = 3
+
+
 def _operating_mode_from_message(
     message: (
         dev_apl_comm_pb2.CfgEnergyStrategyOperateMode
@@ -84,6 +93,24 @@ def _ac_input_connected(info: dev_apl_comm_pb2.BackupChInfo) -> bool | None:
     return info.ch_sta == 1
 
 
+def _channel_type(info: dev_apl_comm_pb2.BackupChInfo) -> "BackupChannelType | None":
+    if not info.ch_dev_type:
+        return None
+    return BackupChannelType.from_value(info.ch_dev_type)
+
+
+def _channel_force_charging(info: dev_apl_comm_pb2.BackupChInfo) -> bool | None:
+    if not info.ch_dev_type:
+        return None
+    return info.force_chg_sta == 1
+
+
+def _channel_signal_connected(info: dev_apl_comm_pb2.BackupChInfo) -> bool | None:
+    if not info.ch_dev_type:
+        return None
+    return info.signal_line_sta == 1
+
+
 class Device(DeviceBase, ProtobufProps):
     """Smart Home Panel 3"""
 
@@ -91,6 +118,7 @@ class Device(DeviceBase, ProtobufProps):
     NAME_PREFIX = "EF-SHP3"
 
     NUM_OF_CIRCUITS = 32
+    NUM_OF_CHANNELS = 3
     _KEEPALIVE_INTERVAL = 20
 
     _USERID_FIELD_LEN = 64
@@ -182,6 +210,28 @@ class Device(DeviceBase, ProtobufProps):
     ac1_input_connected = pb_field(pb.panel_backup_ch1_Info, _ac_input_connected)
     ac2_input_connected = pb_field(pb.panel_backup_ch2_Info, _ac_input_connected)
     ac3_input_connected = pb_field(pb.panel_backup_ch3_Info, _ac_input_connected)
+
+    channel_type = pb_field_group(
+        pb.panel_backup_ch1_Info,
+        match="panel_backup_ch{n}_Info",
+        count=NUM_OF_CHANNELS,
+        transform=_channel_type,
+        name_template="ch{n}_type",
+    )
+    channel_force_charge = pb_field_group(
+        pb.panel_backup_ch1_Info,
+        match="panel_backup_ch{n}_Info",
+        count=NUM_OF_CHANNELS,
+        transform=_channel_force_charging,
+        name_template="ch{n}_force_charge",
+    )
+    channel_signal_line = pb_field_group(
+        pb.panel_backup_ch1_Info,
+        match="panel_backup_ch{n}_Info",
+        count=NUM_OF_CHANNELS,
+        transform=_channel_signal_connected,
+        name_template="ch{n}_signal_line",
+    )
 
     ac_charging_speed = pb_field(pb.panel_max_charge_pow_set)
     min_ac_charging_power = 600
@@ -405,9 +455,11 @@ class _StandardProtocolRouting:
 
     Writes: reconstruct the control frame - a v4 packet addressed src=0x21 dst=0x60,
     cmd_set=0xFE cmd_id=0x11, whose application payload is the routing header followed
-    by the `ConfigWrite`. The only session-specific inputs - the two v4 obfuscation
-    keys, the sequence byte and the product id - are lifted from the latest telemetry
-    post.
+    by the `ConfigWrite`. The routing header is the panel's own latest post routing
+    header (device serial + envelope, captured verbatim) with the embedded standard-
+    protocol command swapped to PROPERTY_WRITE (FE 11); the two v4 obfuscation keys are
+    lifted from the same post. This mirrors the panel's exact addressing rather than
+    rebuilding it from the host's connection serial.
     """
 
     HEADER_LEN = 22  # device SN fragment (9) + envelope (13), on reads
@@ -422,8 +474,7 @@ class _StandardProtocolRouting:
         self._serial = serial
         self._v4_type_a = self._DEFAULT_V4_TYPE_A
         self._v4_type_b = self._DEFAULT_V4_TYPE_B
-        self._seq = 0
-        self._product_id = b"\x00\x00"
+        self._post_routing_header: bytes | None = None
 
     @classmethod
     def split(cls, payload: bytes) -> tuple[str, bytes]:
@@ -432,23 +483,27 @@ class _StandardProtocolRouting:
         return serial, payload[cls.HEADER_LEN :]
 
     def remember_post(self, packet: PacketV4) -> None:
-        """Lift the session obfuscation keys, seq and product id from telemetry post"""
+        """Capture the post's v4 obfuscation keys and its routing header verbatim"""
         self._v4_type_a = packet.v4_type_a
         self._v4_type_b = packet.v4_type_b
-        envelope = packet.payload[self._SERIAL_FRAGMENT_LEN : self.HEADER_LEN]
-        if len(envelope) >= self._ENVELOPE_LEN:
-            self._seq = envelope[5]
-            self._product_id = bytes(envelope[8:10])
+        if len(packet.payload) >= self.HEADER_LEN:
+            self._post_routing_header = bytes(packet.payload[: self.HEADER_LEN])
 
     def _routing_header(self) -> bytes:
-        # Device SN (routing destination) + 13-byte envelope: src addr {21 01}, ports
-        # {40 03 03}, seq, PROPERTY_WRITE (FE 11), product id, trailer {01 21 01}.
+        if self._post_routing_header is not None:
+            header = bytearray(self._post_routing_header)
+            # Envelope is `21 01 40 03 03 <seq> FE <cmd> ...`, so the standard-protocol
+            # command sits right after the 0xFE marker at a fixed offset.
+            fe = self._SERIAL_FRAGMENT_LEN + 6
+            if fe + 1 < len(header) and header[fe] == self._CMD_SET:
+                header[fe + 1] = self._PROPERTY_WRITE
+            return bytes(header)
+
+        # No post captured yet: best-effort rebuild from the host connection serial.
         # fmt: off
-        envelope = (
-            bytes([0x21, 0x01, 0x40, 0x03, 0x03, self._seq, self._CMD_SET,
-                   self._PROPERTY_WRITE])
-            + self._product_id
-            + bytes([0x01, 0x21, 0x01])
+        envelope = bytes(
+            [0x21, 0x01, 0x40, 0x03, 0x03, 0x00, self._CMD_SET, self._PROPERTY_WRITE,
+             0x00, 0x00, 0x01, 0x21, 0x01]
         )
         # fmt: on
         return self._serial.encode("ascii") + envelope

@@ -14,7 +14,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from custom_components.ef_ble.eflib import DeviceBase
-from custom_components.ef_ble.eflib.devices import shp2
+from custom_components.ef_ble.eflib.devices import shp2, shp3
 
 from . import DeviceConfigEntry
 from .entity import EcoflowEntity, resolve_entity_description_keys
@@ -167,6 +167,13 @@ _BINARY_SENSORS: Final[dict[str, BinarySensorEntityDescription]] = {
     "ac1_input_connected": plug(),
     "ac2_input_connected": plug(),
     "ac3_input_connected": plug(),
+    "ch{n}_signal_line": connectivity(
+        translation_key="backup_channel_signal_line",
+        translation_placeholders={"channel": "{n}"},
+        indexed_range=range(1, shp3.Device.NUM_OF_CHANNELS + 1),
+        entity_category=EntityCategory.DIAGNOSTIC,
+        enabled=False,
+    ),
     # DPU
     "is_charging": battery_charging(
         enabled=False, entity_category=EntityCategory.DIAGNOSTIC

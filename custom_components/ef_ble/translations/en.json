@@ -351,6 +351,9 @@
       "ac3_input_connected": {
         "name": "AC 3 Input Connected"
       },
+      "backup_channel_signal_line": {
+        "name": "Channel {channel} Signal Line"
+      },
       "grid_status": {
         "name": "Grid Status"
       },
@@ -495,6 +498,16 @@
           "on_grid": "On (Grid)",
           "on_back": "On (Backup)",
           "em_stop": "Emergency Stop"
+        }
+      },
+      "backup_channel_type": {
+        "name": "Channel {channel} Type",
+        "state": {
+          "unknown": "Unknown",
+          "none": "None",
+          "battery": "Battery",
+          "oil": "Smart Generator",
+          "station_charger": "Station Charger"
         }
       },
       "circuit_name": {
