@@ -27,6 +27,18 @@
             "connectable": true
         },
         {
+            "local_name": "EF-HR6*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 72, 82, 54, 49],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-HR5*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 72, 82, 53, 49],
+            "connectable": true
+        },
+        {
             "local_name": "EF-YJ*",
             "manufacturer_id": 46517,
             "manufacturer_data_start": [19, 89, 55, 49, 49],

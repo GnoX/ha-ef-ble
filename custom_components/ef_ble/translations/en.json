@@ -732,6 +732,15 @@
       "load_system": {
         "name": "System Load"
       },
+      "home_load": {
+        "name": "Home Load"
+      },
+      "sub_panel_load": {
+        "name": "Sub Panel Load"
+      },
+      "ev_load": {
+        "name": "EV Load"
+      },
       "load_from_battery": {
         "name": "Load From Battery"
       },
