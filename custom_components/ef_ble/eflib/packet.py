@@ -346,6 +346,40 @@ class PacketV4:
     def v4_type_b(self):
         return self._v4_type_b
 
+    @property
+    def cmd_flags(self):
+        return self._cmd_flags
+
+    @property
+    def is_ack(self):
+        return self._is_ack
+
+    @property
+    def is_rw_cmd(self):
+        return self._is_rw_cmd
+
+    def replace(self, **overrides) -> "PacketV4":
+        """Copy this packet with the given constructor fields overridden"""
+        fields = {
+            "src": self._src,
+            "dst": self._dst,
+            "cmd_set": self._cmd_set,
+            "cmd_id": self._cmd_id,
+            "payload": self._payload,
+            "enc_type": self._enc_type,
+            "check_type": self._check_type,
+            "is_rw_cmd": self._is_rw_cmd,
+            "is_ack": self._is_ack,
+            "frame_type": self._frame_type,
+            "payload_type": self._payload_type,
+            "cmd_flags": self._cmd_flags,
+            "v4_type_a": self._v4_type_a,
+            "v4_type_b": self._v4_type_b,
+            "time_snap_b0": self._time_snap_b0,
+        }
+        fields.update(overrides)
+        return PacketV4(**fields)
+
     @staticmethod
     def fromBytes(data: bytes) -> "PacketV4 | InvalidPacket":
         if len(data) < 18:
