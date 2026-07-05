@@ -702,6 +702,15 @@
       "load_system": {
         "name": "系统负载"
       },
+      "home_load": {
+        "name": "家庭负载"
+      },
+      "sub_panel_load": {
+        "name": "子面板负载"
+      },
+      "ev_load": {
+        "name": "充电桩负载"
+      },
       "load_from_battery": {
         "name": "电池负载"
       },
