@@ -109,6 +109,32 @@ Click on any device below to see available sensors, switches, and controls:
 
 <br>
 
+The OCEAN Pro inverter / energy hub. Per-circuit data comes from the separate OCEAN
+Panel (below), not the inverter.
+
+| *Sensors*                |
+|--------------------------|
+| Battery Level            |
+| Battery Power            |
+| System Load              |
+| Load From Grid           |
+| PV Power Total           |
+| Inverter Frequency       |
+| Grid Connection Status   |
+| Grid Energized           |
+| Plugged In AC            |
+| Charge Time Remaining    |
+| Discharge Time Remaining |
+
+</details>
+<details>
+<summary><b>OCEAN Panel</b></summary>
+
+<br>
+
+The OCEAN Smart Electrical Panel (up to 40 smart circuits) from the OCEAN Pro system.
+Shares the SHP3 V4 protocol.
+
 | *Sensors*                      | *Switches*                    |
 |--------------------------------|-------------------------------|
 | Battery Level                  | Circuit On/Off (Each Circuit) |
@@ -130,10 +156,8 @@ Click on any device below to see available sensors, switches, and controls:
 | Circuit Current (Each Circuit) |                               |
 | Circuit Voltage (Each Circuit) |                               |
 
-> **📝 Note:** The remaining controls (charge limits, backup reserve, AC charging,
-> operating mode, storm guard) share the SHP3 V4 write path and will be added once they
-> can be confirmed on hardware. Circuit on/off uses the same path, so it may not actuate
-> until then.
+> **📝 Note:** Circuit on/off uses the SHP3 V4 write path, which is still unconfirmed on
+> hardware, so it may not actuate yet.
 
 </details>
 <details>
