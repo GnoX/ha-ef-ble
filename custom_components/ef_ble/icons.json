@@ -385,6 +385,13 @@
           "power_storage": "mdi:battery-charging"
         }
       },
+      "energy_monitoring_mode": {
+        "default": "mdi:meter-electric",
+        "state": {
+          "semi_automated": "mdi:home-lightning-bolt",
+          "smart_meter": "mdi:meter-electric"
+        }
+      },
       "operating_submode": {
         "default": "mdi:tune-variant",
         "state": {
