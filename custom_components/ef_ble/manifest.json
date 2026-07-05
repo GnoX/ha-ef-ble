@@ -9,6 +9,24 @@
             "connectable": true
         },
         {
+            "local_name": "EF-SHP3*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 72, 82, 54, 50],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-SHP3*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 72, 82, 54, 51],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-SHP3*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 72, 82, 54, 67],
+            "connectable": true
+        },
+        {
             "local_name": "EF-YJ*",
             "manufacturer_id": 46517,
             "manufacturer_data_start": [19, 89, 55, 49, 49],

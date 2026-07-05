@@ -37,6 +37,7 @@ from .eflib.devices import (
     dpu,
     powerpulse_ev,
     shp2,
+    shp3,
     smart_generator,
     stream_microinverter,
     wave2,
@@ -55,6 +56,7 @@ class EcoflowSensorEntityDescription[Device: DeviceBase](SensorEntityDescription
     state_attribute_fields: list[str] = field(default_factory=list)
     native_unit_of_measurement_field: str | Callable[[Device], str] | None = None
     indexed_range: range | None = None
+    name_field: str | None = None
 
 
 class _SensorKwargs(TypedDict, total=False):
@@ -63,6 +65,7 @@ class _SensorKwargs(TypedDict, total=False):
     indexed_range: range
     entity_category: EntityCategory
     state_attribute_fields: list[str]
+    name_field: str
 
 
 def battery(
@@ -450,7 +453,9 @@ def port_error_code(
     )
 
 
-_shp2_circuit_range = range(1, shp2.Device.NUM_OF_CIRCUITS + 1)
+_circuit_range = range(
+    1, max(shp2.Device.NUM_OF_CIRCUITS, shp3.Device.NUM_OF_CIRCUITS) + 1
+)
 _shp2_channel_range = range(1, shp2.Device.NUM_OF_CHANNELS + 1)
 
 
@@ -477,7 +482,7 @@ def shp2_circuit(
     return fn(
         translation_key=translation_key,
         translation_placeholders=translation_placeholders or {"index": "{n:02d}"},
-        indexed_range=_shp2_circuit_range,
+        indexed_range=_circuit_range,
         **kwargs,
     )
 
@@ -500,9 +505,26 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
         "circuit_power",
         precision=2,
         translation_placeholders={"index": "{n:02d}"},
+        name_field="circuit_name_{n}",
     ),
     "circuit_current_{n}": shp2_circuit(
         current, "circuit_current", precision=2, enabled=False, state_class=None
+    ),
+    "circuit_voltage_{n}": shp2_circuit(
+        voltage, "circuit_voltage", precision=1, enabled=False
+    ),
+    "circuit_status_{n}": shp2_circuit(
+        enum,
+        "circuit_status",
+        options=shp3.CircuitStatus,
+        name_field="circuit_name_{n}",
+    ),
+    "ch{n}_type": enum(
+        options=shp3.BackupChannelType,
+        translation_key="backup_channel_type",
+        translation_placeholders={"channel": "{n}"},
+        indexed_range=range(1, shp3.Device.NUM_OF_CHANNELS + 1),
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     "channel_power_{n}": shp2_channel(
         power,
@@ -976,6 +998,22 @@ class EcoflowSensor(EcoflowEntity, SensorEntity):
         )
 
     @property
+    def _name_field(self) -> str | None:
+        desc = self.entity_description
+        if isinstance(desc, EcoflowSensorEntityDescription):
+            return desc.name_field
+        return None
+
+    @property
+    def name(self):
+        """Use a device-provided name (e.g. circuit name) when available"""
+        if (name_field := self._name_field) is not None:
+            value = getattr(self._device, name_field, None)
+            if value:
+                return value
+        return super().name
+
+    @property
     def native_value(self):
         """Return the value of the sensor."""
         value = getattr(self._device, self._sensor, None)
@@ -1010,11 +1048,16 @@ class EcoflowSensor(EcoflowEntity, SensorEntity):
         """Run when this Entity has been added to HA."""
         await super().async_added_to_hass()
         self._device.register_callback(self.async_write_ha_state, self._sensor)
+        # Refresh the entity name when the name source (e.g. circuit name) updates.
+        if (name_field := self._name_field) is not None:
+            self._device.register_callback(self.async_write_ha_state, name_field)
 
     async def async_will_remove_from_hass(self):
         """Entity being removed from hass."""
         await super().async_will_remove_from_hass()
         self._device.remove_callback(self.async_write_ha_state, self._sensor)
+        if (name_field := self._name_field) is not None:
+            self._device.remove_callback(self.async_write_ha_state, name_field)
 
 
 class EcoflowBatteryAddonSensor(EcoflowBatteryAddonEntity, SensorEntity):
