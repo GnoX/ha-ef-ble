@@ -245,5 +245,5 @@
         "protobuf~=6.30"
     ],
 
-    "version": "1.0.0"
+    "version": "v0.43.0-a.2"
 }
