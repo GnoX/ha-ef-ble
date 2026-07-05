@@ -35,7 +35,7 @@ from .eflib.devices import (
     _delta3_base,
     delta_pro_3,
     dpu,
-    ocean_pro,
+    ocean_panel,
     powerpulse_ev,
     shp2,
     shp3,
@@ -457,7 +457,7 @@ _circuit_range = range(
     max(
         shp2.Device.NUM_OF_CIRCUITS,
         shp3.Device.NUM_OF_CIRCUITS,
-        ocean_pro.Device.NUM_OF_CIRCUITS,
+        ocean_panel.Device.NUM_OF_CIRCUITS,
     )
     + 1,
 )
