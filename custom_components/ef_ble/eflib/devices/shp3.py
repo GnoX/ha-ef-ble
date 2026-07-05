@@ -1,22 +1,11 @@
-import dataclasses
-import time
 from collections.abc import Callable
-from enum import IntEnum
 from typing import Any
 
-from bleak.backends.device import BLEDevice
-from bleak.backends.scanner import AdvertisementData
-from google.protobuf.message import Message
-
-from ..commands import TimeCommands
-from ..devicebase import DeviceBase
 from ..entity import controls
 from ..entity.base import dynamic
-from ..packet import Packet, PacketV4
 from ..pb import dev_apl_comm_pb2
 from ..props import (
     Field,
-    ProtobufProps,
     computed_field,
     field_group,
     pb_field,
@@ -27,34 +16,10 @@ from ..props import (
 from ..props.enums import IntFieldValue
 from ..props.protobuf_field import TransformIfMissing
 from ..props.transforms import out_power, pround
+from ._v4_panel import CircuitStatus, GridStatus, V4PanelDevice
 
 pb = proto_attr_mapper(dev_apl_comm_pb2.DisplayPropertyUpload)
 pb_cfg = proto_attr_mapper(dev_apl_comm_pb2.ConfigWrite)
-
-
-class CircuitControl(IntEnum):
-    ON = 1
-    OFF = 2
-
-
-class GridStatus(IntFieldValue):
-    UNKNOWN = -1
-
-    NOT_VALID = 0
-    GRID_IN = 1
-    GRID_OFFLINE = 2
-    FEED_GRID = 3
-
-
-class CircuitStatus(IntFieldValue):
-    """Per-circuit relay status from `LoadChSta.load_sta` (`LOAD_CH_STA`)"""
-
-    UNKNOWN = -1  # LOAD_CH_UNKNOWN_STA (4) and any unrecognized value
-
-    OFF = 0
-    ON_GRID = 1
-    ON_BACK = 2
-    EM_STOP = 3
 
 
 class OperatingMode(IntFieldValue):
@@ -136,7 +101,7 @@ def _channel_battery(slot_template: str) -> Callable[[int], Field[Any]]:
     return factory
 
 
-class Device(DeviceBase, ProtobufProps):
+class Device(V4PanelDevice):
     """Smart Home Panel 3"""
 
     SN_PREFIX = (b"HR62", b"HR63", b"HR6C")
@@ -145,7 +110,7 @@ class Device(DeviceBase, ProtobufProps):
     NUM_OF_CIRCUITS = 32
     NUM_OF_CHANNELS = 3
     NUM_OF_BATTERIES = 10
-    _KEEPALIVE_INTERVAL = 20
+    _TELEMETRY_SRC = 0x32
 
     battery_level = pb_field(pb.cms_batt_soc, pround(2))
     remaining_time_charging = pb_field(pb.cms_chg_rem_time)
@@ -337,72 +302,8 @@ class Device(DeviceBase, ProtobufProps):
             return self._mode_panel
         return self._mode_generic
 
-    def __init__(
-        self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
-    ) -> None:
-        super().__init__(ble_dev, adv_data, sn)
-        self._time_commands = TimeCommands(self)
-        self._routing = _StandardProtocolRouting(sn)
-        self.add_timer_task(self._send_keepalive, interval=self._KEEPALIVE_INTERVAL)
-        self._userid_sent = False
-
-    @classmethod
-    def check(cls, sn):
-        return sn[:4] in cls.SN_PREFIX
-
-    async def _send_keepalive(self) -> None:
-        await self._time_commands.sendRTCCheck()
-
-    async def _send_userid_registration(self) -> None:
-        user_id = (getattr(self._conn, "_user_id", "") or "").encode("ascii")
-        userid_field_len = 64
-        payload = (
-            bytes([0x01])
-            + user_id[:userid_field_len].ljust(userid_field_len, b"\x00")
-            + int(time.time()).to_bytes(4, "little")
-        )
-        packet = Packet(
-            src=0x21,
-            dst=0x35,
-            cmd_set=0x35,
-            cmd_id=0xA8,
-            payload=payload,
-            dsrc=0x01,
-            ddst=0x01,
-            version=0x03,
-        )
-        await self._conn.sendPacket(packet, wait_for_response=False)
-
-    async def packet_parse(self, data: bytes):
-        return Packet.from_bytes(data, xor_payload=True)
-
-    async def data_parse(self, packet: Packet) -> bool:
-        processed = False
-        self.reset_updated()
-
-        match packet.version, packet.src, packet.cmd_set, packet.cmd_id:
-            case 0x04, 0x32, 0x40, 0x30:
-                if isinstance(packet, PacketV4):
-                    self._routing.remember_post(packet)
-                _, body = self._routing.split(packet.payload)
-                self.update_from_bytes(dev_apl_comm_pb2.DisplayPropertyUpload, body)
-                processed = True
-            case 0x04, _, 0x40, 0x30:
-                # sub device update (per-battery telemetry forwarded by the panel)
-                processed = True
-            case _, 0x35, 0x01, Packet.NET_BLE_COMMAND_CMD_SET_RET_TIME:
-                if len(packet.payload) == 0:
-                    self._time_commands.async_send_all()
-                    if not self._userid_sent:
-                        self._userid_sent = True
-                        await self._send_userid_registration()
-                processed = True
-            case _, 0x35, 0x35, 0x20:
-                await self._conn.replyPacket(packet)
-                processed = True
-
-        self._notify_updated()
-        return processed
+    def _parse_telemetry(self, body: bytes) -> None:
+        self.update_from_bytes(dev_apl_comm_pb2.DisplayPropertyUpload, body)
 
     @controls.battery(
         battery_charge_limit_min,
@@ -454,46 +355,9 @@ class Device(DeviceBase, ProtobufProps):
     )
     async def set_circuit_power(self, circuit_id: int, enable: bool):
         self._logger.debug("set_circuit_power for %d: %s", circuit_id, enable)
-
-        split_link = self.circuit_split_link[circuit_id]
-        if split_link is None:
-            self._logger.warning(
-                (
-                    "Cannot set circuit power for circuit %d because split circuit "
-                    "info is not available"
-                ),
-                circuit_id,
-            )
-            return None
-
-        is_split = split_link != 0
-        if is_split and (split_link < 1 or split_link > self.NUM_OF_CIRCUITS):
-            self._logger.warning(
-                (
-                    "Cannot set circuit power for circuit %d because split link "
-                    "circuit id %d is invalid"
-                ),
-                circuit_id,
-                split_link,
-            )
-            return None
-
-        config = dev_apl_comm_pb2.ConfigWrite()
-        state = CircuitControl.ON if enable else CircuitControl.OFF
-        ctrl = pb_indexed_attr(
-            config, pb_cfg.cfg_load_ch1_ctrl_info, "cfg_load_ch{n}_ctrl_info"
-        )
-
-        ch = ctrl[circuit_id]
-        ch.chanel_enable_ctrl = state
-        ch.ctrl_mode = dev_apl_comm_pb2.LOAD_RLY_CTRL_MODE_HAND
-
-        if is_split:
-            ch_link = ctrl[split_link]
-            ch_link.chanel_enable_ctrl = state
-            ch_link.ctrl_mode = dev_apl_comm_pb2.LOAD_RLY_CTRL_MODE_HAND
-
-        await self._send_config_packet(config)
+        config = self._build_circuit_power_config(circuit_id, enable)
+        if config is not None:
+            await self._send_config_packet(config)
         return True
 
     @controls.select(operating_mode_select, options=OperatingMode)
@@ -541,10 +405,6 @@ class Device(DeviceBase, ProtobufProps):
             force_charge=bool(self.channel_force_charge[channel_id]),
         )
 
-    async def _send_config_packet(self, message: Message):
-        packet = self._routing.write_packet(message.SerializeToString())
-        await self._conn.sendPacket(packet)
-
     async def _write_energy_strategy(
         self, mode: OperatingMode | None, eps_enable: bool
     ):
@@ -570,76 +430,3 @@ class Device(DeviceBase, ProtobufProps):
         backup.ctrl_en = 1 if enable else 2
         backup.ctrl_force_chg = 1 if force_charge else 2
         await self._send_config_packet(config)
-
-
-class _StandardProtocolRouting:
-    """
-    SHP3 standard-protocol routing layer that wraps the protobuf inside the v4 payload
-
-    Reads: the v4 application payload is a routing header (the device-side SN fragment
-    plus a 13-byte envelope) followed by the `DisplayPropertyUpload` protobuf.
-
-    Writes:  mirror the latest telemetry post's v4 frame - reusing its session
-    obfuscation, addressing and inner header via `dataclasses.replace` - and only
-    override cmd_flags / is_ack / is_rw_cmd and the application payload. The payload is
-    `serial9 + full_serial16 + envelope + ConfigWrite`, where the envelope is `40 03 03
-    <seq> FE 11 00 21 01 0B 01` (FE 11 = PROPERTY_WRITE). Before any post is seen it
-    falls back to a plain v3 frame.
-    """
-
-    HEADER_LEN = 22  # device SN fragment (9) + envelope (13), on reads
-    _SERIAL_FRAGMENT_LEN = 9
-    _WRITE_CMD_FLAGS = 0x10
-    _WRITE_ENVELOPE_PREFIX = bytes([0x40, 0x03, 0x03])
-    _WRITE_ENVELOPE_MID = bytes(
-        [0xFE, 0x11, 0x00]
-    )  # cmd_set 0xFE, cmd_id 0x11, reserved
-    _WRITE_ENVELOPE_SUFFIX = bytes([0x21, 0x01, 0x0B, 0x01])
-
-    def __init__(self, serial: str) -> None:
-        self._serial = serial
-        self._post_template: PacketV4 | None = None
-        self._envelope_template: bytes | None = None
-        self._write_seq = 0x20
-
-    @classmethod
-    def split(cls, payload: bytes) -> tuple[str, bytes]:
-        """Split a v4 application payload into (device SN fragment, protobuf body)"""
-        serial = payload[: cls._SERIAL_FRAGMENT_LEN].decode("ascii", errors="replace")
-        return serial, payload[cls.HEADER_LEN :]
-
-    def remember_post(self, packet: PacketV4) -> None:
-        """Capture the post as the transport template + routing envelope (for seq)"""
-        self._post_template = packet
-        self._envelope_template = packet.payload[
-            self._SERIAL_FRAGMENT_LEN : self.HEADER_LEN
-        ]
-
-    def _next_seq(self) -> int:
-        # Track the panel's session seq from the latest post, else a local counter.
-        if self._envelope_template is not None and len(self._envelope_template) > 5:
-            return self._envelope_template[5]
-        self._write_seq = (self._write_seq + 1) & 0xFF
-        return self._write_seq
-
-    def write_packet(self, config_bytes: bytes) -> Packet | PacketV4:
-        """Build the control-write frame for a serialized `ConfigWrite`"""
-        if self._post_template is None:
-            # No telemetry post captured yet: plain v3 fallback.
-            return Packet(0x21, 0x60, 0xFE, 0x11, config_bytes, 0x01, 0x01, 0x13)
-        envelope = (
-            self._WRITE_ENVELOPE_PREFIX
-            + bytes([self._next_seq()])
-            + self._WRITE_ENVELOPE_MID
-            + self._WRITE_ENVELOPE_SUFFIX
-        )
-        serial9 = self._serial[-self._SERIAL_FRAGMENT_LEN :].encode("ascii")
-        serial16 = self._serial.encode("ascii")
-        payload = serial9 + serial16 + envelope + config_bytes
-        return dataclasses.replace(
-            self._post_template,
-            cmd_flags=self._WRITE_CMD_FLAGS,
-            is_ack=True,
-            is_rw_cmd=False,
-            payload=payload,
-        )
