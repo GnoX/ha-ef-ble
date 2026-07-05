@@ -36,6 +36,7 @@ from .eflib.devices import (
     _delta3_base,
     delta_pro_3,
     dpu,
+    ocean_pro,
     powerpulse_ev,
     shp2,
     shp3,
@@ -454,7 +455,13 @@ def port_error_code(
 
 
 _circuit_range = range(
-    1, max(shp2.Device.NUM_OF_CIRCUITS, shp3.Device.NUM_OF_CIRCUITS) + 1
+    1,
+    max(
+        shp2.Device.NUM_OF_CIRCUITS,
+        shp3.Device.NUM_OF_CIRCUITS,
+        ocean_pro.Device.NUM_OF_CIRCUITS,
+    )
+    + 1,
 )
 _shp2_channel_range = range(1, shp2.Device.NUM_OF_CHANNELS + 1)
 
@@ -807,6 +814,10 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     "ac_power_2_3": port_power("AC (2-3)"),
     "pv_power_{n}": port_power("PV ({n})", precision=1, indexed_range=range(5)),
     "pv_power_sum": power(precision=1, translation_key="pv_power_sum"),
+    # OCEAN Pro
+    "home_load": power(precision=2),
+    "sub_panel_load": power(precision=2),
+    "ev_load": power(precision=2),
     # Smart Meter
     "grid_energy": energy(),
     "l{n}_power": port_power("L{n}", enabled=False, indexed_range=range(4)),
