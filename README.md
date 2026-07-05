@@ -104,6 +104,38 @@ Click on any device below to see available sensors, switches, and controls:
 
 </details>
 <details>
+<summary><b>OCEAN Pro</b></summary>
+
+<br>
+
+| *Sensors*                      | *Switches*                    |
+|--------------------------------|-------------------------------|
+| Battery Level                  | Circuit On/Off (Each Circuit) |
+| Battery Power                  |                               |
+| System Load                    |                               |
+| Load From Grid                 |                               |
+| Home Load                      |                               |
+| Sub Panel Load                 |                               |
+| EV Load                        |                               |
+| PV Power Total                 |                               |
+| Inverter Frequency             |                               |
+| Grid Connection Status         |                               |
+| Grid Energized                 |                               |
+| Plugged In AC                  |                               |
+| Charge Time Remaining          |                               |
+| Discharge Time Remaining       |                               |
+| Circuit Status (Each Circuit)  |                               |
+| Circuit Power (Each Circuit)   |                               |
+| Circuit Current (Each Circuit) |                               |
+| Circuit Voltage (Each Circuit) |                               |
+
+> **📝 Note:** The remaining controls (charge limits, backup reserve, AC charging,
+> operating mode, storm guard) share the SHP3 V4 write path and will be added once they
+> can be confirmed on hardware. Circuit on/off uses the same path, so it may not actuate
+> until then.
+
+</details>
+<details>
 <summary><b>Delta Pro Ultra</b></summary>
 
 <br>
