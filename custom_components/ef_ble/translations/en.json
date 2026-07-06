@@ -295,6 +295,9 @@
   },
   "entity": {
     "button": {
+      "power_off": {
+        "name": "Power Off"
+      },
       "unpause_solar": {
         "name": "Unpause Solar"
       }

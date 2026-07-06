@@ -1,5 +1,10 @@
 {
   "entity": {
+    "button": {
+      "power_off": {
+        "default": "mdi:power"
+      }
+    },
     "binary_sensor": {
       "fan_running": {
         "default": "mdi:fan",

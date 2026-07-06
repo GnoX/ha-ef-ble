@@ -2,9 +2,11 @@ import dataclasses
 import enum
 import inspect
 from collections.abc import Awaitable, Callable, Iterable
+from types import MethodType
 from typing import TYPE_CHECKING, Any, cast, get_type_hints
 
 from ..props.enums import IntFieldValue
+from ..props.updatable_props import Field
 from . import DynamicValue, EntityType, units
 
 if TYPE_CHECKING:
@@ -60,6 +62,53 @@ class outlet(toggle):
 
 class switch(toggle):
     pass
+
+
+class _ButtonField(Field[None]):
+    """
+    Stateless placeholder field backing a `button` control
+
+    Exists only so the control is registered for discovery like any other field;
+    reading it from a device instance returns the bound press method, keeping the
+    decorated function directly callable.
+    """
+
+    def __init__(self, press_func: Callable[..., Awaitable[Any]]) -> None:
+        self._press_func = press_func
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return MethodType(self._press_func, instance)
+
+
+class button(ControlType):
+    """
+    Stateless action control mapped to a HA button entity
+
+    Unlike other controls, a button is not tied to an existing state field. The
+    decorator replaces the method with an internal field named after it, so the
+    entity key matches the method name and the method stays callable on the device:
+
+        @controls.button()
+        async def power_off(self) -> None: ...
+    """
+
+    type PressFunc[D: "DeviceBase"] = Callable[[D], Awaitable[Any]]
+
+    field: Any = None
+    press_func: PressFunc = dataclasses.field(
+        default=cast("PressFunc", None),
+        repr=False,
+        init=False,
+    )
+
+    def __call__[D: "DeviceBase"](
+        self,
+        func: Callable[[D], Awaitable[Any]],
+    ) -> _ButtonField:
+        self.press_func = func
+        return _ButtonField(func).sensor(self)
 
 
 class NumberType(ControlType):
