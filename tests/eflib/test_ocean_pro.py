@@ -91,7 +91,9 @@ async def test_ocean_pro_exact_values_from_known_packets(device, packet_sequence
     assert device.remaining_time_charging == 0
     assert device.remaining_time_discharging == 99
     assert device.grid_connection_status is GridStatus.GRID_IN
-    assert device.ac_output_power == 0.44
+    # ac_output_power comes only from the main DisplayPropertyUpload; this capture window
+    # carries just the idle-socket "port" frame, which is intentionally skipped.
+    assert device.ac_output_power is None
     assert device.grid_frequency == 60.01
     assert device.l1_voltage == 122.5
     assert device.l2_voltage == 122.5
@@ -110,6 +112,24 @@ def test_ocean_pro_has_no_circuits():
     # Circuits belong to the separate OCEAN Panel, not the inverter.
     field_names = {f.public_name for f in Device._fields}
     assert not any(name.startswith("circuit_") for name in field_names)
+
+
+async def test_ocean_pro_ac_output_power_ignores_port_frame(device):
+    main = dev_apl_comm_pb2.DisplayPropertyUpload()
+    main.pow_get_ac = -2654.80811
+    device.update_from_message(main)
+    assert device.ac_output_power == 2654.81
+
+    port = dev_apl_comm_pb2.DisplayPropertyUpload()
+    port.pow_get_ac = -0.44
+    port.pow_get_ac_in = 1
+    device.update_from_message(port)
+    assert device.ac_output_power == 2654.81
+
+    newer_main = dev_apl_comm_pb2.DisplayPropertyUpload()
+    newer_main.pow_get_ac = -1000.0
+    device.update_from_message(newer_main)
+    assert device.ac_output_power == 1000.0
 
 
 async def test_ocean_pro_charge_limit_writes_go_to_e7_mcu(device):
