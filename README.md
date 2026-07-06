@@ -108,22 +108,20 @@ Click on any device below to see available sensors, switches, and controls:
 
 <br>
 
-The OCEAN Pro inverter / energy hub. Per-circuit data comes from the separate OCEAN
-Panel (below), not the inverter.
-
-| *Sensors*                |
-|--------------------------|
-| Battery Level            |
-| Battery Power            |
-| System Load              |
-| Load From Grid           |
-| PV Power Total           |
-| Inverter Frequency       |
-| Grid Connection Status   |
-| Grid Energized           |
-| Plugged In AC            |
-| Charge Time Remaining    |
-| Discharge Time Remaining |
+| *Sensors*                          | *Numbers*       |
+|------------------------------------|-----------------|
+| Battery Level                      | Charge Limit    |
+| Battery Power                      | Discharge Limit |
+| System Load                        |                 |
+| Load From Grid                     |                 |
+| AC Output Power                    |                 |
+| PV Power Total                     |                 |
+| PV Voltage / Current / Power (1-8) |                 |
+| L1 / L2 Voltage / Current / Power  |                 |
+| Grid Frequency                     |                 |
+| Grid Connection Status             |                 |
+| Charge Time Remaining              |                 |
+| Discharge Time Remaining           |                 |
 
 </details>
 <details>
