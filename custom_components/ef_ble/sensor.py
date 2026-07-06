@@ -803,7 +803,7 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     "ac_power_2_1": port_power("AC (2-1)"),
     "ac_power_2_2": port_power("AC (2-2)"),
     "ac_power_2_3": port_power("AC (2-3)"),
-    "pv_power_{n}": port_power("PV ({n})", precision=1, indexed_range=range(5)),
+    "pv_power_{n}": port_power("PV ({n})", precision=1, indexed_range=range(1, 9)),
     "pv_power_sum": power(precision=1, translation_key="pv_power_sum"),
     # OCEAN Pro
     "home_load": power(precision=2),
@@ -857,14 +857,14 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
         precision=2,
         translation_key="port_current",
         translation_placeholders={"name": "PV ({n})"},
-        indexed_range=range(1, 3),
+        indexed_range=range(1, 9),
         enabled=False,
     ),
     "pv_voltage_{n}": voltage(
         precision=1,
         translation_key="port_voltage",
         translation_placeholders={"name": "PV ({n})"},
-        indexed_range=range(1, 3),
+        indexed_range=range(1, 9),
         enabled=False,
     ),
     # Wave 2
