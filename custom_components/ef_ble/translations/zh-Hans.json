@@ -1042,6 +1042,12 @@
       "backup_reserve_level": {
         "name": "备用储备电量"
       },
+      "battery_charge_limit_max": {
+        "name": "充电限制"
+      },
+      "battery_charge_limit_min": {
+        "name": "放电限制"
+      },
       "backup_charge_limit": {
         "name": "充电限制"
       },
