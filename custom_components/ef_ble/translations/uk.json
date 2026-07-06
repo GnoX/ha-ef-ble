@@ -1065,6 +1065,12 @@
       "backup_reserve_level": {
         "name": "Рівень резерву"
       },
+      "battery_charge_limit_max": {
+        "name": "Ліміт заряджання"
+      },
+      "battery_charge_limit_min": {
+        "name": "Ліміт розряджання"
+      },
       "backup_charge_limit": {
         "name": "Ліміт заряджання"
       },

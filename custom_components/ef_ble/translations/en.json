@@ -1068,6 +1068,12 @@
       "backup_reserve_level": {
         "name": "Backup Reserve Level"
       },
+      "battery_charge_limit_max": {
+        "name": "Charge Limit"
+      },
+      "battery_charge_limit_min": {
+        "name": "Discharge Limit"
+      },
       "backup_charge_limit": {
         "name": "Charge Limit"
       },

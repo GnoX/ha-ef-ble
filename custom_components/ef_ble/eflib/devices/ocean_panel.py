@@ -111,8 +111,5 @@ class Device(V4PanelDevice):
             await self._send_config_packet(config)
 
     def _parse_telemetry(self, body: bytes) -> None:
-        # A single upload carries either display or runtime properties; parsing against
-        # both is safe since absent fields report no presence and are skipped rather
-        # than overwritten with defaults.
         self.update_from_bytes(dev_apl_comm_pb2.DisplayPropertyUpload, body)
         self.update_from_bytes(dev_apl_comm_pb2.RuntimePropertyUpload, body)
