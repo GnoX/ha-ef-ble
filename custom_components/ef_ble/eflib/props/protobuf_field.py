@@ -97,6 +97,7 @@ class ProtobufField[T](Field[T]):
         pb_field: _ProtoAttr,
         transform_value: Callable[[Any], T] = lambda x: x,
         process_if_missing: bool = False,
+        skip_if: "_ProtoAttr | None" = None,
     ):
         """
         Create protobuf field that allows value assignment from protobuf message
@@ -109,14 +110,23 @@ class ProtobufField[T](Field[T]):
             Function that takes protobuf attribute value
         process_if_missing, optional
             If True, transform function receives None
+        skip_if
+            Protobuf accessor (from `proto_attr_mapper`); when this field is present in
+            the message the update is skipped. Useful when a value is reported in
+            several message variants and only the one lacking `skip_if` carries the
+            wanted value
         """
         self.pb_field = pb_field
         self._transform_value = transform_value
         self.process_if_missing = process_if_missing
+        self._skip_if = skip_if
 
     def _get_value(self, value: Message | Any):
         if not isinstance(value, Message):
             return value
+
+        if self._skip_if is not None and proto_has_attr(value, self._skip_if):
+            return Skip
 
         n_attrs = len(self.pb_field.attrs)
         for i, attr in enumerate(self.pb_field.attrs):
@@ -137,6 +147,7 @@ class ProtobufField[T](Field[T]):
 def pb_field[T_ATTR](
     attr: T_ATTR,
     transform: None = None,
+    skip_if: Any = None,
 ) -> "ProtobufField[T_ATTR]": ...
 
 
@@ -144,12 +155,14 @@ def pb_field[T_ATTR](
 def pb_field[T_ATTR, T_OUT](
     attr: T_ATTR,
     transform: Callable[[T_ATTR], T_OUT | type[Skip]],
+    skip_if: Any = None,
 ) -> "ProtobufField[T_OUT]": ...
 
 
 def pb_field(
     attr: Any,
     transform: Callable[[Any], Any] | None = None,
+    skip_if: Any = None,
 ) -> "ProtobufField[Any]":
     """
     Create field that allows value assignment from protocol buffer messages
@@ -160,16 +173,26 @@ def pb_field(
         Protobuf field attribute of instance returned from `proto_attr_mapper`
     transform, optional
         Function that is applied to raw protobuf value
+    skip_if, optional
+        Protobuf accessor (from `proto_attr_mapper`); the update is skipped for any
+        message that contains this field. Lets a field ignore message variants that
+        overload the same field number with a different value
     """
     if not isinstance(attr, _ProtoAttr):
         raise TypeError(
             "Attribute has to be an instance returned from "
             f"`proto_attr_mapper`, but received value of '{attr}'"
         )
+    if skip_if is not None and not isinstance(skip_if, _ProtoAttr):
+        raise TypeError(
+            "`skip_if` has to be an instance returned from "
+            f"`proto_attr_mapper`, but received value of '{skip_if}'"
+        )
     return ProtobufField(
         pb_field=attr,
         transform_value=transform if transform is not None else lambda x: x,
         process_if_missing=isinstance(transform, TransformIfMissing),
+        skip_if=skip_if,
     )
 
 
