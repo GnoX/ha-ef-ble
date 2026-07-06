@@ -468,6 +468,7 @@ class Device(DeviceBase, ProtobufProps):
         )
         return True
 
+    @controls.button()
     async def unpause_solar(self):
         """Send command to clear weak PV source flag"""
         self._logger.debug("unlock_pv_weak")

@@ -2,6 +2,8 @@ import pytest
 from pytest_mock import MockerFixture
 
 from custom_components.ef_ble.eflib.devices.dpu import Device
+from custom_components.ef_ble.eflib.entity import controls
+from custom_components.ef_ble.eflib.pb import yj751_sys_pb2
 
 
 @pytest.fixture
@@ -182,3 +184,23 @@ async def test_dpu_exact_values_from_known_packets(device, packet_sequence):
         assert actual_value == expected_value, (
             f"{field_name}: expected {expected_value}, got {actual_value}"
         )
+
+
+async def test_dpu_unpause_solar_registered_as_button_control(device):
+    buttons = device.get_controls(controls.button)
+
+    assert len(buttons) == 1
+    assert buttons[0].key == "unpause_solar"
+
+
+async def test_dpu_unpause_solar_sends_unlock_pv_weak(device):
+    await device.unpause_solar()
+
+    device._conn.sendPacket.assert_awaited_once()
+    packet = device._conn.sendPacket.await_args.args[0]
+    assert (packet.src, packet.dst) == (0x21, 0x02)
+    assert (packet.cmd_set, packet.cmd_id) == (0xFE, 0x11)
+
+    config = yj751_sys_pb2.ConfigWrite()
+    config.ParseFromString(packet.payload)
+    assert config.unlock_pv_weak is True
