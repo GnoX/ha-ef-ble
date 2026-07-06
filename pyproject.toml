@@ -11,7 +11,6 @@ dependencies = [
   "bleak",
   "bleak-retry-connector",
   "bluetooth-adapters",
-  "crc~=7.1",
   "ecdsa~=0.19",
   "protobuf~=6.30",
   "pycryptodome~=3.23",
