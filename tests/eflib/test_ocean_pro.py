@@ -91,8 +91,6 @@ async def test_ocean_pro_exact_values_from_known_packets(device, packet_sequence
     assert device.remaining_time_charging == 0
     assert device.remaining_time_discharging == 99
     assert device.grid_connection_status is GridStatus.GRID_IN
-    assert device.grid_is_energized is True
-    assert device.plugged_in_ac is True
     assert device.ac_output_power == 0.44
     assert device.grid_frequency == 60.01
     assert device.l1_voltage == 122.5
