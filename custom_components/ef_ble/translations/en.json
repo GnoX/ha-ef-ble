@@ -387,7 +387,6 @@
     },
     "event": {
       "connection": {
-        "name": "Connection",
         "state_attributes": {
           "event_type": {
             "state": {
