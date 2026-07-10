@@ -20,6 +20,7 @@ from .connection import (
     PacketParsedListener,
     PacketReceivedListener,
 )
+from .exceptions import NotConnectedError
 from .listeners import ListenerGroup, ListenerRegistry
 from .logging_util import (
     ConnectionLog,
@@ -81,7 +82,7 @@ class DeviceBase(abc.ABC):
             sn,
         )
 
-        self._conn: Connection = None
+        self._conn: Connection | None = None
         self._connection_event = asyncio.Event()
         self._callbacks = set()
         self._callbacks_map = {}
@@ -177,6 +178,38 @@ class DeviceBase(abc.ABC):
 
         self.on_connection_state_change(_register_timer_task)
 
+    async def send_command_packet(
+        self, packet: Packet, *, wait_for_response: bool = True
+    ) -> None:
+        """
+        Send a user-initiated command, failing loudly if it cannot be delivered
+
+        Background traffic (auth, heartbeats, auto-replies) is best-effort and silently
+        dropped while disconnected, but a command triggered by the user must not be lost
+        without notice. Raises `NotConnectedError` when there is no live connection, or
+        when the link drops mid-send so delivery can no longer be confirmed - the latter
+        may occasionally raise even though the command did arrive, which is the safe
+        direction to err since callers can retry an idempotent command.
+
+        Parameters
+        ----------
+        packet
+            Command packet to deliver.
+        wait_for_response
+            Forwarded to `Connection.sendPacket`.
+        """
+        conn = self._conn
+        if conn is None or not conn.is_connected:
+            raise NotConnectedError(
+                f"{self.name}: cannot send command, device is not connected"
+            )
+        await conn.sendPacket(packet, wait_for_response=wait_for_response)
+        if not conn.is_connected:
+            raise NotConnectedError(
+                f"{self.name}: connection dropped while sending command, "
+                "command may not have been delivered"
+            )
+
     def call_later(
         self,
         delay: float,
@@ -200,6 +233,10 @@ class DeviceBase(abc.ABC):
             Optional deduplication key. When set, a new call with the same key cancels
             the previous one.
         """
+        # `_conn` is None during a disconnect/reconnect window; any pending callback
+        # would be cancelled on disconnect anyway, so there is nothing to schedule
+        if self._conn is None:
+            return
         self._conn.call_later(delay, callback, key)
 
     def with_update_period(self, period: int):
