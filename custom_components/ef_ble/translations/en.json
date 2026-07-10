@@ -379,7 +379,29 @@
         "name": "LV Solar Voltage Low"
       }
     },
+    "event": {
+      "connection": {
+        "name": "Connection",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "connected": "Connected",
+              "disconnected": "Disconnected"
+            }
+          }
+        }
+      }
+    },
     "sensor": {
+      "connection_state": {
+        "name": "Connection state",
+        "state": {
+          "connected": "Connected",
+          "connecting": "Connecting",
+          "disconnected": "Disconnected",
+          "error": "Error"
+        }
+      },
       "collecting_data": {
         "name": "Collecting diagnostics data"
       },
