@@ -260,7 +260,7 @@ class Device(DeviceBase, ProtobufProps):
         message.cfg_utc_time = round(time.time())
         payload = message.SerializeToString()
         packet = Packet(0x20, 0x02, 0xFE, 0x11, payload, 0x01, 0x01, 0x13)
-        await self._conn.sendPacket(packet)
+        await self.send_command_packet(packet)
 
     @controls.battery(
         battery_charge_limit_max,
