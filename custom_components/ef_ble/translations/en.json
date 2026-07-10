@@ -293,6 +293,12 @@
       "description": "Failed to connect to {device_name} after {attempts} unsuccessful attempts. Check the logs for more info.\n\nAutomatic retry was disabled to not spam logs, integration has to be reloaded manually. This error clears after successful connection."
     }
   },
+  "device_automation": {
+    "trigger_type": {
+      "connected": "{entity_name} connected",
+      "disconnected": "{entity_name} disconnected"
+    }
+  },
   "entity": {
     "button": {
       "unpause_solar": {

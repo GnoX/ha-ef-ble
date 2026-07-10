@@ -1094,15 +1094,17 @@ class EcoflowBatteryAddonSensor(EcoflowBatteryAddonEntity, SensorEntity):
 
 def _connection_status(state: ConnectionState | None) -> str:
     """Collapse the fine-grained connection state into a small diagnostic status."""
-    if state is None:
-        return "disconnected"
-    if state.authenticated:
-        return "connected"
-    if state.is_error:
-        return "error"
-    if state.is_connecting:
-        return "connecting"
-    return "disconnected"
+    match state:
+        case None:
+            return "disconnected"
+        case state if state.authenticated:
+            return "connected"
+        case state if state.is_error:
+            return "error"
+        case state if state.is_connecting:
+            return "connecting"
+        case _:
+            return "disconnected"
 
 
 class EcoflowConnectionStateSensor(EcoflowEntity, SensorEntity):
@@ -1120,7 +1122,6 @@ class EcoflowConnectionStateSensor(EcoflowEntity, SensorEntity):
 
     @property
     def available(self) -> bool:
-        """Stay available so the state is visible even while not connected."""
         return True
 
     @property
