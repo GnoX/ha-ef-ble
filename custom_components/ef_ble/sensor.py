@@ -837,6 +837,8 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     "temp_evaporator": wave_temperature(),
     "temp_compressor_discharge": wave_temperature(),
     # Delta 2
+    "max_cell_voltage": voltage(precision=3, enabled=False),
+    "min_cell_voltage": voltage(precision=3, enabled=False),
     "dc12v_output_voltage": voltage(precision=2, enabled=False),
     "dc12v_output_current": current(precision=2, enabled=False),
     "dc_input_voltage": voltage(precision=2, enabled=False),

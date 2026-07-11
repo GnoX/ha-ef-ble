@@ -88,6 +88,8 @@ class Delta2Base(DeviceBase, RawDataProps):
     remaining_time_discharging = raw_field(pb_ems.dsg_remain_time)
 
     cell_temperature = raw_field(pb_bms.max_cell_temp)
+    max_cell_voltage = raw_field(pb_bms.max_cell_vol, pdiv(1000, 3))
+    min_cell_voltage = raw_field(pb_bms.min_cell_vol, pdiv(1000, 3))
 
     dc_input_voltage = raw_field(pb_mppt.in_vol, pdiv(1000, 2))
     dc_input_current = raw_field(pb_mppt.in_amp, pdiv(1000, 2))
