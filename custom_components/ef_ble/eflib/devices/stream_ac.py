@@ -380,7 +380,8 @@ class Device(DeviceBase, ProtobufProps):
             if target is None or self._all_timer_tasks is None:
                 return False
 
-            chain.pending_mods.append((target.task_index, modify))
+            pending_mod = (target.task_index, modify)
+            chain.pending_mods.append(pending_mod)
 
             config = bk_series_pb2.ConfigWrite()
 
@@ -392,7 +393,15 @@ class Device(DeviceBase, ProtobufProps):
                     if task.task_index == mod_idx:
                         mod_fn(new_task)
 
-            await self._send_config_packet(config)
+            sent = False
+            try:
+                await self._send_config_packet(config)
+                sent = True
+            finally:
+                # If the send failed the mod never reached the device, so drop it;
+                # otherwise it would be silently re-applied on the next successful edit
+                if not sent:
+                    chain.pending_mods.remove(pending_mod)
 
             # Clear pending mods after the device has had time to process and send back
             # updated state
