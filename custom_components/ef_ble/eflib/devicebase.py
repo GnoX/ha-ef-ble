@@ -186,10 +186,11 @@ class DeviceBase(abc.ABC):
 
         Background traffic (auth, heartbeats, auto-replies) is best-effort and silently
         dropped while disconnected, but a command triggered by the user must not be lost
-        without notice. Raises `NotConnectedError` when there is no live connection, or
-        when the link drops mid-send so delivery can no longer be confirmed - the latter
-        may occasionally raise even though the command did arrive, which is the safe
-        direction to err since callers can retry an idempotent command.
+        without notice. `sendPacket(raise_on_failure=True)` raises `NotConnectedError`
+        when there is no live link or it drops mid-send, and propagates the underlying
+        `BleakError` when the write fails after retries, so a swallowed write is never
+        reported as success. A command whose write and response both completed is treated
+        as delivered even if the link drops immediately afterwards.
 
         Parameters
         ----------
@@ -199,16 +200,13 @@ class DeviceBase(abc.ABC):
             Forwarded to `Connection.sendPacket`.
         """
         conn = self._conn
-        if conn is None or not conn.is_connected:
+        if conn is None:
             raise NotConnectedError(
                 f"{self.name}: cannot send command, device is not connected"
             )
-        await conn.sendPacket(packet, wait_for_response=wait_for_response)
-        if not conn.is_connected:
-            raise NotConnectedError(
-                f"{self.name}: connection dropped while sending command, "
-                "command may not have been delivered"
-            )
+        await conn.sendPacket(
+            packet, wait_for_response=wait_for_response, raise_on_failure=True
+        )
 
     def call_later(
         self,
