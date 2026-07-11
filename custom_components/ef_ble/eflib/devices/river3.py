@@ -182,6 +182,10 @@ class Device(DeviceBase, ProtobufProps):
         packet = Packet(0x20, 0x02, 0xFE, 0x11, payload, 0x01, 0x01, 0x13)
         await self._conn.sendPacket(packet)
 
+    @controls.button(enabled=False)
+    async def power_off(self) -> None:
+        await self._send_config_packet(pr705_pb2.ConfigWrite(cfg_power_off=True))
+
     @controls.battery(
         energy_backup_battery_level,
         min=dynamic(battery_charge_limit_min),
