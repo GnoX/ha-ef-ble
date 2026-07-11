@@ -902,6 +902,12 @@ SENSOR_TYPES: Final[dict[str, SensorEntityDescription]] = (
 _BATTERY_ADDON_SENSORS: Final = {
     "battery_{n}_battery_level": battery(translation_key="battery_level"),
     "battery_{n}_cell_temperature": temperature(translation_key="cell_temperature"),
+    "battery_{n}_max_cell_voltage": voltage(
+        precision=3, enabled=False, translation_key="max_cell_voltage"
+    ),
+    "battery_{n}_min_cell_voltage": voltage(
+        precision=3, enabled=False, translation_key="min_cell_voltage"
+    ),
     "battery_{n}_input_power": power(precision=0, translation_key="input_power"),
     "battery_{n}_output_power": power(precision=0, translation_key="output_power"),
 }
