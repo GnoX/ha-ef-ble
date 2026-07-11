@@ -159,6 +159,9 @@ class Field[T]:
         )
         existing = [f for f in owner._fields if f.public_name != name]
         owner._fields = [*existing, self]
+        owner._computed_fields = [
+            cf for cf in owner._computed_fields if cf.public_name != name
+        ]
 
     def __set__(self, instance, value: Any):
         self._set_value(instance, value)
