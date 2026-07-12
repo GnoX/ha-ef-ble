@@ -188,6 +188,25 @@ class Device(DeviceBase, RawDataProps):
     async def enable_ambient_light(self, enabled: bool):
         await self._send_config_packet(0x5C, (0x01 if enabled else 0x02).to_bytes())
 
+    @controls.button()
+    async def refresh_data(self) -> None:
+        """
+        Request a fresh heartbeat push via the standard V2 get-all-data command
+
+        The device only pushes its heartbeat in response to traffic, which leaves
+        passively changing state (e.g. water level) stale. The app never polls, so
+        whether the Wave 2 answers this request is unverified.
+        """
+        packet = Packet(
+            src=0x21,
+            dst=0x42,
+            cmd_set=0x20,
+            cmd_id=0x02,
+            payload=b"\x00",
+            version=self.packet_version,
+        )
+        await self._conn.sendPacket(packet)
+
     @controls.switch(automatic_drain)
     async def enable_automatic_drain(self, enabled: bool):
         preference = (self.wte_fth_en or 0) & 1
