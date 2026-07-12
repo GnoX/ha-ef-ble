@@ -46,6 +46,12 @@ class DynamicValue[F, T]:
     field: "updatable_props.Field[F]"
     transform: Callable[[F], T] | None = None
 
+    def resolve(self, instance) -> T | None:
+        raw = getattr(instance, self.field.public_name, None)
+        if raw is None:
+            return None
+        return self.transform(raw) if self.transform is not None else raw  # type: ignore[return-value]
+
 
 def dynamic[F, T](
     field: "updatable_props.Field[F]", transform: Callable[[F], T] | None = None

@@ -1,7 +1,10 @@
 from ..devicebase import DeviceBase
+from ..entity import controls, units
+from ..entity.base import dynamic
+from ..entity.controls import HvacMode
 from ..model.kt210_sac import KT210SAC
 from ..packet import Packet
-from ..props import Field
+from ..props import computed_field
 from ..props.enums import IntFieldValue
 from ..props.raw_data_field import dataclass_attr_mapper, raw_field
 from ..props.raw_data_props import RawDataProps
@@ -47,10 +50,10 @@ class DrainMode(IntFieldValue):
     DRAIN_FREE = 1
 
     @classmethod
-    def from_wte(cls, main_mode: MainMode, value: int) -> "DrainMode":
-        if main_mode is MainMode.COLD:
-            return cls.DRAIN_FREE if value in (1, 3) else cls.EXTERNAL
-        return cls.DRAIN_FREE if value == 3 else cls.EXTERNAL
+    def from_wte(cls, value: int) -> "DrainMode":
+        # bit 0 of wte_fth_en encodes the user's drain-mode preference;
+        # bit 1 encodes the auto-drain master switch (handled separately).
+        return cls.DRAIN_FREE if value & 1 else cls.EXTERNAL
 
 
 class Device(DeviceBase, RawDataProps):
@@ -76,16 +79,49 @@ class Device(DeviceBase, RawDataProps):
     power_psdr = raw_field(pb.psdr_pwr_watt)
     power_mppt = raw_field(pb.mptt_pwr_watt)
 
-    automatic_drain = raw_field(pb.wte_fth_en, lambda x: x in (0, 1))
     wte_fth_en = raw_field(pb.wte_fth_en)
-    drain_mode = Field[DrainMode]()
-
     water_level = raw_field(pb.water_value, WaterLevel.from_value)
 
     ambient_light = raw_field(pb.rgb_state, lambda x: x == 0x01)
 
     target_temperature = raw_field(pb.set_temp)
     power_mode = raw_field(pb.power_mode, PowerMode.from_value)
+    power = raw_field(pb.power_mode, lambda x: PowerMode.from_value(x) is PowerMode.ON)
+    _temp_sys = raw_field(pb.temp_sys)
+
+    @computed_field
+    def temp_unit(self) -> units.Temperature:
+        return units.Temperature.F if self._temp_sys == 1 else units.Temperature.C
+
+    @computed_field
+    def target_temperature_min(self) -> int:
+        return {
+            units.Temperature.F: 60,
+            units.Temperature.C: 16,
+        }.get(self.temp_unit, 16)
+
+    @computed_field
+    def target_temperature_max(self) -> int:
+        return {
+            units.Temperature.F: 86,
+            units.Temperature.C: 30,
+        }.get(self.temp_unit, 30)
+
+    @computed_field
+    def automatic_drain(self) -> bool | None:
+        if self.wte_fth_en is None:
+            return None
+        if self.main_mode in (MainMode.WARM, MainMode.FAN):
+            return self.wte_fth_en == 1
+        return self.wte_fth_en & 0b10 == 0
+
+    @computed_field
+    def drain_mode(self) -> DrainMode | None:
+        if self.wte_fth_en is None:
+            return None
+        if self.main_mode in (MainMode.WARM, MainMode.FAN):
+            return DrainMode.EXTERNAL
+        return DrainMode.from_wte(self.wte_fth_en)
 
     # power_src looks like a bitmask, observations:
     # bit 0 - battery
@@ -109,20 +145,7 @@ class Device(DeviceBase, RawDataProps):
             self.update_from_bytes(KT210SAC, packet.payload)
             processed = True
 
-            if self.wte_fth_en is not None and self.main_mode is not None:
-                self.drain_mode = DrainMode.from_wte(self.main_mode, self.wte_fth_en)
-                # NOTE(gnox): for some reason, drain mode gets removed from updated
-                # fields if updated like this so we just update it manually here
-                self.update_callback("drain_mode")
-                self.update_state("drain_mode", self.drain_mode)
-
-        # elif packet.src == 0x06 and packet.cmd_set == 0x20 and packet.cmd_id == 0x32:
-        #     processed = False
-
-        for field_name in self.updated_fields:
-            self.update_callback(field_name)
-            self.update_state(field_name, getattr(self, field_name))
-
+        self._notify_updated()
         return processed
 
     async def _send_config_packet(self, cmd_id: int, payload: bytes):
@@ -137,59 +160,95 @@ class Device(DeviceBase, RawDataProps):
 
         await self._conn.sendPacket(packet)
 
+    @computed_field
+    def _climate_main_mode(self) -> MainMode | None:
+        return self.main_mode
+
+    _climate = controls.climate(
+        _climate_main_mode,
+        translation_key="climate",
+        hvac_modes={
+            HvacMode.COOL: MainMode.COLD,
+            HvacMode.HEAT: MainMode.WARM,
+            HvacMode.FAN_ONLY: MainMode.FAN,
+        },
+        fan_modes={
+            "low": FanGear.LOW,
+            "medium": FanGear.MEDIUM,
+            "high": FanGear.HIGH,
+        },
+        current_temperature_field=ambient_temperature,
+    )
+
+    @_climate.power(power)
+    async def enable_power(self, enabled: bool):
+        await self.set_power_mode(PowerMode.ON if enabled else PowerMode.STANDBY)
+
+    @controls.switch(ambient_light)
     async def enable_ambient_light(self, enabled: bool):
         await self._send_config_packet(0x5C, (0x01 if enabled else 0x02).to_bytes())
 
+    @controls.switch(automatic_drain)
     async def enable_automatic_drain(self, enabled: bool):
-        drain_mode = (
-            self.drain_mode if self.drain_mode is not None else DrainMode.EXTERNAL
-        )
-
+        preference = (self.wte_fth_en or 0) & 1
         if not enabled:
-            payload = 2 if drain_mode is DrainMode.EXTERNAL else 3
-        elif self.main_mode is not MainMode.COLD:
+            payload = 0b10 | preference
+        elif self.main_mode in (MainMode.WARM, MainMode.FAN):
+            # drain-free is unsupported outside Cool mode; the app always sends 1 (auto
+            # drain on, external drainage) here
             payload = 1
         else:
-            payload = 0 if drain_mode is DrainMode.EXTERNAL else 1
-
-        payload = (0 if enabled else 0b10) | drain_mode.value
-
+            payload = preference
         await self._send_config_packet(0x59, payload.to_bytes())
 
+    @controls.select(drain_mode, options=DrainMode)
     async def set_drain_mode(self, mode: DrainMode):
-        if not self.automatic_drain:
-            payload = 2 if mode is DrainMode.EXTERNAL else 3
-        elif self.main_mode is not MainMode.COLD:
-            payload = 1
-        else:
-            payload = 0 if mode is DrainMode.EXTERNAL else 1
+        main_mode = self.main_mode
+        if main_mode is MainMode.WARM or main_mode is MainMode.FAN:
+            if mode is DrainMode.DRAIN_FREE:
+                self._logger.warning(
+                    "Drain-free mode is not supported in %s mode, ignoring",
+                    main_mode.state_name,
+                )
+            return
+        payload = mode.value if self.automatic_drain else 0b10 | mode.value
         await self._send_config_packet(0x59, payload.to_bytes())
 
+    @_climate.fan(
+        fan_speed,
+        modes={HvacMode.COOL, HvacMode.HEAT, HvacMode.FAN_ONLY},
+    )
+    @controls.select(fan_speed, options=FanGear)
     async def set_fan_speed(self, fan_gear: FanGear):
         await self._send_config_packet(0x5E, fan_gear.to_bytes())
 
+    @_climate.mode()
+    @controls.select(main_mode, options=MainMode)
     async def set_main_mode(self, mode: MainMode):
-        set_drain_mode = False
-        if (
-            self.automatic_drain
-            and self.drain_mode != DrainMode.EXTERNAL
-            and mode != MainMode.COLD
-        ):
-            set_drain_mode = True
-
         await self._send_config_packet(0x51, mode.to_bytes())
 
-        if set_drain_mode:
-            payload = 1
-            await self._send_config_packet(0x59, payload.to_bytes())
-            self.drain_mode = DrainMode.EXTERNAL
-
+    @controls.select(power_mode, options=PowerMode, exclude=[PowerMode.INIT])
     async def set_power_mode(self, mode: PowerMode):
         await self._send_config_packet(0x5B, mode.to_bytes())
 
-    async def set_temperature(self, temperature: int):
-        await self._send_config_packet(0x58, temperature.to_bytes())
+    @_climate.target_temp(
+        target_temperature,
+        modes={HvacMode.COOL, HvacMode.HEAT},
+        step=1,
+        min=dynamic(target_temperature_min),
+        max=dynamic(target_temperature_max),
+        unit=dynamic(temp_unit),
+    )
+    @controls.temperature(
+        target_temperature,
+        min=dynamic(target_temperature_min),
+        max=dynamic(target_temperature_max),
+        unit=dynamic(temp_unit),
+    )
+    async def set_temperature(self, temperature: float):
+        await self._send_config_packet(0x58, int(temperature).to_bytes())
         return True
 
+    @controls.select(sub_mode, options=SubMode)
     async def set_sub_mode(self, sub_mode: SubMode):
         await self._send_config_packet(0x52, sub_mode.to_bytes())

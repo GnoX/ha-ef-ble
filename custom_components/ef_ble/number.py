@@ -19,6 +19,7 @@ from .deprecated.numbers import NUMBER_TYPES
 from .description_builder import EntityDescriptionBuilder, unit_to_hassunit
 from .eflib import DeviceBase, controls, get_controls
 from .eflib.devices import smart_generator
+from .eflib.entity import DynamicValue
 from .eflib.props import Field
 from .entity import EcoflowEntity
 
@@ -52,7 +53,11 @@ class NumberSensorBuilder(EntityDescriptionBuilder):
         self._device_class = device_class
         return self
 
-    def native_unit_of_measurement(self, unit: str):
+    def native_unit_of_measurement(self, unit):
+        if isinstance(unit, DynamicValue):
+            return self.native_unit_of_measurement_field(
+                lambda dev: unit_to_hassunit(unit.resolve(dev)) or ""
+            )
         self._native_unit_of_measurement = unit_to_hassunit(unit)
         return self
 
