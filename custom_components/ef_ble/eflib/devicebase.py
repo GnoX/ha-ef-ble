@@ -267,6 +267,10 @@ class DeviceBase(abc.ABC):
         self,
         user_id: str | None = None,
         max_attempts: int | None = None,
+        *,
+        omos_user_token: str | None = None,
+        omos_random_code: str | None = None,
+        omos_user_info_en: str | None = None,
     ):
         if self._conn is None:
             self._conn = (
@@ -299,7 +303,18 @@ class DeviceBase(abc.ABC):
         elif self._conn._user_id != user_id:
             self._conn._user_id = user_id
 
+        self._conn.set_omos_credentials(
+            user_token=omos_user_token,
+            random_code=omos_random_code,
+            user_info_en=omos_user_info_en,
+        )
+
         await self._conn.connect(max_attempts=max_attempts)
+
+    @property
+    def requires_account_token(self) -> bool:
+        """Whether the device authenticates with a per-device (OMOS) account token"""
+        return False
 
     def _append_state_to_log(self, state: ConnectionState) -> None:
         reason = self._conn.state_reason if self._conn is not None else None

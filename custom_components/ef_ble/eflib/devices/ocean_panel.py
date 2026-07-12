@@ -19,6 +19,10 @@ class Device(V4PanelDevice):
     SN_PREFIX = (b"HR61", b"HR6B", b"HR6D")
     NAME_PREFIX = "EF-HR6"
 
+    @property
+    def requires_account_token(self) -> bool:
+        return True
+
     NUM_OF_CIRCUITS = 40
     _TELEMETRY_SRC = 0x30
 
