@@ -25,13 +25,27 @@ ADDON_BATTERY_MAP: dict[str, str] = {
 }
 
 
+MAX_EXTRA_BATTERIES = 10
+
+
+def extra_battery_indices(device: "DeviceBase") -> list[int]:
+    """Slots for which the device declares an extra-battery level field"""
+    return [
+        i
+        for i in range(1, MAX_EXTRA_BATTERIES + 1)
+        if hasattr(device, f"battery_{i}_battery_level")
+    ]
+
+
 def battery_name_from_sn(sn: str | None) -> str:
     if not sn:
         return "Extra Battery"
 
-    for serial_num in [sn[:4], sn[:2]]:
+    for serial_num in [sn[:4], sn[:3], sn[:2]]:
         if name := ADDON_BATTERY_MAP.get(serial_num):
             return name
+        if device := ECOFLOW_DEVICE_LIST.get(serial_num):
+            return device["name"]
     return "Extra Battery"
 
 

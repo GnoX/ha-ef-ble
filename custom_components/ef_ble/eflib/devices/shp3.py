@@ -112,6 +112,14 @@ def _channel_signal_connected(info: dev_apl_comm_pb2.BackupChInfo) -> bool | Non
     return info.signal_line_sta == 1
 
 
+def _charging_power(pwr: int | None) -> int | None:
+    return None if pwr is None else max(pwr, 0)
+
+
+def _discharging_power(pwr: int | None) -> int | None:
+    return None if pwr is None else max(-pwr, 0)
+
+
 class Device(DeviceBase, ProtobufProps):
     """Smart Home Panel 3"""
 
@@ -120,6 +128,7 @@ class Device(DeviceBase, ProtobufProps):
 
     NUM_OF_CIRCUITS = 32
     NUM_OF_CHANNELS = 3
+    NUM_OF_BATTERIES = 10
     _KEEPALIVE_INTERVAL = 20
 
     battery_level = pb_field(pb.cms_batt_soc, pround(2))
@@ -207,6 +216,44 @@ class Device(DeviceBase, ProtobufProps):
     load_from_grid = pb_field(pb.pow_get_sys_grid, pround(2))
     battery_power = pb_field(pb.pow_get_bp_cms, pround(2))
     pv_power_sum = pb_field(pb.pow_get_pv_sum, pround(2))
+
+    # Batteries attached to the backup channels (`DevieBatteryInfo` slots, pointed at
+    # by `panel_backup_ch{n}_Info.ch_dev_id`), exposed via the extra-battery harness.
+    # `ac_pwr` is signed: negative while the battery discharges into the panel.
+    battery_enabled = pb_field_group(
+        pb.panel_generate_energy_battery_info_1.sn,
+        match="panel_generate_energy_battery_info_{n}",
+        count=NUM_OF_BATTERIES,
+        transform=bool,
+        name_template="battery_{n}_enabled",
+    )
+    battery_sn = pb_field_group(
+        pb.panel_generate_energy_battery_info_1.sn,
+        match="panel_generate_energy_battery_info_{n}",
+        count=NUM_OF_BATTERIES,
+        name_template="battery_{n}_sn",
+    )
+    battery_battery_level = pb_field_group(
+        pb.panel_generate_energy_battery_info_1.soc_cms,
+        match="panel_generate_energy_battery_info_{n}",
+        count=NUM_OF_BATTERIES,
+        transform=pround(2),
+        name_template="battery_{n}_battery_level",
+    )
+    battery_input_power = pb_field_group(
+        pb.panel_generate_energy_battery_info_1.ac_pwr,
+        match="panel_generate_energy_battery_info_{n}",
+        count=NUM_OF_BATTERIES,
+        transform=_charging_power,
+        name_template="battery_{n}_input_power",
+    )
+    battery_output_power = pb_field_group(
+        pb.panel_generate_energy_battery_info_1.ac_pwr,
+        match="panel_generate_energy_battery_info_{n}",
+        count=NUM_OF_BATTERIES,
+        transform=_discharging_power,
+        name_template="battery_{n}_output_power",
+    )
 
     # Per-channel enable state, driving the switch control below. ch_sta is the
     # enable/connected status (None for an empty channel); the switch writes ctrl_en.
