@@ -32,6 +32,7 @@
         "title": "Discovered Device Configuration",
         "data": {
           "user_id": "EcoFlow User ID",
+          "user_token": "Device token (OCEAN Pro / PowerOcean, from the token generator page)",
           "address": "BLE Device",
           "update_period": "Update Period"
         },
@@ -89,6 +90,7 @@
         "title": "{name} config options",
         "data": {
           "user_id": "EcoFlow User ID",
+          "user_token": "Device token (OCEAN Pro / PowerOcean, from the token generator page)",
           "address": "BLE Device",
           "update_period": "Update Period"
         },
@@ -140,6 +142,7 @@
         "description": "This device is currently unsupported but can be connected to for the purpose of gathering raw data. Refer to [this wiki]({wiki_link}) page for additional information.",
         "data": {
           "user_id": "EcoFlow User ID",
+          "user_token": "Device token (OCEAN Pro / PowerOcean, from the token generator page)",
           "update_period": "Update Period",
           "packet_version": "Packet Version"
         },
@@ -190,6 +193,7 @@
       "reconfigure": {
         "data": {
           "user_id": "EcoFlow User ID",
+          "user_token": "Device token (OCEAN Pro / PowerOcean, from the token generator page)",
           "extra_battery": "Enabled Extra Batteries"
         }
       },

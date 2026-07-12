@@ -36,6 +36,7 @@ from .const import (
     CONF_PACKET_VERSION,
     CONF_UPDATE_PERIOD,
     CONF_USER_ID,
+    CONF_USER_TOKEN,
     DEFAULT_CONNECTION_TIMEOUT,
     DEFAULT_UPDATE_PERIOD,
     DOMAIN,
@@ -48,6 +49,7 @@ from .eflib.connection import (
 )
 from .eflib.exceptions import AuthErrors
 from .eflib.logging_util import ConnectionLog
+from .eflib.login import decode_device_token
 
 PLATFORMS: list[Platform] = [
     Platform.BUTTON,
@@ -122,6 +124,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
         timeout=timeout,
         bluez_start_notify=advanced.get(CONF_BLUEZ_START_NOTIFY, False),
     )
+    token_blob = merged_options.get(CONF_USER_TOKEN)
+    bind = decode_device_token(token_blob) if token_blob else None
+    if bind is not None and bind.error:
+        _LOGGER.warning("Ignoring invalid device token: %s", bind.error)
+        bind = None
+
     issue_id = f"{entry.entry_id}_max_connection_attempts"
 
     try:
@@ -136,6 +144,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
             .connect(
                 user_id=user_id,
                 max_attempts=0 if eflib.is_solar_only(device) else None,
+                omos_random_code=bind.random_code if bind else None,
+                omos_user_info_en=bind.user_info_en if bind else None,
             )
         )
         async with asyncio.timeout(timeout):

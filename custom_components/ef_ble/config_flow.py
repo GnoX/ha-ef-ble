@@ -55,6 +55,7 @@ from .const import (
     CONF_PACKET_VERSION,
     CONF_UPDATE_PERIOD,
     CONF_USER_ID,
+    CONF_USER_TOKEN,
     DEFAULT_CONNECTION_TIMEOUT,
     DEFAULT_UPDATE_PERIOD,
     DOMAIN,
@@ -64,7 +65,7 @@ from .eflib.connection import Connection, ConnectionState
 from .eflib.device_mappings import battery_name_from_device
 from .eflib.exceptions import AuthErrors
 from .eflib.logging_util import LogOptions
-from .eflib.login import EcoFlowLogin, Region
+from .eflib.login import EcoFlowLogin, Region, decode_device_token
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -106,6 +107,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         self._local_names: dict[str, str] = {}
 
         self._user_id: str = ""
+        self._user_token: str = ""
         self._email: str = ""
         self._user_id_validated: bool = False
         self._log_options = LogOptions.no_options()
@@ -170,6 +172,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=(
                 schema_builder()
                 .user_id(self._user_id)
+                .user_token(self._user_token, self._show_token_field)
                 .login(self._collapsed)
                 .required(CONF_ADDRESS, vol.In([full_name]))
                 .update_period()
@@ -270,6 +273,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=(
                 schema_builder()
                 .user_id(self._user_id)
+                .user_token(self._user_token, self._show_token_field)
                 .login(self._collapsed)
                 .update_period()
                 .conf_log(self._log_options)
@@ -382,6 +386,12 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
             errors["base"] = "unknown"
         return errors
 
+    @property
+    def _show_token_field(self) -> bool:
+        """Whether the discovered device needs an account token (OMOS auth)"""
+        device = self._discovered_device
+        return device is not None and device.requires_account_token
+
     def _create_entry(self, user_input: dict[str, Any], device: eflib.DeviceBase):
         entry_data = user_input.copy()
         entry_data[CONF_ADDRESS] = device.address
@@ -418,6 +428,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         password = user_input.get("login", {}).get(CONF_PASSWORD, "")
         region = user_input.get("login", {}).get(CONF_REGION, "")
         user_id = user_input.get(CONF_USER_ID, "").strip()
+        self._user_token = user_input.get(CONF_USER_TOKEN, "").strip()
         advanced = user_input.get(CONF_ADVANCED_CONNECTION_OPTIONS, {})
         timeout = advanced.get(CONF_CONNECTION_TIMEOUT, DEFAULT_CONNECTION_TIMEOUT)
         packet_version = PacketVersion.from_str(user_input.get(CONF_PACKET_VERSION))
@@ -631,7 +642,14 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def _connect_and_check(self, device: eflib.DeviceBase) -> dict[str, Any]:
         timeout = self._connect_timeout
-        await device.connect(self._user_id)
+        bind = decode_device_token(self._user_token) if self._user_token else None
+        if bind is not None and bind.error:
+            bind = None
+        await device.connect(
+            self._user_id,
+            omos_random_code=bind.random_code if bind else None,
+            omos_user_info_en=bind.user_info_en if bind else None,
+        )
         exc = None
         try:
             conn_state, exc = await asyncio.wait_for(
@@ -819,6 +837,13 @@ class _SchemaBuilder:
         )
 
         return self.update({marker(CONF_USER_ID, default=user_id): str})
+
+    def user_token(self, user_token: str = "", show: bool = False):
+        """Optional per-device account token field, shown only for OMOS devices"""
+        if not show:
+            return self
+        default = cast("str", vol.UNDEFINED) if not user_token.strip() else user_token
+        return self.update({vol.Optional(CONF_USER_TOKEN, default=default): str})
 
     def login(self, collapsed: bool = True):
         return self.update(

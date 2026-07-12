@@ -47,6 +47,7 @@ from .frame_assembler import (
 from .listeners import ListenerGroup, ListenerRegistry
 from .logging_util import ConnectionLogger, LogOptions, caller_chain
 from .packet import Packet
+from .pb import iot_comm_pb2
 from .props.utils import classproperty
 
 MAX_RECONNECT_ATTEMPTS = 2
@@ -60,6 +61,10 @@ DISCONNECT_TIMEOUT = 5.0
 
 AUTH_TRANSIENT_RETRY_MAX = 5
 AUTH_TRANSIENT_RETRY_DELAY = 0.7
+
+# OMOS (per-device token) auth packets use this protocol version, distinct from a
+# device's normal packet version.
+_OMOS_PACKET_VERSION = 0x14
 
 
 _BT_PROTOCOL_UUIDS = {
@@ -256,6 +261,13 @@ class Connection:
         self._retry_on_disconnect_delay = 10
         self._auth_header_dst = auth_header_dst
 
+        #  A cached `user_token` lets us authenticate directly; otherwise `random_code`
+        #  or `user_info_en` (from the EcoFlow cloud) are exchanged over BLE to mint
+        #  one. All None for non-OMOS devices.
+        self._omos_user_token: str | None = None
+        self._omos_random_code: str | None = None
+        self._omos_user_info_en: str | None = None
+
         self._tasks: set[asyncio.Task] = set()
         self._call_later_handles: dict[str, asyncio.TimerHandle] = {}
 
@@ -380,8 +392,8 @@ class Connection:
             # connection attempts can be refused until the adapter is reset.
             await close_stale_connections_by_address(self.ble_dev().address)
             # max_attempts=0 means unlimited at Connection level, but
-            # establish_connection needs a real retry count for BLE-level
-            # attempts (e.g. when adapter slots are contested).
+            # establish_connection needs a real retry count for BLE-level attempts (e.g.
+            # when adapter slots are contested).
             ble_attempts = max_attempts if max_attempts != 0 else MAX_CONNECT_ATTEMPTS
             self._client = await establish_connection(
                 BleakClient,
@@ -1081,7 +1093,15 @@ class Connection:
             "getAuthStatusHandler: data: %r",
             data,
         )
-        await self.autoAuthentication()
+
+        has_omos_credentials = bool(
+            self._omos_user_token
+            or (self._omos_random_code and self._omos_user_info_en)
+        )
+        if len(data) > 1 and data[1] == 1 and has_omos_credentials:
+            await self.omosAuthentication()
+        else:
+            await self.autoAuthentication()
 
     def _build_auth_packet(self) -> Packet:
         # The auth secret is the uppercase MD5 hex of user id + device serial number
@@ -1098,15 +1118,118 @@ class Connection:
             self._packet_version,  # use detected protocol version (V2 or V3)
         )
 
+    def set_omos_credentials(
+        self,
+        *,
+        user_token: str | None = None,
+        random_code: str | None = None,
+        user_info_en: str | None = None,
+    ) -> None:
+        """Provide the token / cloud bind material used by OMOS (PowerOcean) auth"""
+        self._omos_user_token = user_token
+        self._omos_random_code = random_code
+        self._omos_user_info_en = user_info_en
+
     async def autoAuthentication(self):
         self._set_state(ConnectionState.AUTHENTICATING)
         self._logger.info(
             "autoAuthentication: Sending secretKey consists of user id and device "
             "serial number",
         )
-
-        # Sending request and starting the common listener
         await self.sendPacket(self._build_auth_packet(), self.listenForDataHandler)
+
+    async def omosAuthentication(self):
+        """
+        Authenticate a per-device-secret (OMOS) device such as installer OCEAN Pro
+
+        With a cached `user_token` go straight to `Authentication` (0xAB); otherwise
+        send the cloud-issued `random_code`/`user_info_en` as `ConfirmBind` (0xAA) so
+        the device mints a `user_token` we then authenticate with. Only reached when
+        OMOS credentials are present, so no credential check is needed here.
+        """
+        self._set_state(ConnectionState.AUTHENTICATING)
+
+        if self._omos_user_token:
+            await self._omos_verify(self._omos_user_token)
+            return
+
+        confirm = iot_comm_pb2.ConfirmBind(
+            random_code=self._omos_random_code,
+            user_info_en=self._omos_user_info_en
+        )
+        packet = Packet(
+            0x21,
+            self._auth_header_dst,
+            0x35,
+            0xAA,
+            confirm.SerializeToString(),
+            0x01,
+            0x01,
+            _OMOS_PACKET_VERSION,
+        )
+        await self.sendPacket(packet, self._omosRefreshTokenHandler)
+
+    @_auth_handler(ConnectionState.AUTHENTICATING)
+    async def _omosRefreshTokenHandler(
+        self, characteristic: BleakGATTCharacteristic, recv_data: bytearray
+    ):
+        await self._client.stop_notify(self._notify_characteristic)
+
+        packets = await self.parseEncPackets(bytes(recv_data))
+        if len(packets) < 1:
+            raise PacketReceiveError
+
+        ack = iot_comm_pb2.RefreshTokenAck()
+        ack.ParseFromString(packets[0].payload)
+        if not ack.user_token:
+            raise FailedToAuthenticate(
+                f"OMOS refresh token rejected (result={ack.result})"
+            )
+
+        self._omos_user_token = ack.user_token
+        await self._omos_verify(ack.user_token)
+
+    async def _omos_verify(self, user_token: str):
+        auth = iot_comm_pb2.Authentication()
+        auth.user_role = iot_comm_pb2.UserRoleNormal
+        auth.user_token = user_token
+        packet = Packet(
+            0x21,
+            self._auth_header_dst,
+            0x35,
+            0xAB,
+            auth.SerializeToString(),
+            0x01,
+            0x01,
+            _OMOS_PACKET_VERSION,
+        )
+        await self.sendPacket(packet, self._omosVerifyHandler)
+
+    @_auth_handler(ConnectionState.AUTHENTICATING)
+    async def _omosVerifyHandler(
+        self, characteristic: BleakGATTCharacteristic, recv_data: bytearray
+    ):
+        packets = await self.parseEncPackets(bytes(recv_data))
+        if len(packets) < 1:
+            raise PacketReceiveError
+
+        ack = iot_comm_pb2.AuthenticationAck()
+        ack.ParseFromString(packets[0].payload)
+        if ack.result != 0:
+            exc = FailedToAuthenticate(f"OMOS auth failed (result={ack.result})")
+            self._set_state(ConnectionState.ERROR_AUTH_FAILED, exc)
+            await self._disconnect_client()
+            raise exc
+
+        await self._client.stop_notify(self._notify_characteristic)
+        self._connection_attempt = 0
+        self._reconnect_attempt = 0
+        self._logger.info("OMOS auth completed, everything is fine")
+        self._set_state(ConnectionState.AUTHENTICATED)
+        self._connected.set()
+
+        # Hand the link to the normal data listener for ongoing telemetry.
+        await self._start_notify(self.listenForDataHandler)
 
     async def _retry_authentication(self) -> None:
         await asyncio.sleep(AUTH_TRANSIENT_RETRY_DELAY)

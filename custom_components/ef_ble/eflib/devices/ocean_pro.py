@@ -20,6 +20,10 @@ class Device(V4PanelDevice):
     SN_PREFIX = (b"HR51",)
     NAME_PREFIX = "EF-HR5"
 
+    @property
+    def requires_account_token(self) -> bool:
+        return True
+
     _TELEMETRY_SRC = 0x30
 
     _KEEPALIVE_INTERVAL = 10
