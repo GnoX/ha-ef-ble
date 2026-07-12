@@ -232,14 +232,15 @@
           "extra_battery": "Enabled Extra Batteries"
         }
       },
-      "connecting": {
+      "connect": {
         "title": "Connecting to device"
       }
     },
     "progress": {
-      "connecting": "Connecting to device...",
-      "authenticating": "Connection successful, running authentication procedure...",
-      "disconnecting": "Sucess! Disconnecting from device..."
+      "connecting": "Establishing Bluetooth connection to {name}...",
+      "exchanging_keys": "Connected to {name}, exchanging encryption keys...",
+      "authenticating": "Authenticating with {name}...",
+      "finalizing": "Finishing the connection check..."
     }
   },
   "options": {
@@ -324,6 +325,9 @@
     },
     "failed_after_successful_connection": {
       "message": "Device connected but did not get to auth procedure, last state: {last_state}"
+    },
+    "missing_address_or_user_id": {
+      "message": "Stored configuration is missing the device {missing}. Remove the device and add it again to repair the configuration entry."
     }
   },
   "issues": {
