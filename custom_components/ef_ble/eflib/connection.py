@@ -21,6 +21,7 @@ from bleak.exc import BleakError
 from bleak_retry_connector import (
     MAX_CONNECT_ATTEMPTS,
     BleakNotFoundError,
+    close_stale_connections_by_address,
     establish_connection,
 )
 
@@ -370,6 +371,10 @@ class Connection:
 
             self._set_state(ConnectionState.ESTABLISHING_CONNECTION)
             self._logger.info("Connecting to device")
+            # Clear any ghost connection BlueZ is still holding for this
+            # device (e.g. left over from a bad disconnect); otherwise new
+            # connection attempts can be refused until the adapter is reset.
+            await close_stale_connections_by_address(self.ble_dev().address)
             # max_attempts=0 means unlimited at Connection level, but
             # establish_connection needs a real retry count for BLE-level
             # attempts (e.g. when adapter slots are contested).
