@@ -144,11 +144,16 @@ def test_shp3_field_groups_are_expanded_and_renamed():
             f"circuit_split_info_loaded_{i}"
             for i in range(1, Device.NUM_OF_CIRCUITS + 1)
         ),
-        *(f"battery_{i}_enabled" for i in range(1, Device.NUM_OF_BATTERIES + 1)),
-        *(f"battery_{i}_sn" for i in range(1, Device.NUM_OF_BATTERIES + 1)),
-        *(f"battery_{i}_battery_level" for i in range(1, Device.NUM_OF_BATTERIES + 1)),
-        *(f"battery_{i}_input_power" for i in range(1, Device.NUM_OF_BATTERIES + 1)),
-        *(f"battery_{i}_output_power" for i in range(1, Device.NUM_OF_BATTERIES + 1)),
+        *(f"_battery_slot_sn_{i}" for i in range(1, Device.NUM_OF_BATTERIES + 1)),
+        *(f"_battery_slot_soc_{i}" for i in range(1, Device.NUM_OF_BATTERIES + 1)),
+        *(f"_battery_slot_power_{i}" for i in range(1, Device.NUM_OF_BATTERIES + 1)),
+        *(f"_ch{i}_dev_id" for i in range(1, Device.NUM_OF_CHANNELS + 1)),
+        *(f"channel{i}_sn" for i in range(1, Device.NUM_OF_CHANNELS + 1)),
+        *(
+            f"channel{i}_battery_percentage"
+            for i in range(1, Device.NUM_OF_CHANNELS + 1)
+        ),
+        *(f"channel{i}_output_power" for i in range(1, Device.NUM_OF_CHANNELS + 1)),
         *(f"ch{i}_is_enabled" for i in range(1, Device.NUM_OF_CHANNELS + 1)),
         *(f"ch{i}_type" for i in range(1, Device.NUM_OF_CHANNELS + 1)),
         *(f"ch{i}_force_charge" for i in range(1, Device.NUM_OF_CHANNELS + 1)),
@@ -276,10 +281,14 @@ async def test_shp3_channel_is_enabled_state_from_backup_channels(device):
     assert device.channel_is_enabled[3] is None
 
 
-async def test_shp3_parses_attached_battery_soc_power_and_serial(device):
-    """Slot layout mirrors a captured diagnostics dump (batteries in slots 5/6)"""
+async def test_shp3_channel_battery_info_resolves_through_dev_id(device):
+    """Layout mirrors a captured diagnostics dump: channel 1 -> slot 5, channel 2 -> slot 6"""
     msg = dev_apl_comm_pb2.DisplayPropertyUpload()
-    # Slot 5 charging, slot 6 discharging into the panel, other slots empty.
+    msg.panel_backup_ch1_Info.ch_dev_id = 5
+    msg.panel_backup_ch2_Info.ch_dev_id = 6
+    msg.panel_backup_ch3_Info.ch_dev_id = 7
+    # Channel 1's battery charging, channel 2's discharging into the panel;
+    # channel 3 has a dev id but no battery info slot (empty channel).
     msg.panel_generate_energy_battery_info_5.sn = "Y711XXXXXXXXX001"
     msg.panel_generate_energy_battery_info_5.soc_cms = 93.456
     msg.panel_generate_energy_battery_info_5.ac_pwr = 1520
@@ -289,19 +298,15 @@ async def test_shp3_parses_attached_battery_soc_power_and_serial(device):
 
     device.update_from_message(msg)
 
-    assert device.battery_sn[5] == "Y711XXXXXXXXX001"
-    assert device.battery_battery_level[5] == 93.46
-    assert device.battery_input_power[5] == 1520
-    assert device.battery_output_power[5] == 0
-    assert device.battery_enabled[5] is True
-    assert device.battery_sn[6] == "P101XXXXXXXXX002"
-    assert device.battery_battery_level[6] == 92.0
-    assert device.battery_input_power[6] == 0
-    assert device.battery_output_power[6] == 352
-    assert device.battery_enabled[6] is True
-    assert device.battery_sn[1] is None
-    assert device.battery_battery_level[1] is None
-    assert device.battery_enabled[1] is None
+    assert device.channel_sn[1] == "Y711XXXXXXXXX001"
+    assert device.channel_battery_percentage[1] == 93.46
+    assert device.channel_output_power[1] == -1520
+    assert device.channel_sn[2] == "P101XXXXXXXXX002"
+    assert device.channel_battery_percentage[2] == 92.0
+    assert device.channel_output_power[2] == 352
+    assert device.channel_sn[3] is None
+    assert device.channel_battery_percentage[3] is None
+    assert device.channel_output_power[3] is None
 
 
 async def test_shp3_set_channel_enable_writes_backup_ctrl(device):

@@ -1,6 +1,8 @@
 import dataclasses
 import time
+from collections.abc import Callable
 from enum import IntEnum
+from typing import Any
 
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
@@ -13,8 +15,10 @@ from ..entity.base import dynamic
 from ..packet import Packet, PacketV4
 from ..pb import dev_apl_comm_pb2
 from ..props import (
+    Field,
     ProtobufProps,
     computed_field,
+    field_group,
     pb_field,
     pb_field_group,
     pb_indexed_attr,
@@ -22,7 +26,7 @@ from ..props import (
 )
 from ..props.enums import IntFieldValue
 from ..props.protobuf_field import TransformIfMissing
-from ..props.transforms import pround
+from ..props.transforms import out_power, pround
 
 pb = proto_attr_mapper(dev_apl_comm_pb2.DisplayPropertyUpload)
 pb_cfg = proto_attr_mapper(dev_apl_comm_pb2.ConfigWrite)
@@ -112,12 +116,24 @@ def _channel_signal_connected(info: dev_apl_comm_pb2.BackupChInfo) -> bool | Non
     return info.signal_line_sta == 1
 
 
-def _charging_power(pwr: int | None) -> int | None:
-    return None if pwr is None else max(pwr, 0)
+def _backup_channel_dev_id(info: dev_apl_comm_pb2.BackupChInfo) -> int | None:
+    return info.ch_dev_id or None
 
 
-def _discharging_power(pwr: int | None) -> int | None:
-    return None if pwr is None else max(-pwr, 0)
+def _channel_battery(slot_template: str) -> Callable[[int], Field[Any]]:
+    """Factory resolving a backup channel to its battery info slot via `ch_dev_id`"""
+
+    def factory(channel: int) -> Field[Any]:
+        @computed_field
+        def channel_value(self: "Device") -> Any:
+            dev_id = getattr(self, f"_ch{channel}_dev_id")
+            if dev_id is None or not 1 <= dev_id <= Device.NUM_OF_BATTERIES:
+                return None
+            return getattr(self, slot_template.format(n=dev_id))
+
+        return channel_value
+
+    return factory
 
 
 class Device(DeviceBase, ProtobufProps):
@@ -217,42 +233,53 @@ class Device(DeviceBase, ProtobufProps):
     battery_power = pb_field(pb.pow_get_bp_cms, pround(2))
     pv_power_sum = pb_field(pb.pow_get_pv_sum, pround(2))
 
-    # Batteries attached to the backup channels (`DevieBatteryInfo` slots, pointed at
-    # by `panel_backup_ch{n}_Info.ch_dev_id`), exposed via the extra-battery harness.
-    # `ac_pwr` is signed: negative while the battery discharges into the panel.
-    battery_enabled = pb_field_group(
+    # Batteries attached to the backup channels: `panel_backup_ch{n}_Info.ch_dev_id`
+    # points into the `panel_generate_energy_battery_info_{n}` slots, and the
+    # channel{n}_* fields (named after SHP2's per-channel energy info) resolve
+    # through that indirection. `ac_pwr` is signed: negative while discharging
+    # into the panel, hence `out_power` for the output power reading.
+    _battery_slot_sn = pb_field_group(
         pb.panel_generate_energy_battery_info_1.sn,
         match="panel_generate_energy_battery_info_{n}",
         count=NUM_OF_BATTERIES,
-        transform=bool,
-        name_template="battery_{n}_enabled",
+        name_template="_battery_slot_sn_{n}",
     )
-    battery_sn = pb_field_group(
-        pb.panel_generate_energy_battery_info_1.sn,
-        match="panel_generate_energy_battery_info_{n}",
-        count=NUM_OF_BATTERIES,
-        name_template="battery_{n}_sn",
-    )
-    battery_battery_level = pb_field_group(
+    _battery_slot_soc = pb_field_group(
         pb.panel_generate_energy_battery_info_1.soc_cms,
         match="panel_generate_energy_battery_info_{n}",
         count=NUM_OF_BATTERIES,
         transform=pround(2),
-        name_template="battery_{n}_battery_level",
+        name_template="_battery_slot_soc_{n}",
     )
-    battery_input_power = pb_field_group(
+    _battery_slot_power = pb_field_group(
         pb.panel_generate_energy_battery_info_1.ac_pwr,
         match="panel_generate_energy_battery_info_{n}",
         count=NUM_OF_BATTERIES,
-        transform=_charging_power,
-        name_template="battery_{n}_input_power",
+        transform=out_power,
+        name_template="_battery_slot_power_{n}",
     )
-    battery_output_power = pb_field_group(
-        pb.panel_generate_energy_battery_info_1.ac_pwr,
-        match="panel_generate_energy_battery_info_{n}",
-        count=NUM_OF_BATTERIES,
-        transform=_discharging_power,
-        name_template="battery_{n}_output_power",
+    _channel_dev_id = pb_field_group(
+        pb.panel_backup_ch1_Info,
+        match="panel_backup_ch{n}_Info",
+        count=NUM_OF_CHANNELS,
+        transform=_backup_channel_dev_id,
+        name_template="_ch{n}_dev_id",
+    )
+
+    channel_sn = field_group(
+        _channel_battery("_battery_slot_sn_{n}"),
+        NUM_OF_CHANNELS,
+        name_template="channel{n}_sn",
+    )
+    channel_battery_percentage = field_group(
+        _channel_battery("_battery_slot_soc_{n}"),
+        NUM_OF_CHANNELS,
+        name_template="channel{n}_battery_percentage",
+    )
+    channel_output_power = field_group(
+        _channel_battery("_battery_slot_power_{n}"),
+        NUM_OF_CHANNELS,
+        name_template="channel{n}_output_power",
     )
 
     # Per-channel enable state, driving the switch control below. ch_sta is the
