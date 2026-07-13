@@ -45,7 +45,7 @@ class Device(V4PanelDevice):
     battery_charge_limit_max = pb_field(pb.cms_max_chg_soc)
 
     grid_frequency = pb_field(pb_rt.dt_pcs_ecap_grid_freq_lpf, pround(2))
-    ac_output_power = pb_field(pb.pow_get_ac, out_power, skip_if=pb.pow_get_ac_in)
+    ac_output_power = pb_field(pb.pow_get_ac, out_power, skip_if=pb.pow_get_llc)
 
     l_voltage = pb_field_group(
         pb_rt.dt_pcs_grid_vol_l1_rms,
