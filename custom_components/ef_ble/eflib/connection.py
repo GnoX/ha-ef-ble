@@ -24,6 +24,7 @@ from bleak_retry_connector import (
     close_stale_connections_by_address,
     establish_connection,
 )
+from google.protobuf.message import DecodeError
 
 from . import keydata
 from .encryption import EncryptionStrategy, Type1Encryption, Type7Encryption
@@ -1154,8 +1155,7 @@ class Connection:
             return
 
         confirm = iot_comm_pb2.ConfirmBind(
-            random_code=self._omos_random_code,
-            user_info_en=self._omos_user_info_en
+            random_code=self._omos_random_code, user_info_en=self._omos_user_info_en
         )
         packet = Packet(
             0x21,
@@ -1169,21 +1169,49 @@ class Connection:
         )
         await self.sendPacket(packet, self._omosRefreshTokenHandler)
 
+    def _find_omos_reply(self, packets: list[Packet], cmd_id: int) -> Packet | None:
+        """
+        Return the iot_comm (cmd_set 0x35) reply with `cmd_id`, or None
+
+        These devices stream telemetry eagerly, so an auth reply often shares a
+        notification with unrelated packets (or arrives a notification later). Selecting
+        by cmd set / id avoids mis-parsing telemetry as the auth response.
+        """
+        for packet in packets:
+            if packet.cmd_set == 0x35 and packet.cmd_id == cmd_id:
+                return packet
+        if packets:
+            self._logger.log_filtered(
+                LogOptions.CONNECTION_DEBUG,
+                "OMOS: awaiting 0x%02X reply, got %s",
+                cmd_id,
+                [(hex(p.src), hex(p.cmd_set), hex(p.cmd_id)) for p in packets],
+            )
+        return None
+
     @_auth_handler(ConnectionState.AUTHENTICATING)
     async def _omosRefreshTokenHandler(
         self, characteristic: BleakGATTCharacteristic, recv_data: bytearray
     ):
+        reply = self._find_omos_reply(
+            await self.parseEncPackets(bytes(recv_data)), 0xAA
+        )
+        if reply is None:
+            return
+
         await self._client.stop_notify(self._notify_characteristic)
 
-        packets = await self.parseEncPackets(bytes(recv_data))
-        if len(packets) < 1:
-            raise PacketReceiveError
-
         ack = iot_comm_pb2.RefreshTokenAck()
-        ack.ParseFromString(packets[0].payload)
+        try:
+            ack.ParseFromString(reply.payload)
+        except DecodeError as e:
+            raise FailedToAuthenticate(
+                f"OMOS refresh reply is not a RefreshTokenAck: {reply.payload.hex()}"
+            ) from e
         if not ack.user_token:
             raise FailedToAuthenticate(
-                f"OMOS refresh token rejected (result={ack.result})"
+                f"OMOS refresh returned no token "
+                f"(result={ack.result}, payload={reply.payload.hex()})"
             )
 
         self._omos_user_token = ack.user_token
@@ -1209,14 +1237,26 @@ class Connection:
     async def _omosVerifyHandler(
         self, characteristic: BleakGATTCharacteristic, recv_data: bytearray
     ):
-        packets = await self.parseEncPackets(bytes(recv_data))
-        if len(packets) < 1:
-            raise PacketReceiveError
+        reply = self._find_omos_reply(
+            await self.parseEncPackets(bytes(recv_data)), 0xAB
+        )
+        if reply is None:
+            return
 
         ack = iot_comm_pb2.AuthenticationAck()
-        ack.ParseFromString(packets[0].payload)
+        try:
+            ack.ParseFromString(reply.payload)
+        except DecodeError as e:
+            exc = FailedToAuthenticate(
+                f"OMOS auth reply is not an AuthenticationAck: {reply.payload.hex()}"
+            )
+            self._set_state(ConnectionState.ERROR_AUTH_FAILED, exc)
+            await self._disconnect_client()
+            raise exc from e
         if ack.result != 0:
-            exc = FailedToAuthenticate(f"OMOS auth failed (result={ack.result})")
+            exc = FailedToAuthenticate(
+                f"OMOS auth failed (result={ack.result}, payload={reply.payload.hex()})"
+            )
             self._set_state(ConnectionState.ERROR_AUTH_FAILED, exc)
             await self._disconnect_client()
             raise exc
