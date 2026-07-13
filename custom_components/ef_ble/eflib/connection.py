@@ -64,8 +64,9 @@ AUTH_TRANSIENT_RETRY_MAX = 5
 AUTH_TRANSIENT_RETRY_DELAY = 0.7
 
 # OMOS (per-device token) auth packets use this protocol version, distinct from a
-# device's normal packet version.
-_OMOS_PACKET_VERSION = 0x14
+# device's normal packet version. The current app (6.15.x) sends 0x13 for the
+# REFRESH_TOKEN/AUTHENTICATION commands; a 0x14 packet is silently ignored by the device.
+_OMOS_PACKET_VERSION = 0x13
 
 
 _BT_PROTOCOL_UUIDS = {
