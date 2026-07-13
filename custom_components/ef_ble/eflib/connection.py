@@ -1082,13 +1082,25 @@ class Connection:
     async def getAuthStatusHandler(
         self, characteristic: BleakGATTCharacteristic, recv_data: bytearray
     ):
-        self._set_state(ConnectionState.AUTH_STATUS_RECEIVED)
-        await self._client.stop_notify(self._notify_characteristic)
-
         packets = await self.parseEncPackets(bytes(recv_data))
         if len(packets) < 1:
             raise PacketReceiveError
-        data = packets[0].payload
+
+        has_omos_credentials = bool(
+            self._omos_user_token
+            or (self._omos_random_code and self._omos_user_info_en)
+        )
+
+        if has_omos_credentials:
+            reply = self._find_omos_reply(packets, 0x89)
+            if reply is None:
+                return
+            data = reply.payload
+        else:
+            data = packets[0].payload
+
+        self._set_state(ConnectionState.AUTH_STATUS_RECEIVED)
+        await self._client.stop_notify(self._notify_characteristic)
 
         self._logger.log_filtered(
             LogOptions.CONNECTION_DEBUG,
@@ -1096,10 +1108,6 @@ class Connection:
             data,
         )
 
-        has_omos_credentials = bool(
-            self._omos_user_token
-            or (self._omos_random_code and self._omos_user_info_en)
-        )
         if len(data) > 1 and data[1] == 1 and has_omos_credentials:
             await self.omosAuthentication()
         else:
