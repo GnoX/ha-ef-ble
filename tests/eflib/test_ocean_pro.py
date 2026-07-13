@@ -114,16 +114,19 @@ def test_ocean_pro_has_no_circuits():
     assert not any(name.startswith("circuit_") for name in field_names)
 
 
-async def test_ocean_pro_ac_output_power_ignores_port_frame(device):
+async def test_ocean_pro_ac_output_power_ignores_power_detail_frame(device):
     main = dev_apl_comm_pb2.DisplayPropertyUpload()
     main.pow_get_ac = -2654.80811
     device.update_from_message(main)
     assert device.ac_output_power == 2654.81
 
-    port = dev_apl_comm_pb2.DisplayPropertyUpload()
-    port.pow_get_ac = -0.44
-    port.pow_get_ac_in = 1
-    device.update_from_message(port)
+    # The power-detail frame carries a near-zero pow_get_ac alongside pow_get_llc and
+    # must not overwrite the real output - even when it omits pow_get_ac_in, which the
+    # panel does on some incremental updates.
+    detail = dev_apl_comm_pb2.DisplayPropertyUpload()
+    detail.pow_get_ac = -0.44
+    detail.pow_get_llc = 0.5
+    device.update_from_message(detail)
     assert device.ac_output_power == 2654.81
 
     newer_main = dev_apl_comm_pb2.DisplayPropertyUpload()
