@@ -37,6 +37,28 @@ def extra_battery_indices(device: "DeviceBase") -> list[int]:
     ]
 
 
+def _supported_device_name(sn: str) -> str | None:
+    """Model name of the supported device whose serial prefix matches `sn`, if any"""
+    from .devices import devices as device_modules  # noqa: PLC0415 - avoid import cycle
+    from .devices import unsupported  # noqa: PLC0415
+
+    try:
+        sn_bytes = sn.encode("ASCII")
+    except UnicodeEncodeError:
+        return None
+    for item in device_modules:
+        device_cls = getattr(item, "Device", None)
+        if device_cls is None or device_cls is unsupported.UnsupportedDevice:
+            continue
+        try:
+            matched = device_cls.check(sn_bytes)
+        except Exception:  # noqa: BLE001 - a device check must never break naming
+            matched = False
+        if matched:
+            return (device_cls.__doc__ or "").strip() or None
+    return None
+
+
 def battery_name_from_sn(sn: str | None) -> str:
     if not sn:
         return "Extra Battery"
@@ -44,6 +66,13 @@ def battery_name_from_sn(sn: str | None) -> str:
     for serial_num in [sn[:4], sn[:3], sn[:2]]:
         if name := ADDON_BATTERY_MAP.get(serial_num):
             return name
+
+    # A connected "battery" may actually be a full supported device (e.g. a Delta Pro
+    # Ultra feeding a panel), so fall back to its real model name before the generic one.
+    if name := _supported_device_name(sn):
+        return name
+
+    for serial_num in [sn[:4], sn[:3], sn[:2]]:
         if device := ECOFLOW_DEVICE_LIST.get(serial_num):
             return device["name"]
     return "Extra Battery"
