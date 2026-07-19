@@ -28,6 +28,13 @@ _HTTP_SALT = "Ev7f82PUhUTNkLCo"
 _X_SIGN_KEY = _APP_CERT_SHA1 + _HTTP_SALT
 _NONCE_ALPHABET = string.ascii_letters + string.digits
 
+# Bind-material endpoints, tried in order: the consumer `refreshToken` path, then the
+# enterprise path used by installer-provisioned devices.
+_BIND_INFO_ENDPOINTS = (
+    "/iot-service/user/device/refreshToken",
+    "/iot-service/enterprise-device",
+)
+
 
 def _hmac_sha256_hex(message: str, key: str) -> str:
     """Lowercase-hex HMAC-SHA256 of `message` under `key`, matching the app"""
@@ -71,11 +78,24 @@ class LoginResult:
 
 @dataclass(frozen=True)
 class DeviceBindInfo:
-    """Cloud-issued material to complete a PowerOcean (OMOS) BLE bind"""
+    """Cloud-issued material to complete an OMOS (per-device-token) BLE bind"""
 
     random_code: str | None = None
     user_info_en: str | None = None
     error: str | None = None
+
+
+def encode_device_token(sn: str, random_code: str, user_info_en: str) -> str:
+    """
+    Encode bind material into the base64 blob the device-token field accepts
+
+    Inverse of `decode_device_token`; lets the reauth flow persist freshly fetched
+    cloud bind material in the same format a manually pasted token uses.
+    """
+    payload = json.dumps(
+        {"sn": sn, "randomCode": random_code, "userInfoEn": user_info_en}
+    )
+    return base64.b64encode(payload.encode()).decode()
 
 
 def decode_device_token(token: str) -> DeviceBindInfo:
@@ -252,15 +272,26 @@ class EcoFlowLogin:
     async def get_device_bind_info(
         self, base_url: str, bearer: str, sn: str
     ) -> DeviceBindInfo:
-        """Fetch the cloud bind material for `sn` needed by PowerOcean OMOS auth"""
-        result_json, error = await self._signed_get(
-            base_url, "/iot-service/user/device/refreshToken", f"sn={sn}", bearer
-        )
-        if error is not None or result_json is None:
-            return DeviceBindInfo(error=error or "empty response")
+        """
+        Fetch the cloud bind material for `sn` needed by OMOS device auth
 
-        data = result_json.get("data") or {}
-        return DeviceBindInfo(
-            random_code=data.get("randomCode"),
-            user_info_en=data.get("userInfoEn"),
-        )
+        Consumer-owned devices answer on the app's `refreshToken` endpoint; installer-
+        provisioned devices answer only on the enterprise endpoint. The endpoint a given
+        device accepts is not known ahead of time, so try the consumer path first and
+        fall back to the enterprise path, returning the first with usable material.
+        """
+        last_error: str | None = None
+        for path in _BIND_INFO_ENDPOINTS:
+            result_json, error = await self._signed_get(
+                base_url, path, f"sn={sn}", bearer
+            )
+            if error is None and result_json is not None:
+                data = result_json.get("data") or {}
+                info = DeviceBindInfo(
+                    random_code=data.get("randomCode"),
+                    user_info_en=data.get("userInfoEn"),
+                )
+                if info.random_code and info.user_info_en:
+                    return info
+            last_error = error or last_error
+        return DeviceBindInfo(error=last_error or "no bind material returned")

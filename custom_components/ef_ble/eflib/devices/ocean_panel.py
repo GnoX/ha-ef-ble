@@ -20,7 +20,7 @@ class Device(V4PanelDevice):
     NAME_PREFIX = "EF-HR6"
 
     @property
-    def requires_account_token(self) -> bool:
+    def supports_device_token(self) -> bool:
         return True
 
     NUM_OF_CIRCUITS = 40

@@ -28,6 +28,7 @@ from .logging_util import (
     LogOptions,
     caller_chain,
 )
+from .omos_connection import OmosConnection
 from .packet import Packet
 from .props.raw_data_props import Literal
 from .props.updatable_props import Field, UpdatableProps
@@ -271,10 +272,19 @@ class DeviceBase(abc.ABC):
         omos_user_token: str | None = None,
         omos_random_code: str | None = None,
         omos_user_info_en: str | None = None,
+        omos_token_listener: Callable[[str | None], None] | None = None,
     ):
+        # A model that may use OMOS, or any device already given OMOS material, gets the
+        # OMOS connection. It reads the runtime auth-status: a non-OMOS unit falls back
+        # to normal auth, while an OMOS unit without material raises `NeedRefreshToken`
+        # so the caller can fetch a token only once OMOS is actually confirmed.
+        use_omos = self.supports_device_token or bool(
+            omos_user_token or (omos_random_code and omos_user_info_en)
+        )
         if self._conn is None:
+            connection_cls = OmosConnection if use_omos else Connection
             self._conn = (
-                Connection(
+                connection_cls(
                     ble_dev=self._ble_dev,
                     dev_sn=self._sn,
                     user_id=user_id,
@@ -303,17 +313,27 @@ class DeviceBase(abc.ABC):
         elif self._conn._user_id != user_id:
             self._conn._user_id = user_id
 
-        self._conn.set_omos_credentials(
-            user_token=omos_user_token,
-            random_code=omos_random_code,
-            user_info_en=omos_user_info_en,
-        )
+        if isinstance(self._conn, OmosConnection):
+            self._conn.set_omos_credentials(
+                user_token=omos_user_token,
+                random_code=omos_random_code,
+                user_info_en=omos_user_info_en,
+            )
+            if omos_token_listener is not None:
+                self._conn.set_omos_token_listener(omos_token_listener)
 
         await self._conn.connect(max_attempts=max_attempts)
 
     @property
-    def requires_account_token(self) -> bool:
-        """Whether the device authenticates with a per-device (OMOS) account token"""
+    def supports_device_token(self) -> bool:
+        """
+        Hint that this model may authenticate with a per-device token
+
+        Per-device-token (OMOS) auth is a per-installation property - a professionally-
+        installed unit may use it while a self-installed one of the same model does not
+        - so this is only a hint for surfacing the token field. The authoritative
+        decision is made at runtime from the device's auth-status reply.
+        """
         return False
 
     def _append_state_to_log(self, state: ConnectionState) -> None:

@@ -25,12 +25,16 @@ from homeassistant.config_entries import (
 from homeassistant.const import CONF_ADDRESS, CONF_EMAIL, CONF_PASSWORD, CONF_REGION
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import AbortFlow, section
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
 )
 from homeassistant.helpers.storage import Store
 
@@ -52,7 +56,9 @@ from .const import (
     CONF_LOG_MESSAGES,
     CONF_LOG_PACKETS,
     CONF_LOG_PAYLOADS,
+    CONF_OMOS_TOKEN,
     CONF_PACKET_VERSION,
+    CONF_STORE_CREDENTIALS,
     CONF_UPDATE_PERIOD,
     CONF_USER_ID,
     CONF_USER_TOKEN,
@@ -60,12 +66,19 @@ from .const import (
     DEFAULT_UPDATE_PERIOD,
     DOMAIN,
     LINK_WIKI_SUPPORTING_NEW_DEVICES,
+    TOKEN_GENERATOR_URL,
 )
 from .eflib.connection import Connection, ConnectionState
 from .eflib.device_mappings import battery_name_from_device
 from .eflib.exceptions import AuthErrors
 from .eflib.logging_util import LogOptions
-from .eflib.login import EcoFlowLogin, Region, decode_device_token
+from .eflib.login import (
+    DeviceBindInfo,
+    EcoFlowLogin,
+    Region,
+    decode_device_token,
+    encode_device_token,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -109,6 +122,18 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         self._user_id: str = ""
         self._user_token: str = ""
         self._email: str = ""
+        # credentials captured during the login submit, persisted at entry creation
+        # only when the user opted in (the login section clears before connect)
+        self._store_credentials: bool = False
+        self._login_email: str = ""
+        self._login_password: str = ""
+        self._login_region: str = ""
+        # Login session kept so a device token can be minted later - but only once the
+        # connection test confirms the device actually uses OMOS - plus the token that
+        # mint yields, captured during the test and persisted at entry creation.
+        self._login_bearer: str = ""
+        self._login_base_url: str = ""
+        self._minted_omos_token: str | None = None
         self._user_id_validated: bool = False
         self._log_options = LogOptions.no_options()
         self._collapsed = True
@@ -167,13 +192,13 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         )
         return self.async_show_form(
             step_id="bluetooth_confirm",
-            description_placeholders=placeholders,
+            description_placeholders={**placeholders, "token_url": TOKEN_GENERATOR_URL},
             errors=errors,
             data_schema=(
                 schema_builder()
                 .user_id(self._user_id)
                 .user_token(self._user_token, self._show_token_field)
-                .login(self._collapsed)
+                .login(self._collapsed, self._show_token_field)
                 .required(CONF_ADDRESS, vol.In([full_name]))
                 .update_period()
                 .conf_log(self._log_options)
@@ -269,12 +294,12 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="device_confirm",
             errors=errors,
-            description_placeholders=placeholders,
+            description_placeholders={**placeholders, "token_url": TOKEN_GENERATOR_URL},
             data_schema=(
                 schema_builder()
                 .user_id(self._user_id)
                 .user_token(self._user_token, self._show_token_field)
-                .login(self._collapsed)
+                .login(self._collapsed, self._show_token_field)
                 .update_period()
                 .conf_log(self._log_options)
                 .advanced_connection_options()
@@ -317,12 +342,128 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                     ),
                     default=PacketVersion.from_str(f"v{device.packet_version}"),
                 )
-                .login(self._collapsed)
+                .login(self._collapsed, self._show_token_field)
                 .conf_log(self._log_options)
                 .advanced_connection_options()
                 .build()
             ),
         )
+
+    async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
+        """Start reauthentication after the stored token/credentials stopped working"""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """
+        Collect fresh credentials or a device token and update the entry
+
+        Credential-free device-token setups land here when the minted token expires and
+        no stored credentials exist to renew it. Logging in re-mints a token from the
+        cloud; a device token can also be pasted by hand. The entry is updated and
+        reloaded, so a still-bad value simply re-triggers this step.
+        """
+        entry = self._get_reauth_entry()
+        shows_token = CONF_OMOS_TOKEN in entry.data or bool(
+            (entry.data | entry.options).get(CONF_USER_TOKEN)
+        )
+
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            errors, data_updates = await self._reauth_validate(
+                entry, user_input, shows_token=shows_token
+            )
+            if not errors:
+                return self.async_update_reload_and_abort(
+                    entry, data_updates=data_updates
+                )
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=(
+                schema_builder()
+                .user_token("", show=shows_token)
+                .login(collapsed=False, with_token_refresh=shows_token)
+                .build()
+            ),
+            errors=errors,
+            description_placeholders={
+                "name": entry.title,
+                "token_url": TOKEN_GENERATOR_URL,
+            },
+        )
+
+    def _entry_serial_number(self, entry: ConfigEntry) -> str | None:
+        device_entry = dr.async_get(self.hass).async_get_device(
+            identifiers={(DOMAIN, entry.data[CONF_ADDRESS])}
+        )
+        return device_entry.serial_number if device_entry else None
+
+    async def _reauth_validate(
+        self,
+        entry: ConfigEntry,
+        user_input: dict[str, Any],
+        *,
+        shows_token: bool,
+    ) -> tuple[dict[str, str], dict[str, Any]]:
+        login = user_input.get("login", {})
+        email = login.get(CONF_EMAIL, "").strip()
+        password = login.get(CONF_PASSWORD, "")
+        region = login.get(CONF_REGION, "")
+        pasted_token = user_input.get(CONF_USER_TOKEN, "").strip()
+
+        # Clear the stale minted token so setup mints or verifies afresh.
+        data_updates: dict[str, Any] = {CONF_OMOS_TOKEN: None}
+
+        if email or password:
+            if not email:
+                return {"login": "email_empty"}, {}
+            if not password:
+                return {"login": "password_empty"}, {}
+            client = EcoFlowLogin(async_get_clientsession(self.hass))
+            result = await client.login(email, password, region)
+            if result.error or result.user_id is None:
+                return {"login": result.error or "Login failed"}, {}
+            data_updates[CONF_USER_ID] = result.user_id
+            if shows_token:
+                token_error = await self._reauth_mint_token(
+                    client, result, entry, data_updates
+                )
+                if token_error is not None:
+                    return {"base": token_error}, {}
+            if login.get(CONF_STORE_CREDENTIALS):
+                data_updates[CONF_EMAIL] = email
+                data_updates[CONF_PASSWORD] = password
+                data_updates[CONF_REGION] = region
+            return {}, data_updates
+
+        if pasted_token:
+            data_updates[CONF_USER_TOKEN] = pasted_token
+            return {}, data_updates
+
+        return {"base": "reauth_no_input"}, {}
+
+    async def _reauth_mint_token(
+        self,
+        client: EcoFlowLogin,
+        login_result,
+        entry: ConfigEntry,
+        data_updates: dict[str, Any],
+    ) -> str | None:
+        """Fetch fresh bind material and stash it as a token blob; error key or None"""
+        sn = self._entry_serial_number(entry)
+        if not sn or not login_result.token or not login_result.base_url:
+            return "auth_failed_need_refresh_token"
+        bind = await client.get_device_bind_info(
+            login_result.base_url, login_result.token, sn
+        )
+        if bind.error or not bind.random_code or not bind.user_info_en:
+            return "auth_failed_need_refresh_token"
+        data_updates[CONF_USER_TOKEN] = encode_device_token(
+            sn, bind.random_code, bind.user_info_en
+        )
+        return None
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
@@ -388,9 +529,9 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
 
     @property
     def _show_token_field(self) -> bool:
-        """Whether the discovered device needs an account token (OMOS auth)"""
+        """Whether to surface the device-token field (models that may use OMOS)"""
         device = self._discovered_device
-        return device is not None and device.requires_account_token
+        return device is not None and device.supports_device_token
 
     def _create_entry(self, user_input: dict[str, Any], device: eflib.DeviceBase):
         entry_data = user_input.copy()
@@ -399,7 +540,13 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         # relying on it round-tripping through user_input can produce an entry
         # without a user ID that then silently fails to set up (issue #403)
         entry_data[CONF_USER_ID] = self._user_id
+        if self._minted_omos_token:
+            entry_data[CONF_OMOS_TOKEN] = self._minted_omos_token
         entry_data["local_name"] = self._local_names.get(device.address, None)
+        if self._store_credentials and self._login_email and self._login_password:
+            entry_data[CONF_EMAIL] = self._login_email
+            entry_data[CONF_PASSWORD] = self._login_password
+            entry_data[CONF_REGION] = self._login_region
         entry_data.pop("login", None)
 
         if CONF_EXTRA_BATTERY not in entry_data:
@@ -427,6 +574,9 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         self._email = user_input.get("login", {}).get(CONF_EMAIL, "")
         password = user_input.get("login", {}).get(CONF_PASSWORD, "")
         region = user_input.get("login", {}).get(CONF_REGION, "")
+        store_credentials = user_input.get("login", {}).get(
+            CONF_STORE_CREDENTIALS, False
+        )
         user_id = user_input.get(CONF_USER_ID, "").strip()
         self._user_token = user_input.get(CONF_USER_TOKEN, "").strip()
         advanced = user_input.get(CONF_ADVANCED_CONNECTION_OPTIONS, {})
@@ -443,7 +593,9 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                 return {"login": "email_empty"}
             if not password:
                 return {"login": "password_empty"}
-            return await self._ecoflow_login(self._email, password, region)
+            return await self._ecoflow_login(
+                self._email, password, region, store=store_credentials
+            )
 
         self._user_id = user_id
 
@@ -640,17 +792,44 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Error disconnecting after failed connection test")
             return {"base": "unknown"}
 
+    def _capture_minted_omos_token(self, token: str | None) -> None:
+        self._minted_omos_token = token
+
     async def _connect_and_check(self, device: eflib.DeviceBase) -> dict[str, Any]:
         timeout = self._connect_timeout
-        bind = decode_device_token(self._user_token) if self._user_token else None
-        if bind is not None and bind.error:
-            bind = None
+        bind = None
+        if self._user_token:
+            pasted = decode_device_token(self._user_token)
+            bind = None if pasted.error else pasted
+
+        conn_state, exc = await self._attempt_connection(device, bind, timeout)
+
+        # The device only reveals OMOS at runtime. If it asks for a token and a login
+        # session is available, mint one and retry - so a non-OMOS device (which never
+        # asks) makes no cloud call at all.
+        if isinstance(exc, AuthErrors.NeedRefreshToken):
+            fetched = await self._fetch_bind_material(device)
+            if fetched is not None:
+                conn_state, exc = await self._attempt_connection(
+                    device, fetched, timeout
+                )
+
+        return await self._map_connection_result(device, conn_state, exc)
+
+    async def _attempt_connection(
+        self,
+        device: eflib.DeviceBase,
+        bind: DeviceBindInfo | None,
+        timeout: float,
+    ) -> tuple[ConnectionState, Exception | None]:
+        self._finalizing = False
         await device.connect(
             self._user_id,
             omos_random_code=bind.random_code if bind else None,
             omos_user_info_en=bind.user_info_en if bind else None,
+            omos_token_listener=self._capture_minted_omos_token,
         )
-        exc = None
+        exc: Exception | None = None
         try:
             conn_state, exc = await asyncio.wait_for(
                 device.wait_until_authenticated_or_error(return_exc=True), timeout
@@ -662,7 +841,14 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
 
         self._finalizing = True
         await device.disconnect()
+        return conn_state, exc
 
+    async def _map_connection_result(
+        self,
+        device: eflib.DeviceBase,
+        conn_state: ConnectionState,
+        exc: Exception | None,
+    ) -> dict[str, Any]:
         error = None
         match conn_state:
             case ConnectionState.ERROR_AUTH_FAILED:
@@ -716,15 +902,48 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
     def _store(self):
         return Store(self.hass, self.VERSION, f"{DOMAIN}.user_id")
 
-    async def _ecoflow_login(self, email: str, password: str, region: str):
+    async def _ecoflow_login(
+        self, email: str, password: str, region: str, *, store: bool = False
+    ):
         client = EcoFlowLogin(async_get_clientsession(self.hass))
         result = await client.login(email, password, region)
         if result.error or result.user_id is None:
             return {"login": result.error or "Login failed"}
         self._user_id = result.user_id
+        # Keep the session so a token can be minted later (only if the connection test
+        # confirms OMOS), instead of calling the cloud now for every token-capable model.
+        self._login_bearer = result.token or ""
+        self._login_base_url = result.base_url or ""
+        # Each login attempt is authoritative, so unchecking on a re-login clears any
+        # previously stashed credentials rather than leaving a stale opt-in.
+        self._store_credentials = store
+        self._login_email = email if store else ""
+        self._login_password = password if store else ""
+        self._login_region = (region or Region.AUTO.value) if store else ""
         self._email = ""
         self._collapsed = True
         return {}
+
+    async def _fetch_bind_material(
+        self, device: eflib.DeviceBase
+    ) -> DeviceBindInfo | None:
+        """
+        Mint OMOS bind material from the login session, once OMOS is confirmed
+
+        Called only after the connection test reports the device needs a token, so a
+        non-OMOS device never triggers this cloud call. Returns `None` when there is no
+        login session or the fetch fails (the user can still paste a token by hand).
+        """
+        if not self._login_bearer or not self._login_base_url:
+            return None
+        client = EcoFlowLogin(async_get_clientsession(self.hass))
+        bind = await client.get_device_bind_info(
+            self._login_base_url, self._login_bearer, device.serial_number
+        )
+        if bind.error or not bind.random_code or not bind.user_info_en:
+            _LOGGER.warning("Could not fetch device bind material: %s", bind.error)
+            return None
+        return bind
 
 
 class OptionsFlowHandler(OptionsFlow):
@@ -836,24 +1055,28 @@ class _SchemaBuilder:
             else user_id
         )
 
-        return self.update({marker(CONF_USER_ID, default=user_id): str})
+        return self.update({marker(CONF_USER_ID, default=user_id): _secret_text()})
 
     def user_token(self, user_token: str = "", show: bool = False):
         """Optional per-device account token field, shown only for OMOS devices"""
         if not show:
             return self
         default = cast("str", vol.UNDEFINED) if not user_token.strip() else user_token
-        return self.update({vol.Optional(CONF_USER_TOKEN, default=default): str})
+        return self.update(
+            {vol.Optional(CONF_USER_TOKEN, default=default): _secret_text()}
+        )
 
-    def login(self, collapsed: bool = True):
+    def login(self, collapsed: bool = True, with_token_refresh: bool = False):
+        login_schema = (
+            schema_builder().optional(CONF_EMAIL, str).optional(CONF_PASSWORD, _secret_text())
+        )
+        if with_token_refresh:
+            login_schema = login_schema.optional(CONF_STORE_CREDENTIALS, bool, False)
         return self.update(
             {
                 vol.Required("login"): section(
                     schema=(
-                        schema_builder()
-                        .optional(CONF_EMAIL, str)
-                        .optional(CONF_PASSWORD, str)
-                        .optional(
+                        login_schema.optional(
                             CONF_REGION,
                             SelectSelector(
                                 SelectSelectorConfig(
@@ -863,8 +1086,7 @@ class _SchemaBuilder:
                                 ),
                             ),
                             Region.AUTO.value,
-                        )
-                        .build()
+                        ).build()
                     ),
                     options={"collapsed": collapsed},
                 ),
@@ -1018,6 +1240,11 @@ class _SchemaBuilder:
             default=extra_batteries_default,
             condition=bool(available_battery_slots),
         )
+
+
+def _secret_text() -> TextSelector:
+    """Obscured (password-style) text input for sensitive values"""
+    return TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
 
 
 def schema_builder():
