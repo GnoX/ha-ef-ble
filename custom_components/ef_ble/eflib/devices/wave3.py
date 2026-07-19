@@ -1,7 +1,8 @@
 import logging
 
 from ..devicebase import DeviceBase
-from ..entity import controls
+from ..entity import controls, units
+from ..entity.base import dynamic
 from ..entity.controls import HvacMode
 from ..packet import Packet
 from ..pb import ac517_apl_comm_pb2
@@ -131,6 +132,22 @@ class Device(DeviceBase, ProtobufProps):
     )
 
     @computed_field
+    def climate_temperature_unit(self) -> units.Temperature:
+        return (
+            units.Temperature.F
+            if self.temp_unit == TemperatureUnit.FAHRENHEIT
+            else units.Temperature.C
+        )
+
+    @computed_field
+    def target_temperature_min(self) -> int:
+        return 60 if self.temp_unit == TemperatureUnit.FAHRENHEIT else 16
+
+    @computed_field
+    def target_temperature_max(self) -> int:
+        return 86 if self.temp_unit == TemperatureUnit.FAHRENHEIT else 30
+
+    @computed_field
     def is_submode_available(self) -> bool:
         return self.operating_mode in (OperatingMode.COOLING, OperatingMode.HEATING)
 
@@ -236,8 +253,9 @@ class Device(DeviceBase, ProtobufProps):
         target_temperature_climate,
         modes={HvacMode.COOL, HvacMode.HEAT},
         step=0.5,
-        min=16,
-        max=30,
+        min=dynamic(target_temperature_min),
+        max=dynamic(target_temperature_max),
+        unit=dynamic(climate_temperature_unit),
     )
     async def set_target_temperature(self, temperature: float):
         await self._send_config_packet(
@@ -249,8 +267,8 @@ class Device(DeviceBase, ProtobufProps):
         target_temp_thermostatic_upper,
         modes={HvacMode.HEAT_COOL},
         step=0.5,
-        min=16,
-        max=30,
+        min=dynamic(target_temperature_min),
+        max=dynamic(target_temperature_max),
     )
     async def set_target_temperature_range(self, low: float, high: float):
         await self._send_config_packet(

@@ -46,6 +46,8 @@ class EcoflowClimateEntityDescription(ClimateEntityDescription):
     target_temperature_step: float = 1.0
     min_range_temp: float | None = None
     max_range_temp: float | None = None
+    min_range_temp_prop: str | None = None
+    max_range_temp_prop: str | None = None
     target_temperature_range_step: float = 1.0
     min_humidity: int | None = None
     max_humidity: int | None = None
@@ -82,6 +84,8 @@ class ClimateBuilder(EntityDescriptionBuilder):
     _target_temperature_step: float = 1.0
     _min_range_temp: float | None = None
     _max_range_temp: float | None = None
+    _min_range_temp_prop: str | None = None
+    _max_range_temp_prop: str | None = None
     _target_temperature_range_step: float = 1.0
     _min_humidity: int | None = None
     _max_humidity: int | None = None
@@ -189,12 +193,18 @@ class ClimateBuilder(EntityDescriptionBuilder):
             self._max_temp = value
         return self
 
-    def min_range_temp(self, value: float | None):
-        self._min_range_temp = value
+    def min_range_temp(self, value):
+        if field := self._get_field(value):
+            self._min_range_temp_prop = field.public_name
+        else:
+            self._min_range_temp = value
         return self
 
-    def max_range_temp(self, value: float | None):
-        self._max_range_temp = value
+    def max_range_temp(self, value):
+        if field := self._get_field(value):
+            self._max_range_temp_prop = field.public_name
+        else:
+            self._max_range_temp = value
         return self
 
     def target_temperature_step(self, value: float):
@@ -263,6 +273,8 @@ class ClimateBuilder(EntityDescriptionBuilder):
             target_temperature_step=self._target_temperature_step,
             min_range_temp=self._min_range_temp,
             max_range_temp=self._max_range_temp,
+            min_range_temp_prop=self._min_range_temp_prop,
+            max_range_temp_prop=self._max_range_temp_prop,
             target_temperature_range_step=self._target_temperature_range_step,
             min_humidity=self._min_humidity,
             max_humidity=self._max_humidity,
@@ -463,6 +475,16 @@ class EcoflowClimateEntity(EcoflowEntity, ClimateEntity):
         self._register_update_callback(
             "_attr_max_temp",
             description.max_temp_prop,
+            get_state=lambda state: state if state is not None else self.SkipWrite,
+        )
+        self._register_update_callback(
+            "_attr_min_temp",
+            description.min_range_temp_prop,
+            get_state=lambda state: state if state is not None else self.SkipWrite,
+        )
+        self._register_update_callback(
+            "_attr_max_temp",
+            description.max_range_temp_prop,
             get_state=lambda state: state if state is not None else self.SkipWrite,
         )
         self._register_update_callback(

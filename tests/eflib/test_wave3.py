@@ -7,6 +7,8 @@ from custom_components.ef_ble.eflib.devices.wave3 import (
     OperatingMode,
     SleepState,
 )
+from custom_components.ef_ble.eflib.entity import units
+from custom_components.ef_ble.eflib.pb import ac517_apl_comm_pb2
 
 
 @pytest.fixture
@@ -132,6 +134,26 @@ async def test_wave3_field_types_are_consistent(device, packet_sequence):
             assert isinstance(value, enum_type), (
                 f"Field {field} has wrong type: {type(value)}"
             )
+
+
+@pytest.mark.parametrize(
+    ("pb_unit", "expected_unit", "expected_min", "expected_max"),
+    [
+        (ac517_apl_comm_pb2.USER_TEMP_UNIT_C, units.Temperature.C, 16, 30),
+        (ac517_apl_comm_pb2.USER_TEMP_UNIT_F, units.Temperature.F, 60, 86),
+    ],
+)
+async def test_wave3_climate_limits_and_unit_follow_device_temp_unit(
+    device, pb_unit, expected_unit, expected_min, expected_max
+):
+    payload = ac517_apl_comm_pb2.DisplayPropertyUpload(
+        user_temp_unit=pb_unit
+    ).SerializeToString()
+    device.update_from_bytes(ac517_apl_comm_pb2.DisplayPropertyUpload, payload)
+
+    assert device.climate_temperature_unit is expected_unit
+    assert device.target_temperature_min == expected_min
+    assert device.target_temperature_max == expected_max
 
 
 async def test_wave3_exact_values_from_known_packets(device, packet_sequence):
