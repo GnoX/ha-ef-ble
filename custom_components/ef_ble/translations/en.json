@@ -4,7 +4,8 @@
       "already_configured": "Device is already configured",
       "not_supported": "Device is not supported",
       "no_devices_found": "No supported EcoFlow devices found. Make sure your device is not connected to the EcoFlow app via Bluetooth.",
-      "reconfigure_successful": "Reconfiguration was successful"
+      "reconfigure_successful": "Reconfiguration was successful",
+      "reauth_successful": "Re-authentication was successful"
     },
     "error": {
       "cannot_connect": "Cannot connect",
@@ -25,31 +26,35 @@
       "bt_not_found": "Device was not found - try refreshing the bluetooth integration if this error occurs repeatedly",
       "bt_general_error": "Could not connect to the device - see the logs for more details",
       "error_try_refresh": "Device disconnected before it could authenticate - check logs for more info",
-      "error_try_refresh_unsupported": "Device disconnected before it could authenticate - try changing packet version. If that does not help and resubmitting after reloading does not work, this device probably uses different auth procedure and has to be reverse engineered."
+      "error_try_refresh_unsupported": "Device disconnected before it could authenticate - try changing packet version. If that does not help and resubmitting after reloading does not work, this device probably uses different auth procedure and has to be reverse engineered.",
+      "reauth_no_input": "Enter your EcoFlow login or a device token to continue"
     },
     "step": {
       "bluetooth_confirm": {
         "title": "Discovered Device Configuration",
         "data": {
           "user_id": "EcoFlow User ID",
-          "user_token": "Device token (OCEAN Pro / PowerOcean, from the token generator page)",
+          "user_token": "Device token",
           "address": "BLE Device",
           "update_period": "Update Period"
         },
         "data_description": {
-          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of database writes)."
+          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of database writes).",
+          "user_token": "Your device may not use OMOS authentication; this is only confirmed once connected. Leave blank if unsure. Logging in fills it in automatically, or paste one from the [token generator page]({token_url})."
         },
         "sections": {
           "login": {
             "name": "EcoFlow Login (skip if you already have your user ID)",
-            "description": "After you click Submit with your login information filled in, your EcoFlow User ID will be automatically populated and this form will clear itself. Only your user ID is required so you will not be able to proceed to the next page unless this section is empty.",
+            "description": "After you submit with your login filled in, your EcoFlow User ID is populated automatically, and for devices that use OMOS a device token is fetched too. This section then clears; submit again with it empty to continue. You can also skip logging in and enter your User ID directly.",
             "data": {
               "email": "Email / Phone",
               "password": "Password",
-              "region": "Region"
+              "region": "Region",
+              "store_credentials": "Store credentials for automatic token refresh"
             },
             "data_description": {
-              "region": "Pick the EcoFlow API host matching your account. Auto uses api.ecoflow.com for email and api-cn for phone numbers. Your account may live on a different host than your actual geographic region, so if you receive an \"Account does not exist\" message, try selecting the host explicitly."
+              "region": "Pick the EcoFlow API host matching your account. Auto uses api.ecoflow.com for email and api-cn for phone numbers. Your account may live on a different host than your actual geographic region, so if you receive an \"Account does not exist\" message, try selecting the host explicitly.",
+              "store_credentials": "Keeps your login so an expired device token can be refreshed automatically. Your credentials are stored unencrypted on disk. Leave off to keep setup account-free and re-authenticate by hand when the token expires."
             }
           },
           "log_options": {
@@ -90,24 +95,27 @@
         "title": "{name} config options",
         "data": {
           "user_id": "EcoFlow User ID",
-          "user_token": "Device token (OCEAN Pro / PowerOcean, from the token generator page)",
+          "user_token": "Device token",
           "address": "BLE Device",
           "update_period": "Update Period"
         },
         "data_description": {
-          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of DB writes)."
+          "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of DB writes).",
+          "user_token": "Your device may not use OMOS authentication; this is only confirmed once connected. Leave blank if unsure. Logging in fills it in automatically, or paste one from the [token generator page]({token_url})."
         },
         "sections": {
           "login": {
             "name": "EcoFlow Login (skip if you already have your user ID)",
-            "description": "After you click Submit with your login information filled in, your EcoFlow User ID will be automatically populated and this form will clear itself. Only your user ID is required so you will not be able to proceed to the next page unless this section is empty.",
+            "description": "After you submit with your login filled in, your EcoFlow User ID is populated automatically, and for devices that use OMOS a device token is fetched too. This section then clears; submit again with it empty to continue. You can also skip logging in and enter your User ID directly.",
             "data": {
               "email": "Email / Phone",
               "password": "Password",
-              "region": "Region"
+              "region": "Region",
+              "store_credentials": "Store credentials for automatic token refresh"
             },
             "data_description": {
-              "region": "Pick the EcoFlow API host matching your account. Auto uses api.ecoflow.com for email and api-cn for phone numbers. Your account may live on a different host than your actual geographic region, so if you receive an \"Account does not exist\" message, try selecting the host explicitly."
+              "region": "Pick the EcoFlow API host matching your account. Auto uses api.ecoflow.com for email and api-cn for phone numbers. Your account may live on a different host than your actual geographic region, so if you receive an \"Account does not exist\" message, try selecting the host explicitly.",
+              "store_credentials": "Keeps your login so an expired device token can be refreshed automatically. Your credentials are stored unencrypted on disk. Leave off to keep setup account-free and re-authenticate by hand when the token expires."
             }
           },
           "log_options": {
@@ -142,7 +150,7 @@
         "description": "This device is currently unsupported but can be connected to for the purpose of gathering raw data. Refer to [this wiki]({wiki_link}) page for additional information.",
         "data": {
           "user_id": "EcoFlow User ID",
-          "user_token": "Device token (OCEAN Pro / PowerOcean, from the token generator page)",
+          "user_token": "Device token",
           "update_period": "Update Period",
           "packet_version": "Packet Version"
         },
@@ -153,14 +161,16 @@
         "sections": {
           "login": {
             "name": "EcoFlow Login (skip if you already have your user ID)",
-            "description": "After you click Submit with your login information filled in, your EcoFlow User ID will be automatically populated and this form will clear itself. Only your user ID is required so you will not be able to proceed to the next page unless this section is empty.",
+            "description": "After you submit with your login filled in, your EcoFlow User ID is populated automatically, and for devices that use OMOS a device token is fetched too. This section then clears; submit again with it empty to continue. You can also skip logging in and enter your User ID directly.",
             "data": {
               "email": "Email / Phone",
               "password": "Password",
-              "region": "Region"
+              "region": "Region",
+              "store_credentials": "Store credentials for automatic token refresh"
             },
             "data_description": {
-              "region": "Pick the EcoFlow API host matching your account. Auto uses api.ecoflow.com for email and api-cn for phone numbers. Your account may live on a different host than your actual geographic region, so if you receive an \"Account does not exist\" message, try selecting the host explicitly."
+              "region": "Pick the EcoFlow API host matching your account. Auto uses api.ecoflow.com for email and api-cn for phone numbers. Your account may live on a different host than your actual geographic region, so if you receive an \"Account does not exist\" message, try selecting the host explicitly.",
+              "store_credentials": "Keeps your login so an expired device token can be refreshed automatically. Your credentials are stored unencrypted on disk. Leave off to keep setup account-free and re-authenticate by hand when the token expires."
             }
           },
           "log_options": {
@@ -193,12 +203,38 @@
       "reconfigure": {
         "data": {
           "user_id": "EcoFlow User ID",
-          "user_token": "Device token (OCEAN Pro / PowerOcean, from the token generator page)",
+          "user_token": "Device token",
           "extra_battery": "Enabled Extra Batteries"
         }
       },
       "connect": {
         "title": "Connecting to device"
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate EcoFlow device",
+        "description": "The stored token for {name} stopped working. Log in again to renew it automatically, or paste a device token from the [token generator page]({token_url}).",
+        "data": {
+          "user_token": "Device token"
+        },
+        "sections": {
+          "login": {
+            "name": "EcoFlow Login",
+            "description": "Log in to renew your device token automatically, or enter a device token yourself instead.",
+            "data": {
+              "email": "Email / Phone",
+              "password": "Password",
+              "region": "Region",
+              "store_credentials": "Store credentials for automatic token refresh"
+            },
+            "data_description": {
+              "region": "Pick the EcoFlow API host matching your account. Auto uses api.ecoflow.com for email and api-cn for phone numbers. Your account may live on a different host than your actual geographic region, so if you receive an \"Account does not exist\" message, try selecting the host explicitly.",
+              "store_credentials": "Keeps your login so an expired device token can be refreshed automatically. Your credentials are stored unencrypted on disk. Leave off to keep setup account-free and re-authenticate by hand when the token expires."
+            }
+          }
+        },
+        "data_description": {
+          "user_token": "Your device may not use OMOS authentication; this is only confirmed once connected. Leave blank if unsure. Logging in fills it in automatically, or paste one from the [token generator page]({token_url})."
+        }
       }
     },
     "progress": {
@@ -293,6 +329,9 @@
     },
     "missing_address_or_user_id": {
       "message": "Stored configuration is missing the device {missing}. Remove the device and add it again to repair the configuration entry."
+    },
+    "token_expired": {
+      "message": "The device token has expired. Re-authenticate to renew it."
     }
   },
   "issues": {

@@ -17,6 +17,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ADDRESS, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import (
+    ConfigEntryAuthFailed,
     ConfigEntryError,
     ConfigEntryNotReady,
 )
@@ -36,7 +37,6 @@ from .const import (
     CONF_PACKET_VERSION,
     CONF_UPDATE_PERIOD,
     CONF_USER_ID,
-    CONF_USER_TOKEN,
     DEFAULT_CONNECTION_TIMEOUT,
     DEFAULT_UPDATE_PERIOD,
     DOMAIN,
@@ -49,7 +49,7 @@ from .eflib.connection import (
 )
 from .eflib.exceptions import AuthErrors, UnsupportedBluetoothProtocol
 from .eflib.logging_util import ConnectionLog
-from .eflib.login import decode_device_token
+from .omos import connect_omos, is_configured
 
 PLATFORMS: list[Platform] = [
     Platform.BUTTON,
@@ -69,6 +69,39 @@ ConfigEntryNotReady = partial(ConfigEntryNotReady, translation_domain=DOMAIN)
 ConfigEntryError = partial(ConfigEntryError, translation_domain=DOMAIN)
 
 _REAPPEAR_CALLBACKS_KEY = f"{DOMAIN}_reappear_callbacks"
+
+
+async def _connect_device(
+    hass: HomeAssistant,
+    entry: "DeviceConfigEntry",
+    device: "eflib.DeviceBase",
+    *,
+    user_id: str,
+    timeout: float,
+    merged_options: dict,
+):
+    """
+    Connect and authenticate, dispatching token-auth devices to the OMOS path
+
+    Devices whose model hints at OMOS (`supports_device_token`) or that already have a device token
+    configured take the OMOS bind/refresh path; every other device connects directly.
+    """
+    if device.supports_device_token or is_configured(merged_options):
+        return await connect_omos(
+            hass,
+            entry,
+            device,
+            user_id=user_id,
+            timeout=timeout,
+            merged_options=merged_options,
+        )
+
+    await device.connect(
+        user_id=user_id,
+        max_attempts=0 if eflib.is_solar_only(device) else None,
+    )
+    async with asyncio.timeout(timeout):
+        return await device.wait_until_authenticated_or_error(raise_on_error=True)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bool:
@@ -124,32 +157,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
         timeout=timeout,
         bluez_start_notify=advanced.get(CONF_BLUEZ_START_NOTIFY, False),
     )
-    token_blob = merged_options.get(CONF_USER_TOKEN)
-    bind = decode_device_token(token_blob) if token_blob else None
-    if bind is not None and bind.error:
-        _LOGGER.warning("Ignoring invalid device token: %s", bind.error)
-        bind = None
-
     issue_id = f"{entry.entry_id}_max_connection_attempts"
 
+    (
+        device.with_update_period(update_period)
+        .with_logging_options(ConfLogOptions.from_config(merged_options))
+        .with_disabled_reconnect()
+        .with_packet_version(packet_version.to_num())
+        .with_enabled_packet_diagnostics(packet_collection_enabled)
+        .with_diagnostics_on_exception(diagnostics_on_exception)
+        .with_connection_options(options)
+    )
+
     try:
-        await (
-            device.with_update_period(update_period)
-            .with_logging_options(ConfLogOptions.from_config(merged_options))
-            .with_disabled_reconnect()
-            .with_packet_version(packet_version.to_num())
-            .with_enabled_packet_diagnostics(packet_collection_enabled)
-            .with_diagnostics_on_exception(diagnostics_on_exception)
-            .with_connection_options(options)
-            .connect(
-                user_id=user_id,
-                max_attempts=0 if eflib.is_solar_only(device) else None,
-                omos_random_code=bind.random_code if bind else None,
-                omos_user_info_en=bind.user_info_en if bind else None,
-            )
+        state = await _connect_device(
+            hass,
+            entry,
+            device,
+            user_id=user_id,
+            timeout=timeout,
+            merged_options=merged_options,
         )
-        async with asyncio.timeout(timeout):
-            state = await device.wait_until_authenticated_or_error(raise_on_error=True)
     except (
         ConnectionTimeout,
         BleakError,
@@ -160,6 +188,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
         raise ConfigEntryNotReady(
             translation_key="could_not_connect",
             translation_placeholders={"time": str(timeout), "error_msg": str(e)},
+        ) from e
+    except AuthErrors.NeedRefreshToken as e:
+        # The device token is exhausted and cannot be renewed without fresh input;
+        # hand off to the reauth flow instead of retrying setup forever.
+        raise ConfigEntryAuthFailed(
+            translation_domain=DOMAIN, translation_key="token_expired"
         ) from e
     except AuthErrors.BaseException as e:
         raise ConfigEntryNotReady(translation_key="authentication_failed") from e

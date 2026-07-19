@@ -5,6 +5,16 @@ MANUFACTURER = "EcoFlow"
 
 CONF_USER_ID = "user_id"
 CONF_USER_TOKEN = "user_token"
+# Device-minted OMOS `user_token`, persisted so the single-use device-token blob is
+# exchanged only once; reused on later connects instead of re-minting.
+CONF_OMOS_TOKEN = "omos_token"
+# Opt-in: store account credentials so an expired OMOS token can be refreshed from the
+# cloud automatically instead of pasting a new device token by hand.
+CONF_STORE_CREDENTIALS = "store_credentials"
+
+# Companion web page that mints a device token from EcoFlow credentials, for users
+# who prefer not to enter their login in Home Assistant.
+TOKEN_GENERATOR_URL = "https://gnox.github.io/device_token"
 CONF_UPDATE_PERIOD = "update_period"
 CONF_CONNECTION_TIMEOUT = "connection_timeout"
 CONF_PACKET_VERSION = "packet_version"
