@@ -483,7 +483,7 @@
         "name": "电网能量"
       },
       "circuit_power": {
-        "name": "电路功率 {index}"
+        "name": "C{index} {name} 功率"
       },
       "circuit_current": {
         "name": "电路电流 {index}"
@@ -940,7 +940,7 @@
         "name": "AC C20 输入类型"
       },
       "circuit_status": {
-        "name": "电路 {index} 状态",
+        "name": "C{index} {name} 状态",
         "state": {
           "unknown": "未知",
           "off": "关闭",
@@ -1104,7 +1104,7 @@
     },
     "switch": {
       "circuit_is_enabled": {
-        "name": "电路 {circuit}"
+        "name": "C{circuit} {name}"
       },
       "channel_is_enabled": {
         "name": "通道 {channel}"

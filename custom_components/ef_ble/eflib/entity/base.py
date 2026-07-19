@@ -18,6 +18,7 @@ class EntityType:
     translation_placeholders: dict[str, str] | None = dataclasses.field(
         default=None, kw_only=True
     )
+    name_field: str | None = dataclasses.field(default=None, kw_only=True)
 
     @property
     def _field(self) -> "updatable_props.Field":

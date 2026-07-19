@@ -256,6 +256,7 @@ def test_shp2_field_group_are_expanded_and_renamed():
         *(f"circuit_current_{i}" for i in range(1, 13)),
         *(f"channel_power_{i}" for i in range(1, 4)),
         *(f"circuit_{i}" for i in range(1, 13)),
+        *(f"circuit_name_{i}" for i in range(1, 13)),
         *(f"circuit_split_link_{i}" for i in range(1, 13)),
         *(f"circuit_split_info_loaded_{i}" for i in range(1, 13)),
         *(

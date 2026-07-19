@@ -46,6 +46,7 @@ from .eflib.devices import (
 from .eflib.entity import units
 from .eflib.props.enums import IntFieldValue
 from .entity import (
+    DeviceNamedEntity,
     EcoflowBatteryAddonEntity,
     EcoflowEntity,
     resolve_entity_description_keys,
@@ -931,6 +932,15 @@ _BATTERY_ADDON_SENSORS: Final = {
 }
 
 
+def _sensor_class(sensor: str) -> "type[EcoflowSensor]":
+    description = SENSOR_TYPES[sensor]
+    has_device_name = (
+        isinstance(description, EcoflowSensorEntityDescription)
+        and description.name_field is not None
+    )
+    return EcoflowNamedSensor if has_device_name else EcoflowSensor
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: DeviceConfigEntry,
@@ -940,7 +950,7 @@ async def async_setup_entry(
     device = config_entry.runtime_data
 
     new_sensors = [
-        EcoflowSensor(device, sensor)
+        _sensor_class(sensor)(device, sensor)
         for sensor in SENSOR_TYPES
         if hasattr(device, sensor)
     ]
@@ -1033,24 +1043,6 @@ class EcoflowSensor(EcoflowEntity, SensorEntity):
         self._register_update_callback(None, sensor)
         for attribute_field in self._attribute_fields:
             self._register_update_callback(None, attribute_field)
-        # Refresh the entity name when the name source (e.g. circuit name) updates.
-        self._register_update_callback(None, self._name_field)
-
-    @property
-    def _name_field(self) -> str | None:
-        desc = self.entity_description
-        if isinstance(desc, EcoflowSensorEntityDescription):
-            return desc.name_field
-        return None
-
-    @property
-    def name(self):
-        """Use a device-provided name (e.g. circuit name) when available"""
-        if (name_field := self._name_field) is not None:
-            value = getattr(self._device, name_field, None)
-            if value:
-                return value
-        return super().name
 
     @property
     def native_value(self):
@@ -1082,6 +1074,10 @@ class EcoflowSensor(EcoflowEntity, SensorEntity):
             for field_name in self._attribute_fields
             if hasattr(self._device, field_name)
         }
+
+
+class EcoflowNamedSensor(DeviceNamedEntity, EcoflowSensor):
+    """Sensor whose display name comes from a device field (see DeviceNamedEntity)"""
 
 
 class EcoflowBatteryAddonSensor(EcoflowBatteryAddonEntity, SensorEntity):
