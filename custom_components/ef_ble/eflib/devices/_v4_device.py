@@ -1,5 +1,5 @@
 """
-Shared base for EcoFlow V4 smart-panel devices (SHP3, OCEAN Pro)
+Shared base for EcoFlow V4-protocol devices (SHP3, OCEAN Pro inverter, OCEAN Panel)
 
 These devices authenticate over V3 but stream telemetry as V4 (`PacketV4`) frames whose
 application payload is a routing header followed by a `dev_apl_comm` protobuf. They also
@@ -50,7 +50,7 @@ class CircuitStatus(IntFieldValue):
     EM_STOP = 3
 
 
-class V4PanelRouting:
+class V4ProtocolRouting:
     """
     V4 panel routing layer that wraps the protobuf inside the v4 payload
 
@@ -123,7 +123,7 @@ class V4PanelRouting:
         )
 
 
-class V4PanelDevice(DeviceBase, ProtobufProps):
+class V4ProtocolDevice(DeviceBase, ProtobufProps):
     """
     Base for EcoFlow V4 smart-panel devices
 
@@ -143,7 +143,7 @@ class V4PanelDevice(DeviceBase, ProtobufProps):
     ) -> None:
         super().__init__(ble_dev, adv_data, sn)
         self._time_commands = TimeCommands(self)
-        self._routing = V4PanelRouting(sn)
+        self._routing = V4ProtocolRouting(sn)
         self.add_timer_task(self._send_keepalive, interval=self._KEEPALIVE_INTERVAL)
         self._userid_sent = False
 

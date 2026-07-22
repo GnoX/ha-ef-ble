@@ -16,7 +16,7 @@ from ..props import (
 from ..props.enums import IntFieldValue
 from ..props.protobuf_field import TransformIfMissing
 from ..props.transforms import out_power, pround
-from ._v4_panel import CircuitStatus, GridStatus, V4PanelDevice
+from ._v4_device import CircuitStatus, GridStatus, V4ProtocolDevice
 
 pb = proto_attr_mapper(dev_apl_comm_pb2.DisplayPropertyUpload)
 pb_cfg = proto_attr_mapper(dev_apl_comm_pb2.ConfigWrite)
@@ -101,7 +101,7 @@ def _channel_battery(slot_template: str) -> Callable[[int], Field[Any]]:
     return factory
 
 
-class Device(V4PanelDevice):
+class Device(V4ProtocolDevice):
     """Smart Home Panel 3"""
 
     SN_PREFIX = (b"HR62", b"HR63", b"HR6C")
