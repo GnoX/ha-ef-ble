@@ -227,12 +227,16 @@ def for_each(
     availability: "Iterable[updatable_props.Field | None] | None" = None,
     translation_key: str | None = None,
     translation_placeholders: Callable[[int], dict[str, str]] | None = None,
+    name_field: Callable[[int], str] | None = None,
 ) -> Callable[[Callable], Callable]:
     """
     Decorate a function to register a toggle control for each field in the list
 
     The decorated function must accept (self, index: int, enabled: bool) where
     index is 1-based (i.e. 1 for the first field, 2 for the second, etc.).
+
+    `name_field(idx)` returns the device field whose value names the entity (e.g. a
+    circuit name); the HA platform composes the display name from it.
     """
 
     def decorator(func: Callable) -> Callable:
@@ -250,6 +254,7 @@ def for_each(
                 availability=avail,
                 translation_key=translation_key,
                 translation_placeholders=placeholders,
+                name_field=name_field(idx) if name_field is not None else None,
             )
 
             async def _enable(

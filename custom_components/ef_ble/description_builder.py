@@ -28,6 +28,7 @@ class EntityDescriptionBuilder:
     _translation_key: str | None = None
     _translation_placeholders: dict[str, str] | None = None
     _availability_prop: str | None = None
+    _name_field: str | None = None
     _entity_registry_enabled_default: bool = True
 
     @classmethod
@@ -41,6 +42,8 @@ class EntityDescriptionBuilder:
             builder = builder.translation_placeholders(entity.translation_placeholders)
         if entity.availability is not None:
             builder = builder.availability_prop(entity.availability_prop)
+        if entity.name_field is not None:
+            builder = builder.name_field(entity.name_field)
         return builder
 
     def name(self, name: str) -> Self:
@@ -65,6 +68,10 @@ class EntityDescriptionBuilder:
 
     def translation_placeholders(self, placeholders: dict[str, str]) -> Self:
         self._translation_placeholders = placeholders
+        return self
+
+    def name_field(self, name_field: str) -> Self:
+        self._name_field = name_field
         return self
 
     def availability_prop(self, availability_prop: "str | Field | None") -> Self:

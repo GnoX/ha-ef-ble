@@ -6,6 +6,7 @@ from homeassistant.core import callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import CONNECTION_BLUETOOTH, DeviceInfo
 from homeassistant.helpers.entity import Entity, EntityDescription
+from homeassistant.helpers.restore_state import ExtraStoredData, RestoreEntity
 
 from .const import DOMAIN, MANUFACTURER
 from .eflib import DeviceBase
@@ -158,6 +159,88 @@ class EcoflowBatteryAddonEntity(EcoflowEntity):
         registry.async_update_device(
             device_entry.id, serial_number=battery_sn, model=battery_model
         )
+
+
+@dataclasses.dataclass
+class _RestoredDeviceName(ExtraStoredData):
+    """Cached last-known device-provided name, persisted across HA restarts"""
+
+    name: str | None
+
+    def as_dict(self) -> dict[str, Any]:
+        return {"name": self.name}
+
+
+class DeviceNamedEntity(RestoreEntity):
+    """
+    Mixin for entities whose display name comes from a device field (e.g. a circuit)
+
+    The device sends these names only in its heartbeat, so they arrive late and can
+    change. We format the localized `... {name} ...` translation template ourselves -
+    HA's own formatter does not know the `{name}` placeholder and would raise - and
+    cache the last value via `RestoreEntity`, so after an HA restart the name survives
+    the reconnect gap instead of briefly dropping the circuit name from every entity.
+
+    Mix in before the concrete entity base, e.g.
+    `class Foo(DeviceNamedEntity, EcoflowSensor)`.
+    """
+
+    entity_description: EntityDescription
+    _device: DeviceBase
+    _restored_name: str | None = None
+
+    @property
+    def _name_field(self) -> str | None:
+        return getattr(self.entity_description, "name_field", None)
+
+    def _localized_name_template(self) -> str | None:
+        """Localized name template for this entity's `translation_key`, if loaded"""
+        if getattr(self, "platform_data", None) is None:
+            return None
+        if (key := self._name_translation_key) is None:
+            return None
+        return self.platform_data.platform_translations.get(key)
+
+    @property
+    def name(self):
+        if (name_field := self._name_field) is None:
+            return super().name
+
+        template = self._localized_name_template()
+        if template is None or "{name}" not in template:
+            return super().name
+
+        device_name = getattr(self._device, name_field, None) or self._restored_name
+        placeholders = {
+            **(self.translation_placeholders or {}),
+            "name": device_name or "",
+        }
+        try:
+            return " ".join(template.format(**placeholders).split())
+        except (KeyError, IndexError, ValueError):
+            return super().name
+
+    @property
+    def extra_restore_state_data(self) -> _RestoredDeviceName | None:
+        if (name_field := self._name_field) is None:
+            return None
+        # Persist the live name, or the restored one when the device has not sent it
+        # yet, so the cache survives a session that never reconnected.
+        name = getattr(self._device, name_field, None) or self._restored_name
+        return _RestoredDeviceName(name)
+
+    async def async_added_to_hass(self) -> None:
+        if (last := await self.async_get_last_extra_data()) is not None:
+            if restored := last.as_dict().get("name"):
+                self._restored_name = restored
+        await super().async_added_to_hass()
+        if (name_field := self._name_field) is not None:
+            self._device.register_callback(self.async_write_ha_state, name_field)
+
+    async def async_will_remove_from_hass(self) -> None:
+        if (name_field := self._name_field) is not None:
+            self._device.remove_callback(self.async_write_ha_state, name_field)
+        await super().async_will_remove_from_hass()
 
 
 @runtime_checkable
