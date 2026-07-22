@@ -40,10 +40,12 @@ class Device(DeviceBase, ProtobufProps):
 
     battery_level = pb_field(pb.cms_batt_soc, pround(2))
     battery_level_main = pb_field(pb.bms_batt_soc, pround(2))
+    state_of_health = pb_field(pb.cms_batt_soh)
 
     ac_input_power = pb_field(pb.pow_get_ac_in)
     ac_lv_output_power = pb_field(pb.pow_get_ac_lv_out, out_power)
     ac_hv_output_power = pb_field(pb.pow_get_ac_hv_out, out_power)
+    ac_lv_tt30_output_power = pb_field(pb.pow_get_ac_lv_tt30_out, out_power)
 
     input_power = pb_field(pb.pow_in_sum_w)
     output_power = pb_field(pb.pow_out_sum_w)
@@ -66,6 +68,10 @@ class Device(DeviceBase, ProtobufProps):
     plugged_in_ac = pb_field(pb.plug_in_info_ac_charger_flag)
     energy_backup = pb_field(pb.energy_backup_en)
     energy_backup_battery_level = pb_field(pb.energy_backup_start_soc)
+    battery_input_power = pb_field(pb.pow_get_bms, lambda value: max(0, value))
+    battery_output_power = pb_field(pb.pow_get_bms, lambda value: -min(0, value))
+    ac_5p8_in_power = pb_field(pb.pow_get_5p8, lambda value: max(0, value))
+    ac_5p8_out_power = pb_field(pb.pow_get_5p8, lambda value: -min(0, value))
 
     battery_charge_limit_min = pb_field(pb.cms_min_dsg_soc)
     battery_charge_limit_max = pb_field(pb.cms_max_chg_soc)
@@ -77,10 +83,12 @@ class Device(DeviceBase, ProtobufProps):
 
     error_code = pb_field(pb.errcode)
     bms_run_state = pb_field(pb.cms_bms_run_state, bool)
+    _pcs_fan_level = pb_field(pb.pcs_fan_level)
 
     dc_12v_port = pb_field(pb.flow_info_12v, flow_is_on)
     ac_lv_port = pb_field(pb.flow_info_ac_lv_out, flow_is_on)
     ac_hv_port = pb_field(pb.flow_info_ac_hv_out, flow_is_on)
+    usb_ports = pb_field(pb.flow_info_qcusb1, flow_is_on)
 
     battery_1_enabled = pb_field(pb.plug_in_info_4p8_1_in_flag, bool)
     battery_1_battery_level = pb_field(pb.plug_in_info_4p8_1_resv, resv_soc)
@@ -140,6 +148,12 @@ class Device(DeviceBase, ProtobufProps):
     def error_occurred(self) -> bool:
         return bool(self.error_code)
 
+    @computed_field
+    def fan_running(self) -> bool | None:
+        if self._pcs_fan_level is None:
+            return None
+        return self._pcs_fan_level > 0
+
     def _get_solar_power(self, power: float | None, state: DCPortState | None):
         return (
             round(power, 2) if state is DCPortState.SOLAR and power is not None else 0
@@ -190,6 +204,10 @@ class Device(DeviceBase, ProtobufProps):
         await self._send_config_packet(
             mr521_pb2.ConfigWrite(cfg_lv_ac_out_open=enabled)
         )
+
+    @controls.switch(usb_ports)
+    async def enable_usb_ports(self, enabled: bool):
+        await self._send_config_packet(mr521_pb2.ConfigWrite(cfg_usb_open=enabled))
 
     @controls.battery(
         battery_charge_limit_min,

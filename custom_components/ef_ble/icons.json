@@ -214,6 +214,9 @@
           "emergency_stop": "mdi:alert-octagon",
           "off_power": "mdi:power-off"
         }
+      },
+      "state_of_health": {
+        "default": "mdi:battery-heart"
       }
     },
     "switch": {

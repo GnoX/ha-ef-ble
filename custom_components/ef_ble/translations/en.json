@@ -703,6 +703,12 @@
       "dc_hv_input_state": {
         "name": "HV DC Input Port State"
       },
+      "ac_lv_tt30_output_power": {
+        "name": "AC LV TT-30 Output Power"
+      },
+      "state_of_health": {
+        "name": "State of Health"
+      },
       "engine_state": {
         "name": "Engine State",
         "state": {
