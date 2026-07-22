@@ -31,6 +31,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from . import DeviceConfigEntry
 from .const import CONF_EXTRA_BATTERY, DOMAIN
 from .eflib import DeviceBase
+from .eflib.device_mappings import extra_battery_indices
 from .eflib.devices import (
     _delta3_base,
     delta_pro_3,
@@ -967,9 +968,7 @@ async def async_setup_entry(
 def _get_extra_battery_entities(
     hass: HomeAssistant, device: DeviceBase, conf: list[str] | None
 ):
-    available_indices = [
-        i for i in range(1, 6) if hasattr(device, f"battery_{i}_battery_level")
-    ]
+    available_indices = extra_battery_indices(device)
 
     if not available_indices:
         return []

@@ -61,7 +61,7 @@ from .const import (
     LINK_WIKI_SUPPORTING_NEW_DEVICES,
 )
 from .eflib.connection import Connection, ConnectionState
-from .eflib.device_mappings import battery_name_from_device
+from .eflib.device_mappings import battery_name_from_device, extra_battery_indices
 from .eflib.exceptions import AuthErrors
 from .eflib.logging_util import LogOptions
 from .eflib.login import EcoFlowLogin, Region
@@ -397,7 +397,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if CONF_EXTRA_BATTERY not in entry_data:
             entry_data[CONF_EXTRA_BATTERY] = _find_enabled_batteries(
-                device, range(1, 6)
+                device, extra_battery_indices(device)
             )
 
         return self.async_create_entry(title=device.name, data=entry_data)
@@ -978,9 +978,7 @@ class _SchemaBuilder:
         self, extra_battery_conf: list[str] | None, device: eflib.DeviceBase
     ):
         available_battery_slots = (
-            [i for i in range(1, 6) if hasattr(device, f"battery_{i}_battery_level")]
-            if device is not None
-            else []
+            extra_battery_indices(device) if device is not None else []
         )
 
         if not available_battery_slots:

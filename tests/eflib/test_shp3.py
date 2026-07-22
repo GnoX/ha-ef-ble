@@ -144,6 +144,16 @@ def test_shp3_field_groups_are_expanded_and_renamed():
             f"circuit_split_info_loaded_{i}"
             for i in range(1, Device.NUM_OF_CIRCUITS + 1)
         ),
+        *(f"_battery_slot_sn_{i}" for i in range(1, Device.NUM_OF_BATTERIES + 1)),
+        *(f"_battery_slot_soc_{i}" for i in range(1, Device.NUM_OF_BATTERIES + 1)),
+        *(f"_battery_slot_power_{i}" for i in range(1, Device.NUM_OF_BATTERIES + 1)),
+        *(f"_ch{i}_dev_id" for i in range(1, Device.NUM_OF_CHANNELS + 1)),
+        *(f"channel{i}_sn" for i in range(1, Device.NUM_OF_CHANNELS + 1)),
+        *(
+            f"channel{i}_battery_percentage"
+            for i in range(1, Device.NUM_OF_CHANNELS + 1)
+        ),
+        *(f"channel{i}_output_power" for i in range(1, Device.NUM_OF_CHANNELS + 1)),
         *(f"ch{i}_is_enabled" for i in range(1, Device.NUM_OF_CHANNELS + 1)),
         *(f"ch{i}_type" for i in range(1, Device.NUM_OF_CHANNELS + 1)),
         *(f"ch{i}_force_charge" for i in range(1, Device.NUM_OF_CHANNELS + 1)),
@@ -271,6 +281,33 @@ async def test_shp3_channel_is_enabled_state_from_backup_channels(device):
     assert device.channel_is_enabled[3] is None
 
 
+async def test_shp3_channel_battery_info_resolves_through_dev_id(device):
+    msg = dev_apl_comm_pb2.DisplayPropertyUpload()
+    msg.panel_backup_ch1_Info.ch_dev_id = 5
+    msg.panel_backup_ch2_Info.ch_dev_id = 6
+    msg.panel_backup_ch3_Info.ch_dev_id = 7
+    # Channel 1's battery charging, channel 2's discharging into the panel;
+    # channel 3 has a dev id but no battery info slot (empty channel).
+    msg.panel_generate_energy_battery_info_5.sn = "Y711XXXXXXXXX001"
+    msg.panel_generate_energy_battery_info_5.soc_cms = 93.456
+    msg.panel_generate_energy_battery_info_5.ac_pwr = 1520
+    msg.panel_generate_energy_battery_info_6.sn = "P101XXXXXXXXX002"
+    msg.panel_generate_energy_battery_info_6.soc_cms = 92.0
+    msg.panel_generate_energy_battery_info_6.ac_pwr = -352
+
+    device.update_from_message(msg)
+
+    assert device.channel_sn[1] == "Y711XXXXXXXXX001"
+    assert device.channel_battery_percentage[1] == 93.46
+    assert device.channel_output_power[1] == -1520
+    assert device.channel_sn[2] == "P101XXXXXXXXX002"
+    assert device.channel_battery_percentage[2] == 92.0
+    assert device.channel_output_power[2] == 352
+    assert device.channel_sn[3] is None
+    assert device.channel_battery_percentage[3] is None
+    assert device.channel_output_power[3] is None
+
+
 async def test_shp3_set_channel_enable_writes_backup_ctrl(device):
     """The enable switch writes ctrl_en and preserves the current force-charge state"""
     # ch2 currently force-charging; toggling its enable must keep that on.
@@ -290,13 +327,6 @@ async def test_shp3_set_channel_enable_writes_backup_ctrl(device):
 
 
 async def test_shp3_config_write_mirrors_post_frame(device, packet_sequence):
-    """
-    After a post, PR #389 mirrors the panel's own v4 frame for the write.
-
-    The transport (addressing, inner header, obfuscation keys) is the post's verbatim
-    via `dataclasses.replace`; only cmd_flags / is_ack / is_rw_cmd and the application
-    payload change. The payload is `serial9 + serial16 + envelope + ConfigWrite`.
-    """
     post = await device.packet_parse(bytes.fromhex(packet_sequence[1]))
     await device.data_parse(post)
 
