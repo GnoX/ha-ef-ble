@@ -761,12 +761,16 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     # DP3
     "ac_lv_output_power": power(precision=2),
     "ac_hv_output_power": power(precision=2),
+    "ac_lv_tt30_output_power": power(precision=2, enabled=False),
     "solar_lv_power": power("input_power_solar_lv", enabled=False),
     "solar_hv_power": power("input_power_solar_hv", enabled=False),
     "dc_lv_input_power": power(precision=2),
     "dc_hv_input_power": power(precision=2),
     "dc_lv_input_state": enum(options=delta_pro_3.DCPortState),
     "dc_hv_input_state": enum(options=delta_pro_3.DCPortState),
+    "state_of_health": percentage(
+        enabled=False, entity_category=EntityCategory.DIAGNOSTIC
+    ),
     # Smart Generator
     "xt150_battery_level": battery(),
     "engine_state": enum(options=smart_generator.EngineOpen),
