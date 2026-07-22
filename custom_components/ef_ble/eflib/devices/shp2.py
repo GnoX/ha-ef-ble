@@ -130,6 +130,7 @@ class Device(DeviceBase, ProtobufProps):
     circuit_current = field_group(lambda n: CircuitCurrentField(n - 1), count=12)
 
     circuit = _circuit_sta_group(_hall1.ch1_sta.load_sta)
+    circuit_name = _circuit_info_group(_hall1.ch1_info.ch_name)
     circuit_split_link = _circuit_info_group(_hall1.ch1_info.splitphase.link_ch)
     circuit_split_info_loaded = _circuit_info_group(
         _hall1.ch1_info.splitphase.link_ch, transform=lambda value: value is not None
@@ -291,7 +292,8 @@ class Device(DeviceBase, ProtobufProps):
         control=controls.outlet,
         availability=circuit_split_info_loaded,
         translation_key="circuit_is_enabled",
-        translation_placeholders=lambda i: {"circuit": str(i)},
+        translation_placeholders=lambda i: {"circuit": f"{i:02d}"},
+        name_field=lambda i: f"circuit_name_{i}",
     )
     async def set_circuit_power(self, circuit_id: int, enable: bool):
         """Send command to power on / off the specific circuit of the panel"""

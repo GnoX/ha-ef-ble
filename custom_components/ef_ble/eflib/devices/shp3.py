@@ -379,7 +379,8 @@ class Device(DeviceBase, ProtobufProps):
         control=controls.outlet,
         availability=circuit_split_info_loaded,
         translation_key="circuit_is_enabled",
-        translation_placeholders=lambda i: {"circuit": str(i)},
+        translation_placeholders=lambda i: {"circuit": f"{i:02d}"},
+        name_field=lambda i: f"circuit_name_{i}",
     )
     async def set_circuit_power(self, circuit_id: int, enable: bool):
         self._logger.debug("set_circuit_power for %d: %s", circuit_id, enable)

@@ -525,7 +525,7 @@
         "name": "Grid Energy"
       },
       "circuit_power": {
-        "name": "Circuit Power {index}"
+        "name": "C{index} {name} Power"
       },
       "circuit_current": {
         "name": "Circuit Current {index}"
@@ -534,7 +534,7 @@
         "name": "Circuit Voltage {index}"
       },
       "circuit_status": {
-        "name": "Circuit {index} Status",
+        "name": "C{index} {name} Status",
         "state": {
           "unknown": "Unknown",
           "off": "Off",
@@ -1137,7 +1137,7 @@
     },
     "switch": {
       "circuit_is_enabled": {
-        "name": "Circuit {circuit}"
+        "name": "C{circuit} {name}"
       },
       "channel_is_enabled": {
         "name": "Channel {channel}"

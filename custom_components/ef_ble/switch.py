@@ -17,13 +17,14 @@ from .deprecated.switches import DEPRECATED_SWITCH_TYPES
 from .description_builder import EntityDescriptionBuilder
 from .eflib import DeviceBase, get_controls
 from .eflib.entity import controls
-from .entity import EcoflowEntity
+from .entity import DeviceNamedEntity, EcoflowEntity
 
 
 @dataclass(frozen=True, kw_only=True)
 class EcoflowSwitchEntityDescription[T: DeviceBase](SwitchEntityDescription):
     set_state: Callable[[T, bool], Awaitable] | None = None
     availability_prop: str | None = None
+    name_field: str | None = None
 
 
 @dataclass(init=False)
@@ -52,6 +53,7 @@ class SwitchBuilder(EntityDescriptionBuilder):
             translation_key=self._entity_translation_key,
             translation_placeholders=self._translation_placeholders,
             availability_prop=self._availability_prop,
+            name_field=self._name_field,
             icon=self._icon,
         )
 
@@ -104,7 +106,14 @@ async def async_setup_entry(
             )
         ]
 
-    entities = [EcoflowSwitchEntity(device, desc) for desc in descriptions]
+    entities = [
+        (
+            EcoflowNamedSwitchEntity
+            if getattr(desc, "name_field", None) is not None
+            else EcoflowSwitchEntity
+        )(device, desc)
+        for desc in descriptions
+    ]
     if entities:
         async_add_entities(entities)
 
@@ -173,3 +182,7 @@ class EcoflowSwitchEntity(EcoflowEntity, SwitchEntity):
     @property
     def is_on(self):
         return self._on_off_state if self._on_off_state is not None else False
+
+
+class EcoflowNamedSwitchEntity(DeviceNamedEntity, EcoflowSwitchEntity):
+    """Switch whose display name comes from a device field (see DeviceNamedEntity)"""
