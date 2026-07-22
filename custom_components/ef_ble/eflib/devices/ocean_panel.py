@@ -7,13 +7,13 @@ from ..props import (
 )
 from ..props.protobuf_field import TransformIfMissing
 from ..props.transforms import pround
-from ._v4_panel import CircuitStatus, GridStatus, V4PanelDevice
+from ._v4_device import CircuitStatus, GridStatus, V4ProtocolDevice
 
 pb = proto_attr_mapper(dev_apl_comm_pb2.DisplayPropertyUpload)
 pb_rt = proto_attr_mapper(dev_apl_comm_pb2.RuntimePropertyUpload)
 
 
-class Device(V4PanelDevice):
+class Device(V4ProtocolDevice):
     """OCEAN Panel"""
 
     SN_PREFIX = (b"HR61", b"HR6B", b"HR6D")
@@ -49,7 +49,9 @@ class Device(V4PanelDevice):
         pb.load_ch1_sample_info.load_ch_power,
         match="load_ch{n}_sample_info",
         count=NUM_OF_CIRCUITS,
-        transform=pround(2),
+        transform=TransformIfMissing[float, float](
+            lambda v: round(v, 2) if v is not None else 0.0
+        ),
         name_template="circuit_power_{n}",
     )
     circuit_current = pb_field_group(

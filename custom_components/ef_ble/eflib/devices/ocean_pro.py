@@ -8,13 +8,13 @@ from ..packet import Packet
 from ..pb import dev_apl_comm_pb2, jt_s1_sys_pb2
 from ..props import pb_field, pb_field_group, proto_attr_mapper
 from ..props.transforms import out_power, pround
-from ._v4_panel import GridStatus, V4PanelDevice
+from ._v4_device import GridStatus, V4ProtocolDevice
 
 pb = proto_attr_mapper(dev_apl_comm_pb2.DisplayPropertyUpload)
 pb_rt = proto_attr_mapper(dev_apl_comm_pb2.RuntimePropertyUpload)
 
 
-class Device(V4PanelDevice):
+class Device(V4ProtocolDevice):
     """OCEAN Pro"""
 
     SN_PREFIX = (b"HR51",)
