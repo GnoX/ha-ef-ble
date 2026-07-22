@@ -1046,6 +1046,13 @@
           "sleep": "Sleep",
           "eco": "Eco"
         }
+      },
+      "power_supply_priority": {
+        "name": "Power Supply Priority",
+        "state": {
+          "power_supply": "Power Supply",
+          "power_storage": "Power Storage"
+        }
       }
     },
     "number": {
@@ -1069,6 +1076,9 @@
       },
       "base_load_power": {
         "name": "Base Load Power"
+      },
+      "load_power": {
+        "name": "Load Power"
       },
       "grid_in_power_limit": {
         "name": "Grid Input Power Limit"
@@ -1177,6 +1187,9 @@
       },
       "discharging_task_enabled": {
         "name": "Discharging Task"
+      },
+      "feed_protect": {
+        "name": "Feed-in Control"
       }
     }
   },
