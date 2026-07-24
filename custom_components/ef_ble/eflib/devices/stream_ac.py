@@ -126,6 +126,13 @@ class EnergyStrategy(IntFieldValue):
         return operate_mode
 
 
+class EnergyMonitoringMode(IntFieldValue):
+    SEMI_AUTOMATED = 1
+    SMART_METER = 2
+
+    UNKNOWN = -1
+
+
 class Device(DeviceBase, ProtobufProps):
     """STREAM AC"""
 
@@ -162,6 +169,10 @@ class Device(DeviceBase, ProtobufProps):
         EnergyStrategy.from_pb,
     )
     energy_backup_battery_level = pb_field(pb.backup_reverse_soc)
+    energy_monitoring_mode = pb_field(
+        pb.pow_consumption_measurement,
+        EnergyMonitoringMode.from_value,
+    )
 
     grid_in_power_limit = pb_field(pb.sys_grid_in_pwr_limit)
     max_ac_in_power = pb_field(pb.pow_sys_ac_in_max)
@@ -313,6 +324,15 @@ class Device(DeviceBase, ProtobufProps):
         cfg = bk_series_pb2.ConfigWrite()
         strategy.as_pb(cfg.cfg_energy_strategy_operate_mode)
         await self._send_config_packet(cfg)
+
+    @controls.select(energy_monitoring_mode, options=EnergyMonitoringMode)
+    async def set_energy_monitoring_mode(self, mode: EnergyMonitoringMode):
+        if mode is EnergyMonitoringMode.UNKNOWN:
+            return
+
+        await self._send_config_packet(
+            bk_series_pb2.ConfigWrite(cfg_pow_consumption_measurement=mode.value)
+        )
 
     @controls.power(
         base_load_power,

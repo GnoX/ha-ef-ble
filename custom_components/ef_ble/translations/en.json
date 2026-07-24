@@ -1067,6 +1067,13 @@
           "intelligent_schedule": "Intelligent Schedule"
         }
       },
+      "energy_monitoring_mode": {
+        "name": "Energy Monitoring",
+        "state": {
+          "semi_automated": "Semi-Automated Monitoring",
+          "smart_meter": "Smart Meter Monitoring"
+        }
+      },
       "operating_submode": {
         "name": "Operating Submode",
         "state": {
