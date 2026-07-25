@@ -40,6 +40,7 @@ class Device(DeviceBase, RawDataProps):
         b"DCG",
         b"DCS",
         b"DCF",
+        b"DCJ",
         b"Z1",
         b"R511",
     )
