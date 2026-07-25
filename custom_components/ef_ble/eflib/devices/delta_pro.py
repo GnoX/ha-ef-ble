@@ -56,6 +56,8 @@ class Device(DeviceBase, RawDataProps):
     battery_level = raw_field(rd_ems.f32_lcd_show_soc, pround(2))
     battery_charge_limit_min = raw_field(rd_ems.min_dsg_soc)
     battery_charge_limit_max = raw_field(rd_ems.max_charge_soc)
+    battery_temperature = raw_field(rd_bms.temp)
+    cell_temperature = raw_field(rd_bms.max_cell_temp)
 
     battery_1_enabled = Field[bool]()
     battery_1_battery_level = Field[float]()
@@ -70,6 +72,7 @@ class Device(DeviceBase, RawDataProps):
     ac_input_voltage = raw_field(rd_inv.ac_in_vol, pdiv(1000, 2))
     ac_input_current = raw_field(rd_inv.ac_in_amp, pdiv(1000, 2))
     ac_ports = raw_field(rd_inv.cfg_ac_enabled, lambda x: x == 1)
+    inverter_temperature = raw_field(rd_inv.out_temp)
 
     dc_input_power = raw_field(rd_mppt.in_watts, pdiv(10, 1))
     dc_input_voltage = raw_field(rd_mppt.in_vol, pdiv(10, 1))
