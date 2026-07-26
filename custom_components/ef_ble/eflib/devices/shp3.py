@@ -174,8 +174,10 @@ class Device(DeviceBase, ProtobufProps):
         pb.load_ch1_sample_info.load_ch_power,
         match="load_ch{n}_sample_info",
         count=NUM_OF_CIRCUITS,
+        # The panel reports circuit consumption as negative while leaving the matching
+        # current positive; consumption is positive everywhere else in the integration
         transform=TransformIfMissing[float, float](
-            lambda v: round(v, 2) if v is not None else 0.0
+            lambda v: round(-v, 2) if v is not None else 0.0
         ),
         name_template="circuit_power_{n}",
     )
