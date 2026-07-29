@@ -9,11 +9,22 @@ from . import delta3_plus
 pb = delta3_plus.pb
 
 
-class _ACPortPower(repeated_pb_field_type(pb.pow_get_ac_out_list.pow_get_ac_out_item)):
-    index: int
+class _ACGroupPower(repeated_pb_field_type(pb.pow_get_ac_out_list.pow_get_ac_out_item)):
+    """
+    Total power of one AC socket group
+
+    `pow_get_ac_out_list` reports power per socket rather than per group -
+    `[AC1, AC1, AC2, AC2, spare]` - so a group total is the sum of its two sockets.
+    Reading a single index only worked while one socket of the pair sat idle. Group 1's
+    sum matches the device's own `pow_get_ac_out`, which keeps this honest.
+    """
+
+    indexes: tuple[int, ...]
 
     def get_item(self, value: Sequence[float]) -> float | None:
-        return round(value[self.index], 2) if value else None
+        if not value:
+            return None
+        return round(sum(value[i] for i in self.indexes if i < len(value)), 2)
 
 
 class Device(delta3_plus.Device):
@@ -23,8 +34,8 @@ class Device(delta3_plus.Device):
 
     ac_ports_2 = pb_field(pb.flow_info_ac2_out, flow_is_on)
 
-    ac_power_1 = _ACPortPower(0)
-    ac_power_2 = _ACPortPower(3)
+    ac_power_1 = _ACGroupPower((0, 1))
+    ac_power_2 = _ACGroupPower((2, 3))
 
     usbc3_output_power = pb_field(pb.pow_get_typec3, out_power)
     _max_ac_charging_power = pb_field(pb.plug_in_info_ac_in_chg_hal_pow_max)

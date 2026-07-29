@@ -2,6 +2,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from custom_components.ef_ble.eflib.devices.delta3_max_plus import Device
+from custom_components.ef_ble.eflib.pb import pd335_sys_pb2
 
 
 @pytest.fixture
@@ -88,3 +89,15 @@ async def test_delta3_max_plus_exact_values_from_known_packets(device, packet_se
         assert value == expected_value, (
             f"Field {field.public_name} is {value!r}, expected {expected_value!r}"
         )
+
+
+async def test_delta3_max_plus_ac_group_power_sums_both_sockets(device):
+    """`pow_get_ac_out_list` is per socket, so each group is the sum of its pair."""
+    message = pd335_sys_pb2.DisplayPropertyUpload()
+    message.pow_get_ac_out_list.pow_get_ac_out_item.extend([-50, -27, -283, -86, 0])
+    message.pow_get_ac_out = -77
+
+    device.update_from_message(message)
+
+    assert device.ac_power_1 == -77.0, "group 1 must match the device's pow_get_ac_out"
+    assert device.ac_power_2 == -369.0
