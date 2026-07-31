@@ -45,7 +45,7 @@ from .frame_assembler import (
 )
 from .listeners import ListenerGroup, ListenerRegistry
 from .logging_util import ConnectionLogger, LogOptions, caller_chain
-from .packet import Packet
+from .packet import InvalidPacket, Packet
 from .props.utils import classproperty
 
 MAX_RECONNECT_ATTEMPTS = 2
@@ -216,6 +216,11 @@ class Connection:
 
     _listeners = _ConnectionListeners.create()
 
+    # Consecutive undecodable frames tolerated before the session is treated as lost.
+    # A handful can follow a reconnect while stale notifications drain; a stream of them
+    # means the key no longer matches.
+    _UNDECRYPTABLE_FRAME_LIMIT = 10
+
     def __init__(
         self,
         ble_dev: BLEDevice,
@@ -242,6 +247,7 @@ class Connection:
         self._options = Connection.Options()
 
         self._errors = 0
+        self._undecryptable_frames = 0
         self._last_errors = deque(maxlen=10)
         self._disconnect_log: deque[dict[str, Any]] = deque(maxlen=10)
         self._client = None
@@ -658,8 +664,34 @@ class Connection:
                 self._logger.warning("Client disconnected after encountering 5 errors")
                 await self._disconnect_client()
 
+    async def _handle_undecryptable_frame(self, packet: InvalidPacket):
+        """
+        Recover the session when frames stop being decryptable
+
+        A frame that survives the outer CRC but does not parse afterwards means our
+        session key or cipher state no longer matches the device: the payload decrypts
+        to noise. Nothing re-derives the key mid-session, so every later frame fails the
+        same way and the device goes silent while still looking connected. Dropping the
+        link lets the normal reconnect re-run the handshake, which is what recovers it.
+        """
+        self._undecryptable_frames += 1
+        if self._undecryptable_frames < self._UNDECRYPTABLE_FRAME_LIMIT:
+            return
+
+        self._undecryptable_frames = 0
+        self._logger.warning(
+            "Session lost - %d consecutive frames could not be decoded (%s), "
+            "reconnecting to renegotiate the session key",
+            self._UNDECRYPTABLE_FRAME_LIMIT,
+            packet.error_message,
+        )
+        self._set_state(ConnectionState.ERROR_TOO_MANY_ERRORS)
+        if self._client is not None and self._client.is_connected:
+            await self._disconnect_client()
+
     def _reset_error_counter(self):
         self._errors = 0
+        self._undecryptable_frames = 0
 
     @property
     def _state(self) -> ConnectionState:
@@ -826,7 +858,10 @@ class Connection:
                     "Parsed packet: %s",
                     packet,
                 )
-                if not Packet.is_invalid(packet):
+                if Packet.is_invalid(packet):
+                    await self._handle_undecryptable_frame(packet)
+                else:
+                    self._undecryptable_frames = 0
                     packets.append(packet)
             except Exception as e:  # noqa: BLE001
                 await self.add_error(e)

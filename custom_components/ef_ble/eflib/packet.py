@@ -41,7 +41,7 @@ class Packet:
     ) -> "Packet | PacketV4 | InvalidPacket":
         if not data.startswith(Packet.PREFIX):
             error_msg = "Unable to parse packet - prefix is incorrect: %s"
-            _LOGGER.error(error_msg, bytearray(data).hex())
+            _LOGGER.debug(error_msg, bytearray(data).hex())
             return InvalidPacket(error_msg % bytearray(data).hex())
 
         version_byte = data[1]
@@ -54,7 +54,7 @@ class Packet:
 
         if (version == 2 and len(data) < 18) or (version == 3 and len(data) < 20):
             error_msg = "Unable to parse packet - too small: %s"
-            _LOGGER.error(error_msg, bytearray(data).hex())
+            _LOGGER.debug(error_msg, bytearray(data).hex())
             return InvalidPacket(error_msg % bytearray(data).hex())
 
         payload_length = struct.unpack("<H", data[2:4])[0]
@@ -64,13 +64,13 @@ class Packet:
         if version in (2, 3) and not sentinel_format and not data.endswith(b"\xbb\xbb"):
             if crc16(data[:-2]) != struct.unpack("<H", data[-2:])[0]:
                 error_msg = "Unable to parse packet - incorrect CRC16: %s"
-                _LOGGER.error(error_msg, bytearray(data).hex())
+                _LOGGER.debug(error_msg, bytearray(data).hex())
                 return InvalidPacket(error_msg % bytearray(data).hex())
 
         # Check header CRC8
         if crc8(data[:4]) != data[4]:
             error_msg = "Unable to parse packet - incorrect header CRC8: %s"
-            _LOGGER.error(error_msg, bytearray(data).hex())
+            _LOGGER.debug(error_msg, bytearray(data).hex())
             return InvalidPacket(error_msg % bytearray(data).hex())
 
         # data[4] # crc8 of header
@@ -234,29 +234,29 @@ class PacketV4:
     def from_bytes(data: bytes) -> "PacketV4 | InvalidPacket":
         if len(data) < 18:
             error_msg = "Unable to parse packet - too small: %s"
-            _LOGGER.error(error_msg, bytearray(data).hex())
+            _LOGGER.debug(error_msg, bytearray(data).hex())
             return InvalidPacket(error_msg % bytearray(data).hex())
 
         payload_length = struct.unpack("<H", data[2:4])[0]
 
         if len(data) != 8 + payload_length + 2:
             error_msg = "Unable to parse packet - V4 length mismatch: %s"
-            _LOGGER.error(error_msg, bytearray(data).hex())
+            _LOGGER.debug(error_msg, bytearray(data).hex())
             return InvalidPacket(error_msg % bytearray(data).hex())
 
         if crc16(data[:-2]) != struct.unpack("<H", data[-2:])[0]:
             error_msg = "Unable to parse packet - incorrect CRC16: %s"
-            _LOGGER.error(error_msg, bytearray(data).hex())
+            _LOGGER.debug(error_msg, bytearray(data).hex())
             return InvalidPacket(error_msg % bytearray(data).hex())
 
         if crc8(data[:4]) != data[4]:
             error_msg = "Unable to parse packet - incorrect header CRC8: %s"
-            _LOGGER.error(error_msg, bytearray(data).hex())
+            _LOGGER.debug(error_msg, bytearray(data).hex())
             return InvalidPacket(error_msg % bytearray(data).hex())
 
         if payload_length < 8:
             error_msg = "Unable to parse packet - V4 payload too short: %s"
-            _LOGGER.error(error_msg, bytearray(data).hex())
+            _LOGGER.debug(error_msg, bytearray(data).hex())
             return InvalidPacket(error_msg % bytearray(data).hex())
 
         # Outer header fields - bytes [5:7] are not obfuscated
