@@ -2,7 +2,8 @@
 
 import asyncio
 import logging
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
+from contextlib import asynccontextmanager
 from functools import partial
 
 import homeassistant.helpers.issue_registry as ir
@@ -67,6 +68,44 @@ ConfigEntryNotReady = partial(ConfigEntryNotReady, translation_domain=DOMAIN)
 ConfigEntryError = partial(ConfigEntryError, translation_domain=DOMAIN)
 
 _REAPPEAR_CALLBACKS_KEY = f"{DOMAIN}_reappear_callbacks"
+_CONNECT_GATE_KEY = f"{DOMAIN}_connect_gate"
+
+# Home Assistant scores connection paths partly on how many connections a proxy already
+# has in flight, penalising a busy one by more than its entire signal advantage. Two of
+# our devices connecting at once therefore push the second onto a worse proxy for the
+# whole session, which is why initial connects are taken one at a time.
+_CONNECT_GATE_TIMEOUT = 30.0
+# Let the proxy drop its in-progress count before the next device is scored.
+_CONNECT_GATE_SETTLE = 1.0
+
+
+@asynccontextmanager
+async def _connect_gate(hass: HomeAssistant, name: str) -> AsyncIterator[None]:
+    """
+    Serialise initial connections so our own devices do not outbid each other
+
+    The wait is bounded: a device whose connection hangs must not keep every other
+    device offline, so after the timeout we go ahead and connect anyway and accept
+    the contention.
+    """
+    lock: asyncio.Lock = hass.data.setdefault(_CONNECT_GATE_KEY, asyncio.Lock())
+    acquired = False
+    try:
+        await asyncio.wait_for(lock.acquire(), _CONNECT_GATE_TIMEOUT)
+        acquired = True
+    except TimeoutError:
+        _LOGGER.debug(
+            "%s: another device is still connecting after %ss - connecting anyway",
+            name,
+            _CONNECT_GATE_TIMEOUT,
+        )
+
+    try:
+        yield
+    finally:
+        if acquired:
+            await asyncio.sleep(_CONNECT_GATE_SETTLE)
+            lock.release()
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bool:
@@ -125,19 +164,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
     issue_id = f"{entry.entry_id}_max_connection_attempts"
 
     try:
-        await (
-            device.with_update_period(update_period)
-            .with_logging_options(ConfLogOptions.from_config(merged_options))
-            .with_disabled_reconnect()
-            .with_packet_version(packet_version.to_num())
-            .with_enabled_packet_diagnostics(packet_collection_enabled)
-            .with_diagnostics_on_exception(diagnostics_on_exception)
-            .with_connection_options(options)
-            .connect(
-                user_id=user_id,
-                max_attempts=0 if eflib.is_solar_only(device) else None,
+        async with _connect_gate(hass, device.name):
+            await (
+                device.with_update_period(update_period)
+                .with_logging_options(ConfLogOptions.from_config(merged_options))
+                .with_disabled_reconnect()
+                .with_packet_version(packet_version.to_num())
+                .with_enabled_packet_diagnostics(packet_collection_enabled)
+                .with_diagnostics_on_exception(diagnostics_on_exception)
+                .with_connection_options(options)
+                .connect(
+                    user_id=user_id,
+                    max_attempts=0 if eflib.is_solar_only(device) else None,
+                )
             )
-        )
         async with asyncio.timeout(timeout):
             state = await device.wait_until_authenticated_or_error(raise_on_error=True)
     except (
