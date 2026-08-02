@@ -40,6 +40,7 @@ from .const import (
     CONF_BLUEZ_START_NOTIFY,
     CONF_COLLECT_PACKETS,
     CONF_COLLECT_PACKETS_AMOUNT,
+    CONF_CONNECT_STAGGER,
     CONF_CONNECTION_TIMEOUT,
     CONF_DIAGNOSTICS_ENCRYPT,
     CONF_DIAGNOSTICS_ON_EXCEPTION,
@@ -55,6 +56,7 @@ from .const import (
     CONF_PACKET_VERSION,
     CONF_UPDATE_PERIOD,
     CONF_USER_ID,
+    DEFAULT_CONNECT_STAGGER,
     DEFAULT_CONNECTION_TIMEOUT,
     DEFAULT_UPDATE_PERIOD,
     DOMAIN,
@@ -918,6 +920,11 @@ class _SchemaBuilder:
                             advanced.get(
                                 CONF_CONNECTION_TIMEOUT, DEFAULT_CONNECTION_TIMEOUT
                             ),
+                        )
+                        .optional(
+                            CONF_CONNECT_STAGGER,
+                            vol.All(vol.Coerce(float), vol.Range(min=0, max=60)),
+                            advanced.get(CONF_CONNECT_STAGGER, DEFAULT_CONNECT_STAGGER),
                         )
                         .optional(
                             CONF_BLUEZ_START_NOTIFY,

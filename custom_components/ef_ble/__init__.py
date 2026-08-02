@@ -30,6 +30,7 @@ from .const import (
     CONF_ADVANCED_CONNECTION_OPTIONS,
     CONF_BLUEZ_START_NOTIFY,
     CONF_COLLECT_PACKETS_AMOUNT,
+    CONF_CONNECT_STAGGER,
     CONF_CONNECTION_TIMEOUT,
     CONF_DIAGNOSTICS_ON_EXCEPTION,
     CONF_DIAGNOSTICS_OPTIONS,
@@ -37,6 +38,7 @@ from .const import (
     CONF_PACKET_VERSION,
     CONF_UPDATE_PERIOD,
     CONF_USER_ID,
+    DEFAULT_CONNECT_STAGGER,
     DEFAULT_CONNECTION_TIMEOUT,
     DEFAULT_UPDATE_PERIOD,
     DOMAIN,
@@ -75,19 +77,27 @@ _CONNECT_GATE_KEY = f"{DOMAIN}_connect_gate"
 # our devices connecting at once therefore push the second onto a worse proxy for the
 # whole session, which is why initial connects are taken one at a time.
 _CONNECT_GATE_TIMEOUT = 30.0
-# Let the proxy drop its in-progress count before the next device is scored.
-_CONNECT_GATE_SETTLE = 1.0
 
 
 @asynccontextmanager
-async def _connect_gate(hass: HomeAssistant, name: str) -> AsyncIterator[None]:
+async def _connect_gate(
+    hass: HomeAssistant, name: str, settle: float
+) -> AsyncIterator[None]:
     """
     Serialise initial connections so our own devices do not outbid each other
 
-    The wait is bounded: a device whose connection hangs must not keep every other
-    device offline, so after the timeout we go ahead and connect anyway and accept
+    `settle` is how long this device keeps the gate closed after connecting, giving the
+    proxy time to drop its in-progress count before the next device is scored; `0`
+    disables the gate for this device, which connects immediately and takes its chances.
+
+    The wait is otherwise bounded: a device whose connection hangs must not keep every
+    other device offline, so after the timeout we go ahead and connect anyway and accept
     the contention.
     """
+    if not settle:
+        yield
+        return
+
     lock: asyncio.Lock = hass.data.setdefault(_CONNECT_GATE_KEY, asyncio.Lock())
     acquired = False
     try:
@@ -104,7 +114,7 @@ async def _connect_gate(hass: HomeAssistant, name: str) -> AsyncIterator[None]:
         yield
     finally:
         if acquired:
-            await asyncio.sleep(_CONNECT_GATE_SETTLE)
+            await asyncio.sleep(settle)
             lock.release()
 
 
@@ -157,6 +167,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
 
     advanced = merged_options.get(CONF_ADVANCED_CONNECTION_OPTIONS, {})
     timeout = advanced.get(CONF_CONNECTION_TIMEOUT, DEFAULT_CONNECTION_TIMEOUT)
+    connect_stagger = advanced.get(CONF_CONNECT_STAGGER, DEFAULT_CONNECT_STAGGER)
     options = Connection.Options(
         timeout=timeout,
         bluez_start_notify=advanced.get(CONF_BLUEZ_START_NOTIFY, False),
@@ -164,7 +175,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
     issue_id = f"{entry.entry_id}_max_connection_attempts"
 
     try:
-        async with _connect_gate(hass, device.name):
+        async with _connect_gate(hass, device.name, connect_stagger):
             await (
                 device.with_update_period(update_period)
                 .with_logging_options(ConfLogOptions.from_config(merged_options))

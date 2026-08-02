@@ -13,6 +13,7 @@ CONF_EXTRA_BATTERY = "extra_battery"
 
 CONF_ADVANCED_CONNECTION_OPTIONS = "advanced_connection_options"
 CONF_BLUEZ_START_NOTIFY = "bluez_start_notify"
+CONF_CONNECT_STAGGER = "connect_stagger"
 
 CONF_DIAGNOSTICS_OPTIONS = "diagnostics_options"
 CONF_DIAGNOSTICS_ENCRYPT = "diagnostics_encrypt"
@@ -29,6 +30,7 @@ CONF_LOG_BLEAK = "log_bleak"
 
 DEFAULT_UPDATE_PERIOD = 10
 DEFAULT_CONNECTION_TIMEOUT = 20
+DEFAULT_CONNECT_STAGGER = 1.0
 
 
 LINK_WIKI_SUPPORTING_NEW_DEVICES = (

@@ -69,10 +69,12 @@
             "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
             "data": {
               "connection_timeout": "Connection timeout",
+              "connect_stagger": "Stagger initial connections (seconds)",
               "bluez_start_notify": "Use BlueZ start notify"
             },
             "data_description": {
               "connection_timeout": "Number of seconds to wait for the device to connect and authenticate.",
+              "connect_stagger": "Wait this long after this device connects before another EcoFlow device may start connecting. Home Assistant scores Bluetooth proxies partly on how many connections they already have in flight, so two devices connecting at once can push the second onto a more distant proxy for the whole session. Set to 0 to connect immediately without waiting for other devices.",
               "bluez_start_notify": "Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
             }
           }
@@ -126,10 +128,12 @@
             "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
             "data": {
               "connection_timeout": "Connection timeout",
+              "connect_stagger": "Stagger initial connections (seconds)",
               "bluez_start_notify": "Use BlueZ start notify"
             },
             "data_description": {
               "connection_timeout": "Number of seconds to wait for the device to connect and authenticate.",
+              "connect_stagger": "Wait this long after this device connects before another EcoFlow device may start connecting. Home Assistant scores Bluetooth proxies partly on how many connections they already have in flight, so two devices connecting at once can push the second onto a more distant proxy for the whole session. Set to 0 to connect immediately without waiting for other devices.",
               "bluez_start_notify": "Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
             }
           }
@@ -178,10 +182,12 @@
             "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
             "data": {
               "connection_timeout": "Connection timeout",
+              "connect_stagger": "Stagger initial connections (seconds)",
               "bluez_start_notify": "Use BlueZ start notify"
             },
             "data_description": {
               "connection_timeout": "Number of seconds to wait for the device to connect and authenticate.",
+              "connect_stagger": "Wait this long after this device connects before another EcoFlow device may start connecting. Home Assistant scores Bluetooth proxies partly on how many connections they already have in flight, so two devices connecting at once can push the second onto a more distant proxy for the whole session. Set to 0 to connect immediately without waiting for other devices.",
               "bluez_start_notify": "Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
             }
           }
@@ -248,10 +254,12 @@
             "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
             "data": {
               "connection_timeout": "Connection timeout",
+              "connect_stagger": "Stagger initial connections (seconds)",
               "bluez_start_notify": "Use BlueZ start notify"
             },
             "data_description": {
               "connection_timeout": "Number of seconds to wait for the device to connect and authenticate.",
+              "connect_stagger": "Wait this long after this device connects before another EcoFlow device may start connecting. Home Assistant scores Bluetooth proxies partly on how many connections they already have in flight, so two devices connecting at once can push the second onto a more distant proxy for the whole session. Set to 0 to connect immediately without waiting for other devices.",
               "bluez_start_notify": "Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
             }
           }
