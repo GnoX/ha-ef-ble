@@ -5,6 +5,7 @@ import logging
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from functools import partial
+from time import monotonic
 
 import homeassistant.helpers.issue_registry as ir
 from homeassistant.components import bluetooth
@@ -95,16 +96,25 @@ async def _connect_gate(
     the contention.
     """
     if not settle:
+        _LOGGER.debug("%s: connect stagger disabled, connecting immediately", name)
         yield
         return
 
     lock: asyncio.Lock = hass.data.setdefault(_CONNECT_GATE_KEY, asyncio.Lock())
+    contended = lock.locked()
+    started = monotonic()
     acquired = False
     try:
         await asyncio.wait_for(lock.acquire(), _CONNECT_GATE_TIMEOUT)
         acquired = True
+        if contended:
+            _LOGGER.info(
+                "%s: waited %.1fs for another device to finish connecting",
+                name,
+                monotonic() - started,
+            )
     except TimeoutError:
-        _LOGGER.debug(
+        _LOGGER.warning(
             "%s: another device is still connecting after %ss - connecting anyway",
             name,
             _CONNECT_GATE_TIMEOUT,
@@ -114,6 +124,9 @@ async def _connect_gate(
         yield
     finally:
         if acquired:
+            _LOGGER.info(
+                "%s: connected, holding other devices back for %ss", name, settle
+            )
             await asyncio.sleep(settle)
             lock.release()
 
