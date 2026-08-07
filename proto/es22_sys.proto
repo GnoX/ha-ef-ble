@@ -1,0 +1,62 @@
+syntax = "proto2";
+
+package es22_sys;
+
+// Telemetry the device pushes on cmd_set 0xFE / cmd_id 0x27. Only the fields confirmed
+// against captures are declared here; unknown ones stay unparsed, which protobuf
+// tolerates. Field names follow the naming EcoFlow uses for the same quantities in
+// other device families.
+
+message BatteryInfo {
+  optional uint32 bp_soc = 1;
+  optional uint32 bp_soh = 2;
+  optional uint32 bp_temp1 = 11;
+  optional uint32 bp_temp2 = 12;
+  optional uint32 bp_temp3 = 13;
+  optional uint32 bp_temp4 = 14;
+}
+
+message PowerInfo {
+  // AC side of the converter: positive while charging from AC, negative while
+  // supplying it. Always the pre-loss figure when charging and the post-loss one when
+  // discharging, which is what separates it from `bp_pwr`.
+  optional float ac_pwr = 4;
+  // battery side: positive while discharging, negative while charging
+  optional float bp_pwr = 6;
+}
+
+message AcInfo {
+  optional uint32 ac_out_pwr = 4;
+  optional uint32 ac_in_pwr = 7;
+}
+
+message SystemInfo {
+  optional uint32 bp_soc = 2;
+}
+
+message BatteryReport {
+  optional BatteryInfo info = 1;
+}
+
+message PowerReport {
+  optional PowerInfo info = 1;
+}
+
+message SystemReport {
+  optional SystemInfo info = 1;
+}
+
+message DisplayPropertyUpload {
+  optional AcInfo ac = 12;
+  optional BatteryReport battery = 38;
+  optional PowerReport power = 50;
+  optional SystemReport system = 54;
+}
+
+// Writes go out on cmd_set 0xFE / cmd_id 0x11. Field numbers 71 and 72 are the same in
+// every family that declares them, so the two triggers can be sent without knowing the
+// rest of this device's config schema.
+message ConfigWrite {
+  optional bool active_display_property_full_upload = 71;
+  optional bool active_runtime_property_full_upload = 72;
+}
