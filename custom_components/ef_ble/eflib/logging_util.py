@@ -6,7 +6,7 @@ import re
 import time
 import traceback
 from collections import deque
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import Flag, auto
@@ -231,7 +231,12 @@ class ConnectionLog:
     def _cache_path(self):
         return self.cache_file_for(self.name)
 
-    def append(self, state: "ConnectionState", reason: str | None = None):
+    def append(
+        self,
+        state: "ConnectionState",
+        reason: str | None = None,
+        error: Exception | type[Exception] | None = None,
+    ):
         entry: dict[str, float | str] = {
             "time": time.time() - self._history_start,
             "state": f"{state.name}",
@@ -239,6 +244,15 @@ class ConnectionLog:
 
         if reason:
             entry["reason"] = reason
+        # An error state on its own says a connection failed but never why, which is the
+        # one thing worth knowing when reading someone else's diagnostics. The type is
+        # safe to read in the clear; the message is not - `BleakError` and friends quote
+        # the device address - so it is kept apart and encrypted with the rest.
+        if error is not None:
+            entry["error"] = (
+                type(error).__name__ if isinstance(error, Exception) else error.__name__
+            )
+            entry["error_detail"] = str(error)
 
         self.history.append(entry)
         if self.cache_to_file:
@@ -340,6 +354,27 @@ class DeviceDiagnosticsCollector:
         """Get diagnostics data as dictionary"""
         return self.diagnostics.serialize(session).as_dict()
 
+    @staticmethod
+    def encode_history(
+        entries: "Iterable[dict[str, float | str]]", session: Session | None
+    ) -> list[dict[str, float | str]]:
+        """
+        Serialize connection history entries, encrypting the part that can identify
+
+        The state, its timing and the exception type stay readable; the exception
+        message does not, since it can quote the device address.
+        """
+
+        def encode(entry: dict[str, float | str]) -> dict[str, float | str]:
+            detail = entry.get("error_detail")
+            if detail is None or session is None:
+                return dict(entry)
+            return dict(entry) | {
+                "error_detail": session.encrypt(str(detail).encode()).hex()
+            }
+
+        return [encode(entry) for entry in entries]
+
     def build_diagnostics_dict(self, session: Session | None = None) -> dict:
         device = self._device
         result: dict = {
@@ -348,7 +383,9 @@ class DeviceDiagnosticsCollector:
             "default_name": device._default_name,
             "sn_prefix": device._sn[:4],
             "connection_state": device.connection_state,
-            "connection_state_history": list(device.connection_log.history),
+            "connection_state_history": self.encode_history(
+                device.connection_log.history, session
+            ),
             "manufacturer_data": (
                 session.encrypt(device._manufacturer_data).hex()
                 if session is not None

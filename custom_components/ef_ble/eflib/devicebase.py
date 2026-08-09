@@ -338,7 +338,8 @@ class DeviceBase(abc.ABC):
 
     def _append_state_to_log(self, state: ConnectionState) -> None:
         reason = self._conn.state_reason if self._conn is not None else None
-        self.connection_log.append(state, reason)
+        error = self._conn.state_exception if self._conn is not None else None
+        self.connection_log.append(state, reason, error)
 
     async def disconnect(self):
         if self._conn is None:

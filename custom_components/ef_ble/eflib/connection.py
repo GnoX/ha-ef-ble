@@ -687,6 +687,10 @@ class Connection:
     def state_reason(self) -> str | None:
         return self._state_reason
 
+    @property
+    def state_exception(self) -> Exception | type[Exception] | None:
+        return self._state_exception
+
     def _set_state(
         self,
         state: ConnectionState,

@@ -21,6 +21,10 @@ async def async_get_config_entry_diagnostics(
         connection_setup = await hass.async_add_executor_job(
             device.connection_log.load_from_cache
         )
-        diagnostics |= {"connection_setup": connection_setup}
+        diagnostics |= {
+            "connection_setup": device.diagnostics.encode_history(
+                connection_setup, session
+            )
+        }
 
     return diagnostics
