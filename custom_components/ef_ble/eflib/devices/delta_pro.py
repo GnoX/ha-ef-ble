@@ -40,6 +40,7 @@ class Device(DeviceBase, RawDataProps):
         b"DCG",
         b"DCS",
         b"DCF",
+        b"DCJ",
         b"Z1",
         b"R511",
     )
@@ -76,7 +77,9 @@ class Device(DeviceBase, RawDataProps):
     dc_input_current = raw_field(rd_mppt.in_amp, pdiv(100, 2))
 
     ac_charging_speed = raw_field(rd_inv.cfg_slow_chg_watts)
-    max_ac_charging_power = Field[int]()
+    max_ac_charging_power = raw_field(
+        rd_inv.ac_chg_rated_power, lambda x: x if x and x > 200 else 1800
+    )
 
     input_power = raw_field(rd_pd.watts_in_sum)
     output_power = raw_field(rd_pd.watts_out_sum)
@@ -106,7 +109,6 @@ class Device(DeviceBase, RawDataProps):
         self._dormant = True
         self._wake_up_sent = False
         self._initialized = False
-        self.max_ac_charging_power = 2900
 
         self.add_timer_task(self.request_heartbeat, 0.35)
 
