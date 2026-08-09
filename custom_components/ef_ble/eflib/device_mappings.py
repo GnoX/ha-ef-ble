@@ -104,6 +104,7 @@ ECOFLOW_DEVICE_LIST = {
 
     "DCA": {"name": "EcoFlow DELTA Pro", "packets": "v1"},
     "DCF": {"name": "EcoFlow DELTA Pro", "packets": "v1"},
+    "DCJ": {"name": "EcoFlow DELTA Pro", "packets": "v1"},
     "R511":{"name": "EcoFlow DELTA Pro", "packets": "v1"},
     "Z0":  {"name": "EcoFlow DELTA Pro DZ500", "packets": "v1"},
 
