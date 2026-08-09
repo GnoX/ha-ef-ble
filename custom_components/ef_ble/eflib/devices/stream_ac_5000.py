@@ -5,6 +5,7 @@ from ..devicebase import DeviceBase
 from ..packet import Packet
 from ..pb import es22_sys_pb2
 from ..props import ProtobufProps, computed_field, pb_field, proto_attr_mapper
+from ..props.protobuf_field import TransformIfMissing
 from ..props.transforms import out_power
 
 pb = proto_attr_mapper(es22_sys_pb2.DisplayPropertyUpload)
@@ -16,15 +17,23 @@ class Device(DeviceBase, ProtobufProps):
     SN_PREFIX = (b"ES22",)
     NAME_PREFIX = "EF-6"
 
-    # the device only pushes the properties that changed, so ask it to send everything
-    # it has - once right after authentication and periodically afterwards
     _FULL_UPLOAD_INTERVAL = 300
 
     battery_level = pb_field(pb.system.info.bp_soc)
-    # the device reports battery power positive while discharging
-    battery_power = pb_field(pb.power.info.bp_pwr, out_power)
-    ac_input_power = pb_field(pb.ac.ac_in_pwr)
-    ac_output_power = pb_field(pb.ac.ac_out_pwr)
+    battery_power = pb_field(
+        pb.power.info.bp_pwr,
+        TransformIfMissing[float, float](
+            lambda v: out_power(v) if v is not None else 0.0
+        ),
+    )
+    ac_input_power = pb_field(
+        pb.ac.ac_in_pwr,
+        TransformIfMissing[int, int](lambda v: v if v is not None else 0),
+    )
+    ac_output_power = pb_field(
+        pb.ac.ac_out_pwr,
+        TransformIfMissing[int, int](lambda v: v if v is not None else 0),
+    )
 
     _bp_temp1 = pb_field(pb.battery.info.bp_temp1)
     _bp_temp2 = pb_field(pb.battery.info.bp_temp2)
