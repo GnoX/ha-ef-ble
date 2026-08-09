@@ -254,6 +254,7 @@ class Connection:
 
         self._errors = 0
         self._last_errors = deque(maxlen=10)
+        self._auth_events: deque[dict[str, Any]] = deque(maxlen=10)
         self._disconnect_log: deque[dict[str, Any]] = deque(maxlen=10)
         self._client = None
         self._connected = asyncio.Event()
@@ -546,6 +547,11 @@ class Connection:
         )
 
     @property
+    def auth_events(self) -> list[dict[str, Any]]:
+        """Auth steps that failed without costing the connection, for diagnostics"""
+        return list(self._auth_events)
+
+    @property
     def disconnect_log(self) -> list[dict[str, Any]]:
         """Recent BLE client disconnect outcomes, for diagnostics"""
         return list(self._disconnect_log)
@@ -588,6 +594,23 @@ class Connection:
                 try:
                     await fn(self, characteristic, recv_data)
                 except Exception as e:  # noqa: BLE001
+                    if self._state.authenticated:
+                        self._logger.warning(
+                            "Auth step %s failed after the device had already started "
+                            "sending data, keeping the connection: %s",
+                            fn.__name__,
+                            e,
+                        )
+                        self._auth_events.append(
+                            {
+                                "time": time.time(),
+                                "step": fn.__name__,
+                                "outcome": "kept the connection",
+                                "error": type(e).__name__,
+                                "error_detail": str(e),
+                            }
+                        )
+                        return
                     await self._disconnect_error(ConnectionState.ERROR_AUTH_FAILED, e)
 
             return wrapper

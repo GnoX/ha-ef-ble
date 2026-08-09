@@ -396,6 +396,8 @@ class DeviceDiagnosticsCollector:
             result["session"] = session.header.hex()
         if (conn := device._conn) is not None and conn.disconnect_log:
             result["disconnect_log"] = conn.disconnect_log
+        if conn is not None and conn.auth_events:
+            result["auth_events"] = self.encode_history(conn.auth_events, session)
         if self.is_enabled:
             result |= self.as_dict(session)
         return result
