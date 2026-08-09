@@ -50,6 +50,9 @@ from .packet import Packet
 from .props.utils import classproperty
 
 MAX_RECONNECT_ATTEMPTS = 2
+# Diagnostics buffers span several sessions, so keep the keys of the recent ones -
+# with only the live key, everything captured before the last reconnect is unreadable
+_SESSION_KEY_HISTORY = 10
 MAX_CONNECTION_ATTEMPTS = 10
 
 # `BleakClient.disconnect()` can block until the connect timeout (default 20s) when a
@@ -242,6 +245,9 @@ class Connection:
         self._encrypt_type = encrypt_type
         self._encryption: EncryptionStrategy | None = None
         self._initial_session_key: bytes = b""
+        self._session_keys: deque[tuple[float, bytes, bytes]] = deque(
+            maxlen=_SESSION_KEY_HISTORY
+        )
         self._simple_assembler = SimplePacketAssembler()
         self._frame_assembler: FrameAssembler | None = None
         self._options = Connection.Options()
@@ -963,7 +969,7 @@ class Connection:
         self._frame_assembler = None
 
     async def _type_0_session(self):
-        self._encryption = None
+        self._use_encryption(None)
 
         await self._start_notify(self.listenForDataHandler)
 
@@ -973,7 +979,7 @@ class Connection:
     async def _type_1_session(self):
         session_key = hashlib.md5(self._dev_sn.encode()).digest()
         iv = hashlib.md5(self._dev_sn[::-1].encode()).digest()
-        self._encryption = Type1Encryption(session_key, iv)
+        self._use_encryption(Type1Encryption(session_key, iv))
 
         await self._start_notify(self.listenForDataHandler)
 
@@ -1068,7 +1074,7 @@ class Connection:
         # Parse the data that contains sRand (first 16 bytes) & seed (last 2 bytes)
         session_key = await self.genSessionKey(data[16:18], data[:16])
         self._initial_session_key = self._encryption.session_key
-        self._encryption = Type7Encryption(session_key, self._encryption.iv)
+        self._use_encryption(Type7Encryption(session_key, self._encryption.iv))
 
         await self.getAuthStatus()
 
@@ -1267,6 +1273,18 @@ class Connection:
                 self._logger.log_filtered(
                     LogOptions.CONNECTION_DEBUG, "listenForDataHandler: %r", packet
                 )
+
+    def _use_encryption(self, encryption: EncryptionStrategy | None) -> None:
+        self._encryption = encryption
+        if encryption is not None:
+            self._session_keys.append(
+                (time.time(), encryption.session_key, encryption.iv)
+            )
+
+    @property
+    def session_keys(self) -> list[tuple[float, bytes, bytes]]:
+        """Keys of the recent sessions, as `(unix time, session key, iv)`"""
+        return list(self._session_keys)
 
     def _create_frame_assembler(self):
         match self._encrypt_type:

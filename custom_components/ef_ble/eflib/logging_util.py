@@ -275,6 +275,7 @@ class DeviceDiagnostics:
     iv: bytes
     session_key: bytes
     initial_session_key: bytes
+    session_keys: list[tuple[float, bytes, bytes]]
 
     def _encode_bytes(self, value: bytes, session: Session | None) -> str:
         if session is not None:
@@ -300,6 +301,10 @@ class DeviceDiagnostics:
             iv=self._encode_bytes(self.iv, session),
             session_key=self._encode_bytes(self.session_key, session),
             initial_session_key=self._encode_bytes(self.initial_session_key, session),
+            session_keys=[
+                (t, self._encode_bytes(key, session), self._encode_bytes(iv, session))
+                for (t, key, iv) in self.session_keys
+            ],
         )
 
     def as_dict(self):
@@ -372,6 +377,9 @@ class DeviceDiagnosticsCollector:
             raw_data_connection=self._raw_data_connection,
             raw_data_messages=list(self._raw_data_messages),
             raw_data_send=list(self._raw_data_send),
+            session_keys=[
+                (t - self._start_time, key, iv) for (t, key, iv) in conn.session_keys
+            ],
             iv=encryption.iv if encryption is not None else b"",
             session_key=encryption.session_key if encryption is not None else b"",
             initial_session_key=conn._initial_session_key,
