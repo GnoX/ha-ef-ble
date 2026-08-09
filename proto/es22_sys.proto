@@ -52,11 +52,3 @@ message DisplayPropertyUpload {
   optional PowerReport power = 50;
   optional SystemReport system = 54;
 }
-
-// Writes go out on cmd_set 0xFE / cmd_id 0x11. Field numbers 71 and 72 are the same in
-// every family that declares them, so the two triggers can be sent without knowing the
-// rest of this device's config schema.
-message ConfigWrite {
-  optional bool active_display_property_full_upload = 71;
-  optional bool active_runtime_property_full_upload = 72;
-}

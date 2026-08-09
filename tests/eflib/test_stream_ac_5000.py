@@ -3,7 +3,6 @@ from pytest_mock import MockerFixture
 
 from custom_components.ef_ble.eflib.devices.stream_ac_5000 import Device
 from custom_components.ef_ble.eflib.packet import Packet
-from custom_components.ef_ble.eflib.pb import es22_sys_pb2
 
 # Telemetry payloads captured from a STREAM AC 5000, with the serial number masked. The
 # device reports only the properties that changed, so battery and power readings arrive
@@ -72,27 +71,3 @@ async def test_stream_ac_5000_ignores_packets_from_other_modules(device):
     )
 
     assert processed is False
-
-
-async def test_stream_ac_5000_requests_a_full_property_upload(device):
-    await device._request_full_upload()
-
-    device._conn.sendPacket.assert_awaited_once()
-    packet = device._conn.sendPacket.await_args.args[0]
-    assert (packet.src, packet.dst, packet.cmd_set, packet.cmd_id) == (
-        0x21,
-        0x02,
-        0xFE,
-        0x11,
-    )
-
-    config = es22_sys_pb2.ConfigWrite()
-    config.ParseFromString(packet.payload)
-    assert config.active_display_property_full_upload is True
-    assert config.active_runtime_property_full_upload is True
-
-
-async def test_stream_ac_5000_skips_the_upload_request_while_disconnected(device):
-    device._conn = None
-
-    await device._request_full_upload()
