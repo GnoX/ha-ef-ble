@@ -38,7 +38,7 @@ class Packet:
     @staticmethod
     def from_bytes(
         data: bytes, xor_payload: bool = False
-    ) -> "Packet | PacketV4 | InvalidPacket":
+    ) -> "Packet | PacketV4 | PacketV4Routed | InvalidPacket":
         if not data.startswith(Packet.PREFIX):
             error_msg = "Unable to parse packet - prefix is incorrect: %s"
             _LOGGER.error(error_msg, bytearray(data).hex())
@@ -47,6 +47,8 @@ class Packet:
         version_byte = data[1]
 
         if version_byte == 4:
+            if PacketV4Routed.matches(data):
+                return PacketV4Routed.from_bytes(data)
             return PacketV4.from_bytes(data)
 
         version = version_byte & 0x0F
@@ -163,10 +165,102 @@ class Packet:
 
     @staticmethod
     def is_invalid(
-        packet: "Packet | PacketV4 | InvalidPacket",
+        packet: "Packet | PacketV4 | PacketV4Routed | InvalidPacket",
     ) -> TypeGuard["InvalidPacket"]:
         """Check if the given packet is invalid."""
         return isinstance(packet, InvalidPacket)
+
+
+@dataclass(slots=True)
+class PacketV4Routed:
+    """
+    V4 frame variant that routes by serial number instead of module address
+
+    The STREAM AC 5000 mixes these in with its regular V3 telemetry. They share the V4
+    outer header - `0xAA`, version `0x04`, little-endian length, header CRC8 - but differ
+    from `PacketV4` in two ways that make it reject them: the body is not obfuscated, and
+    the last two bytes are a fixed `0xBBBB` marker rather than a CRC16.
+
+    Wire format:
+      [0]      `0xAA` prefix
+      [1]      version, `0x04`
+      [2:4]    body length, little-endian (excludes the 8-byte header and the marker)
+      [4]      CRC8 of bytes 0..3
+      [5:8]    `01 00 01`
+      [8]      `0x21` - start of the routing header
+      [9:25]   device serial number, ASCII
+      [25:30]  `21 01 40 03 03` - rest of the routing header
+      [30]     flags, `0x2e`
+      [31]     cmd_set
+      [32]     cmd_id
+      [33]     sequence, wraps
+      [34]     src
+      [35:38]  `01 21 01`
+      [38:-2]  payload
+      [-2:]    `0xBBBB` end marker
+
+    The routing header is the same 22 bytes SHP3 carries, but it sits before the command
+    header here rather than after it, so the two cannot share a parser.
+    """
+
+    src: int
+    dst: int
+    cmd_set: int
+    cmd_id: int
+    payload: bytes = b""
+    serial: str = ""
+    seq: int = 0
+    flags: int = 0
+
+    PREFIX: ClassVar[bytes] = b"\xaa"
+    VERSION: ClassVar[int] = 0x04
+    END_MARKER: ClassVar[bytes] = b"\xbb\xbb"
+    _HEADER_LEN: ClassVar[int] = 8
+    _PAYLOAD_START: ClassVar[int] = 38
+
+    @property
+    def version(self) -> int:
+        return self.VERSION
+
+    @property
+    def payload_hex(self) -> str:
+        return self.payload.hex()
+
+    @staticmethod
+    def matches(data: bytes) -> bool:
+        """Whether `data` carries the serial-routed V4 signature"""
+        return (
+            len(data) > PacketV4Routed._PAYLOAD_START + 2
+            and data.endswith(PacketV4Routed.END_MARKER)
+            and data[8] == 0x21
+            and data[25] == 0x21
+            and data[30] == 0x2E
+        )
+
+    @staticmethod
+    def from_bytes(data: bytes) -> "PacketV4Routed | InvalidPacket":
+        def invalid(reason: str) -> InvalidPacket:
+            error_msg = f"Unable to parse packet - {reason}: %s"
+            _LOGGER.debug(error_msg, bytearray(data).hex())
+            return InvalidPacket(error_msg % bytearray(data).hex())
+
+        body_length = struct.unpack("<H", data[2:4])[0]
+        if len(data) != PacketV4Routed._HEADER_LEN + body_length + 2:
+            return invalid("routed V4 length mismatch")
+
+        if crc8(data[:4]) != data[4]:
+            return invalid("incorrect header CRC8")
+
+        return PacketV4Routed(
+            src=data[34],
+            dst=data[36],
+            cmd_set=data[31],
+            cmd_id=data[32],
+            payload=data[PacketV4Routed._PAYLOAD_START : -2],
+            serial=data[9:25].decode("ASCII", "replace"),
+            seq=data[33],
+            flags=data[30],
+        )
 
 
 @dataclass(slots=True)

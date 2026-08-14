@@ -25,6 +25,24 @@ CHARGE_BATTERY_AND_AC = (
 )
 
 
+# A serial-routed V4 frame from the same capture, serial masked. These arrive mixed
+# in with the V3 telemetry and were previously discarded as checksum failures.
+ROUTED_V4_FRAME = (
+    "aa04a001d7010001214553323258585858585858585834343721014003032efe27de020121"
+    "015a0e08900310e41220d40f280230d30f620630c80138ea077214080010001800200028d4"
+    "0f300238d30f40004801a201020800ba01060887a8e5d306da0104100118018a023c0d0000"
+    "1d4515000000001d72f97f3f25a4707d3f2d00809c453509eb1b403d0000c8424500000000"
+    "4d0000484455000048445d00401c456500b01a459202009a02020800b2023a0a3808021064"
+    "189e0e28902730d0830138b32e40f00248f61850fc1858256028682a702a7a01008a011045"
+    "533232585858585858585858343437c202310a2f0802100118012001280130003a04e882e0"
+    "21421b08011a170a1045533232585858585858585858343437103218e807d80202e2021408"
+    "0210a20e180020902728c7830130b32e38f002f00200f8020082030a08001000180020002a"
+    "0092032a0a280a10455332325858585858585858583434371500000040256bb27a44280235"
+    "4d6e79c43d6bb27ac4b2031b0a190a10455332325858585858585858583434371002180020"
+    "d40fca030c0a0a00000000000000000000bbbb"
+)
+
+
 @pytest.fixture
 def device(mocker: MockerFixture):
     ble_dev = mocker.Mock()
@@ -71,3 +89,13 @@ async def test_stream_ac_5000_ignores_packets_from_other_modules(device):
     )
 
     assert processed is False
+
+
+async def test_stream_ac_5000_parses_serial_routed_v4_frames(device):
+    packet = await device.packet_parse(bytes.fromhex(ROUTED_V4_FRAME))
+
+    assert not Packet.is_invalid(packet)
+    assert (packet.src, packet.cmd_set, packet.cmd_id) == (0x02, 0xFE, 0x27)
+    assert packet.serial.startswith("ES22")
+
+    assert await device.data_parse(packet) is True
