@@ -1,3 +1,4 @@
+import logging
 import struct
 from abc import ABC, abstractmethod
 
@@ -5,6 +6,8 @@ from .crc import crc8, crc16
 from .encpacket import EncPacket
 from .encryption import EncryptionStrategy
 from .packet import Packet
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class FrameAssembler(ABC):
@@ -170,10 +173,30 @@ class RawHeaderAssembler(FrameAssembler):
         encrypted = await self._encryption.encrypt(inner)
         return header + encrypted
 
+    @staticmethod
+    def _starts_frame(data: bytes) -> bool:
+        """Whether `data` begins with a header that passes its own CRC8"""
+        return (
+            len(data) >= 5 and data[:1] == Packet.PREFIX and crc8(data[:4]) == data[4]
+        )
+
     async def reassemble(self, data: bytes) -> list[bytes]:
         if self._buffer:
-            data = self._buffer + data
-            self._buffer = b""
+            if self._starts_frame(data):
+                # The buffered frame is still short of its declared length, yet this
+                # notification opens a new one - its continuation was never delivered.
+                # Splicing the two together would produce a frame of the right length
+                # whose tail belongs to the next one: valid header, valid CRC, garbage
+                # payload. Dropping the truncated frame keeps lost notifications
+                # looking like loss instead of like protocol corruption.
+                _LOGGER.debug(
+                    "Discarding %d buffered bytes - continuation never arrived",
+                    len(self._buffer),
+                )
+                self._buffer = b""
+            else:
+                data = self._buffer + data
+                self._buffer = b""
 
         payloads = []
         while data:
