@@ -3,6 +3,7 @@ from pytest_mock import MockerFixture
 
 from custom_components.ef_ble.eflib.devices.stream_ac_5000 import Device
 from custom_components.ef_ble.eflib.packet import Packet
+from custom_components.ef_ble.eflib.pb import es22_sys_pb2
 
 # Telemetry payloads captured from a STREAM AC 5000, with the serial number masked. The
 # device reports only the properties that changed, so battery and power readings arrive
@@ -81,6 +82,26 @@ async def test_stream_ac_5000_reports_battery_power_positive_while_charging(devi
     assert device.battery_power == pytest.approx(193.16)
     assert device.ac_input_power == 202
     assert device.battery_level == 13
+
+
+async def test_stream_ac_5000_prefers_the_power_block_for_ac_output_power(device):
+    message = es22_sys_pb2.DisplayPropertyUpload()
+    message.power.info.ac_out_pwr = 431.47
+    message.ac.ac_out_pwr = 1212
+
+    device.update_from_message(message)
+
+    assert device.ac_output_power == pytest.approx(431.47)
+
+
+async def test_stream_ac_5000_falls_back_to_the_ac_block_for_ac_output_power(device):
+    """Firmware that omits `PowerInfo.ac_out_pwr` still reports the coarser figure"""
+    message = es22_sys_pb2.DisplayPropertyUpload()
+    message.ac.ac_out_pwr = 300
+
+    device.update_from_message(message)
+
+    assert device.ac_output_power == 300
 
 
 async def test_stream_ac_5000_ignores_packets_from_other_modules(device):
