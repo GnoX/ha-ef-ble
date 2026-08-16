@@ -52,7 +52,21 @@ class ProtobufProps(UpdatableProps):
 
     @classmethod
     def add_repeated_field(cls, repeated_field: ProtobufRepeatedField):
-        updated_field_map = cls._repeated_field_map.copy()
+        # The nested lists must be rebuilt rather than shallow-copied: appending into
+        # an inherited list mutates it for the base class and every sibling, so a
+        # device ends up parsing repeated fields declared on unrelated devices.
+        updated_field_map: dict[type[Message], dict[str, list[ProtobufRepeatedField]]]
+        updated_field_map = defaultdict(lambda: defaultdict(list))
+        for message_type, fields_by_name in cls._repeated_field_map.items():
+            for name, fields in fields_by_name.items():
+                inherited = [
+                    field
+                    for field in fields
+                    if field.public_name != repeated_field.public_name
+                ]
+                if inherited:
+                    updated_field_map[message_type][name] = inherited
+
         updated_field_map[repeated_field.pb_field.message_type][
             repeated_field.pb_field.name
         ].append(repeated_field)
