@@ -25,7 +25,8 @@ class Device(DeviceBase, ProtobufProps):
         pb.ac.ac_in_pwr,
         TransformIfMissing[int, int](lambda v: v if v is not None else 0),
     )
-    ac_output_power = pb_field(
+    _ac_out_pwr = pb_field(pb.power.info.ac_out_pwr)
+    _ac_out_pwr_fallback = pb_field(
         pb.ac.ac_out_pwr,
         TransformIfMissing[int, int](lambda v: v if v is not None else 0),
     )
@@ -38,6 +39,19 @@ class Device(DeviceBase, ProtobufProps):
     @classmethod
     def check(cls, sn):
         return sn[:4] in cls.SN_PREFIX
+
+    @computed_field
+    def ac_output_power(self) -> float | None:
+        """
+        Power drawn from the AC output port
+
+        `PowerInfo.ac_out_pwr` is the figure the app shows and is reported on every
+        message that carries the block, so it is preferred. Firmware that does not send
+        it leaves only `AcInfo.ac_out_pwr`, which is coarser and arrives intermittently
+        """
+        if self._ac_out_pwr is not None:
+            return round(self._ac_out_pwr, 2)
+        return self._ac_out_pwr_fallback
 
     @computed_field
     def cell_temperature(self) -> int | None:
