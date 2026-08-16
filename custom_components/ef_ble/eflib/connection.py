@@ -58,6 +58,12 @@ MAX_CONNECTION_ATTEMPTS = 10
 # long enough for HA to mark the entry `FAILED_UNLOAD`, so cap every disconnect.
 DISCONNECT_TIMEOUT = 5.0
 
+# How often to confirm the link is still up. A dropped link is normally reported by
+# `disconnected_callback`; when that never arrives, nothing else notices, because every
+# other liveness check happens on the way out and a device that only pushes data is
+# never written to.
+LINK_CHECK_INTERVAL = 30.0
+
 
 _BT_PROTOCOL_UUIDS = {
     "rfcomm": {
@@ -261,6 +267,7 @@ class Connection:
 
         self._tasks: set[asyncio.Task] = set()
         self._call_later_handles: dict[str, asyncio.TimerHandle] = {}
+        self._link_check_handle: asyncio.TimerHandle | None = None
 
         self._logger = ConnectionLogger(self)
         self._state_changed = asyncio.Event()
@@ -425,10 +432,45 @@ class Connection:
         self._logger.info("Connected")
         self._errors = 0
         self._retry_on_disconnect = self._reconnect
+        self._schedule_link_check()
 
         self._logger.info("Init completed, starting auth routine...")
 
         await self.initBleSessionKey()
+
+    def _schedule_link_check(self) -> None:
+        # deliberately not `call_later`: that helper drops the callback when
+        # `is_connected` is false, which is the one state this check exists to notice
+        self._cancel_link_check()
+        self._link_check_handle = asyncio.get_running_loop().call_later(
+            LINK_CHECK_INTERVAL, self._check_link
+        )
+
+    def _cancel_link_check(self) -> None:
+        if self._link_check_handle is not None:
+            self._link_check_handle.cancel()
+            self._link_check_handle = None
+
+    def _check_link(self) -> None:
+        """
+        Notice a link that went down without bleak reporting it
+
+        A dropped link normally arrives as `disconnected_callback`, which is what starts
+        the reconnect. When that callback is never delivered the client still knows it is
+        disconnected, but nothing asks: every other check sits in a send path, and a
+        device that only pushes data never takes one. The connection then sits
+        `AUTHENTICATED` forever while entities show unavailable
+        """
+        self._link_check_handle = None
+        if self._client is None:
+            return
+
+        if not self._client.is_connected:
+            self._logger.warning("Link is down without a disconnect callback")
+            self.disconnected()
+            return
+
+        self._schedule_link_check()
 
     def disconnected(self, *args, **kwargs) -> None:
         # Traces the trigger: an unsolicited bleak drop shows bleak/asyncio frames here,
@@ -436,6 +478,7 @@ class Connection:
         trigger = caller_chain()
         self._logger.warning("Disconnected from device (%s)", trigger)
         self._client = None
+        self._cancel_link_check()
 
         # NOTE(gnox): don't trigger disconnect/reconnect logic while
         # establish_connection is still retrying internally (bleak_retry_connector
@@ -1267,6 +1310,8 @@ class Connection:
         for handle in self._call_later_handles.values():
             handle.cancel()
         self._call_later_handles.clear()
+
+        self._cancel_link_check()
 
     def _add_task(
         self,
