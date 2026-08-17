@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0e\x65s22_sys.proto\x12\x08\x65s22_sys\"u\n\x0b\x42\x61tteryInfo\x12\x0e\n\x06\x62p_soc\x18\x01 \x01(\r\x12\x0e\n\x06\x62p_soh\x18\x02 \x01(\r\x12\x10\n\x08\x62p_temp1\x18\x0b \x01(\r\x12\x10\n\x08\x62p_temp2\x18\x0c \x01(\r\x12\x10\n\x08\x62p_temp3\x18\r \x01(\r\x12\x10\n\x08\x62p_temp4\x18\x0e \x01(\r\"?\n\tPowerInfo\x12\x0e\n\x06\x61\x63_pwr\x18\x04 \x01(\x02\x12\x0e\n\x06\x62p_pwr\x18\x06 \x01(\x02\x12\x12\n\nac_out_pwr\x18\x08 \x01(\x02\"/\n\x06\x41\x63Info\x12\x12\n\nac_out_pwr\x18\x04 \x01(\r\x12\x11\n\tac_in_pwr\x18\x07 \x01(\r\"\x1c\n\nSystemInfo\x12\x0e\n\x06\x62p_soc\x18\x02 \x01(\r\"4\n\rBatteryReport\x12#\n\x04info\x18\x01 \x01(\x0b\x32\x15.es22_sys.BatteryInfo\"0\n\x0bPowerReport\x12!\n\x04info\x18\x01 \x01(\x0b\x32\x13.es22_sys.PowerInfo\"2\n\x0cSystemReport\x12\"\n\x04info\x18\x01 \x01(\x0b\x32\x14.es22_sys.SystemInfo\"\xad\x01\n\x15\x44isplayPropertyUpload\x12\x1c\n\x02\x61\x63\x18\x0c \x01(\x0b\x32\x10.es22_sys.AcInfo\x12(\n\x07\x62\x61ttery\x18& \x01(\x0b\x32\x17.es22_sys.BatteryReport\x12$\n\x05power\x18\x32 \x01(\x0b\x32\x15.es22_sys.PowerReport\x12&\n\x06system\x18\x36 \x01(\x0b\x32\x16.es22_sys.SystemReport')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0e\x65s22_sys.proto\x12\x08\x65s22_sys\"u\n\x0b\x42\x61tteryInfo\x12\x0e\n\x06\x62p_soc\x18\x01 \x01(\r\x12\x0e\n\x06\x62p_soh\x18\x02 \x01(\r\x12\x10\n\x08\x62p_temp1\x18\x0b \x01(\r\x12\x10\n\x08\x62p_temp2\x18\x0c \x01(\r\x12\x10\n\x08\x62p_temp3\x18\r \x01(\r\x12\x10\n\x08\x62p_temp4\x18\x0e \x01(\r\"Q\n\tPowerInfo\x12\x0e\n\x06\x61\x63_pwr\x18\x04 \x01(\x02\x12\x0e\n\x06\x62p_pwr\x18\x06 \x01(\x02\x12\x10\n\x08grid_pwr\x18\x07 \x01(\x02\x12\x12\n\nac_out_pwr\x18\x08 \x01(\x02\"/\n\x06\x41\x63Info\x12\x12\n\nac_out_pwr\x18\x04 \x01(\r\x12\x11\n\tac_in_pwr\x18\x07 \x01(\r\"\x1c\n\nSystemInfo\x12\x0e\n\x06\x62p_soc\x18\x02 \x01(\r\"4\n\rBatteryReport\x12#\n\x04info\x18\x01 \x01(\x0b\x32\x15.es22_sys.BatteryInfo\"0\n\x0bPowerReport\x12!\n\x04info\x18\x01 \x01(\x0b\x32\x13.es22_sys.PowerInfo\"2\n\x0cSystemReport\x12\"\n\x04info\x18\x01 \x01(\x0b\x32\x14.es22_sys.SystemInfo\"\xad\x01\n\x15\x44isplayPropertyUpload\x12\x1c\n\x02\x61\x63\x18\x0c \x01(\x0b\x32\x10.es22_sys.AcInfo\x12(\n\x07\x62\x61ttery\x18& \x01(\x0b\x32\x17.es22_sys.BatteryReport\x12$\n\x05power\x18\x32 \x01(\x0b\x32\x15.es22_sys.PowerReport\x12&\n\x06system\x18\x36 \x01(\x0b\x32\x16.es22_sys.SystemReport')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -34,17 +34,17 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_BATTERYINFO']._serialized_start=28
   _globals['_BATTERYINFO']._serialized_end=145
   _globals['_POWERINFO']._serialized_start=147
-  _globals['_POWERINFO']._serialized_end=210
-  _globals['_ACINFO']._serialized_start=212
-  _globals['_ACINFO']._serialized_end=259
-  _globals['_SYSTEMINFO']._serialized_start=261
-  _globals['_SYSTEMINFO']._serialized_end=289
-  _globals['_BATTERYREPORT']._serialized_start=291
-  _globals['_BATTERYREPORT']._serialized_end=343
-  _globals['_POWERREPORT']._serialized_start=345
-  _globals['_POWERREPORT']._serialized_end=393
-  _globals['_SYSTEMREPORT']._serialized_start=395
-  _globals['_SYSTEMREPORT']._serialized_end=445
-  _globals['_DISPLAYPROPERTYUPLOAD']._serialized_start=448
-  _globals['_DISPLAYPROPERTYUPLOAD']._serialized_end=621
+  _globals['_POWERINFO']._serialized_end=228
+  _globals['_ACINFO']._serialized_start=230
+  _globals['_ACINFO']._serialized_end=277
+  _globals['_SYSTEMINFO']._serialized_start=279
+  _globals['_SYSTEMINFO']._serialized_end=307
+  _globals['_BATTERYREPORT']._serialized_start=309
+  _globals['_BATTERYREPORT']._serialized_end=361
+  _globals['_POWERREPORT']._serialized_start=363
+  _globals['_POWERREPORT']._serialized_end=411
+  _globals['_SYSTEMREPORT']._serialized_start=413
+  _globals['_SYSTEMREPORT']._serialized_end=463
+  _globals['_DISPLAYPROPERTYUPLOAD']._serialized_start=466
+  _globals['_DISPLAYPROPERTYUPLOAD']._serialized_end=639
 # @@protoc_insertion_point(module_scope)

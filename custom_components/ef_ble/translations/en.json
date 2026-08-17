@@ -442,6 +442,9 @@
       "grid_power": {
         "name": "Grid Power"
       },
+      "backup_port_power": {
+        "name": "Backup Port Power"
+      },
       "in_use_power": {
         "name": "In Use Power"
       },

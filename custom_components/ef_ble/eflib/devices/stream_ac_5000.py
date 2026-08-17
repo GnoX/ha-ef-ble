@@ -3,7 +3,7 @@ from ..packet import Packet
 from ..pb import es22_sys_pb2
 from ..props import ProtobufProps, computed_field, pb_field, proto_attr_mapper
 from ..props.protobuf_field import TransformIfMissing
-from ..props.transforms import out_power
+from ..props.transforms import out_power, pround
 
 pb = proto_attr_mapper(es22_sys_pb2.DisplayPropertyUpload)
 
@@ -21,10 +21,7 @@ class Device(DeviceBase, ProtobufProps):
             lambda v: out_power(v) if v is not None else 0.0
         ),
     )
-    ac_input_power = pb_field(
-        pb.ac.ac_in_pwr,
-        TransformIfMissing[int, int](lambda v: v if v is not None else 0),
-    )
+    grid_power = pb_field(pb.power.info.grid_pwr, pround(2))
     _ac_out_pwr = pb_field(pb.power.info.ac_out_pwr)
     _ac_out_pwr_fallback = pb_field(
         pb.ac.ac_out_pwr,
@@ -41,9 +38,9 @@ class Device(DeviceBase, ProtobufProps):
         return sn[:4] in cls.SN_PREFIX
 
     @computed_field
-    def ac_output_power(self) -> float | None:
+    def backup_port_power(self) -> float | None:
         """
-        Power drawn from the AC output port
+        Power drawn from the backup port
 
         `PowerInfo.ac_out_pwr` is the figure the app shows and is reported on every
         message that carries the block, so it is preferred. Firmware that does not send

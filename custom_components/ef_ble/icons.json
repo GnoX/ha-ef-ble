@@ -137,6 +137,9 @@
       "grid_power": {
         "default": "mdi:transmission-tower"
       },
+      "backup_port_power": {
+        "default": "mdi:power-plug-battery-outline"
+      },
       "in_use_power": {
         "default": "mdi:home-lightning-bolt-outline"
       },

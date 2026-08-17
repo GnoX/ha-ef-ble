@@ -23,7 +23,11 @@ message PowerInfo {
   optional float ac_pwr = 4;
   // battery side: positive while discharging, negative while charging
   optional float bp_pwr = 6;
-  // the AC output port, as the app shows it. Present whenever this block is, unlike
+  // the grid port: negative while importing, positive while exporting. The app shows it
+  // as the STREAM units' total grid-port power, and it closes the balance with the other
+  // two: grid_pwr + (bp_pwr + ac_out_pwr) == 0 across every frame of the paired captures.
+  optional float grid_pwr = 7;
+  // the backup port, as the app shows it. Present whenever this block is, unlike
   // `AcInfo.ac_out_pwr`, and it tracks the app while both charging and discharging.
   optional float ac_out_pwr = 8;
 }
