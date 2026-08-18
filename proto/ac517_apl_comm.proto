@@ -196,7 +196,10 @@ message ConfigWrite {
   optional bool cfg_en_pet_care = 163;
   optional float cfg_temp_pet_care_warning = 164;
   optional USER_TEMP_UNIT_TYPE cfg_user_temp_unit = 166;
+  // standby / wake, as the app's own configSystemPause and configSystemResume send
+  // them: exactly one is set true per write
   optional bool cfg_sys_pause = 172;
+  optional bool cfg_sys_resume = 173;
   optional uint32 cfg_power_off_delay_set = 209;
 }
 
@@ -242,7 +245,10 @@ message ConfigWriteAck {
   optional bool cfg_en_pet_care = 163;
   optional float cfg_temp_pet_care_warning = 164;
   optional USER_TEMP_UNIT_TYPE cfg_user_temp_unit = 166;
+  // standby / wake, as the app's own configSystemPause and configSystemResume send
+  // them: exactly one is set true per write
   optional bool cfg_sys_pause = 172;
+  optional bool cfg_sys_resume = 173;
   optional uint32 cfg_power_off_delay_set = 209;
 }
 

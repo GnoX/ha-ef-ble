@@ -116,6 +116,7 @@ class Device(DeviceBase, ProtobufProps):
     battery_charge_limit_max = pb_field(pb_disp.cms_max_chg_soc)
     sleep_state = pb_field(pb_disp.dev_sleep_state, SleepState.from_value)
     power = pb_field(pb_disp.dev_sleep_state, lambda x: x == SleepState.ON)
+    standby = pb_field(pb_disp.dev_sleep_state, lambda x: x == SleepState.STANDBY)
 
     _wave_mode_info = pb_field(pb_disp.wave_mode_info)
     target_temperature_climate = pb_field(pb_mode.temp_set, pround(1))
@@ -224,6 +225,21 @@ class Device(DeviceBase, ProtobufProps):
             cfg.cfg_power_on = True
         else:
             cfg.cfg_power_off = True
+        await self._send_config_packet(cfg)
+
+    @controls.switch(standby)
+    async def enable_standby(self, enabled: bool):
+        """
+        Put the unit into standby, or wake it
+
+        Standby is not the same as off: `cfg_power_off` cuts the Bluetooth radio too, so the
+        unit can then only be woken by its own button, while standby keeps the link up. The
+        app writes exactly this pair in `configSystemPause` / `configSystemResume`, setting
+        one true and the other false per write
+        """
+        cfg = ac517_apl_comm_pb2.ConfigWrite()
+        cfg.cfg_sys_pause = enabled
+        cfg.cfg_sys_resume = not enabled
         await self._send_config_packet(cfg)
 
     @_climate.mode()
