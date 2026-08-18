@@ -1221,6 +1221,9 @@
       },
       "feed_protect": {
         "name": "Feed-in Control"
+      },
+      "standby": {
+        "name": "Standby"
       }
     }
   },

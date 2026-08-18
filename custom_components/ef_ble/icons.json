@@ -348,6 +348,12 @@
         "state": {
           "off": "mdi:battery-off-outline"
         }
+      },
+      "standby": {
+        "default": "mdi:power-sleep",
+        "state": {
+          "off": "mdi:power-plug"
+        }
       }
     },
     "select": {
