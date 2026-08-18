@@ -886,6 +886,8 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
         enabled=False, entity_category=EntityCategory.DIAGNOSTIC
     ),
     "battery_power": power(precision=1),
+    "battery_ac_input_power": power(precision=1),
+    "battery_ac_output_power": power(precision=1),
     "inverter_temperature": temperature(),
     "inverter_current": current(precision=2),
     "inverter_power": power(precision=0),

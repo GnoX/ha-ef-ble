@@ -22,6 +22,7 @@ class Device(DeviceBase, ProtobufProps):
         ),
     )
     grid_power = pb_field(pb.power.info.grid_pwr, pround(2))
+    _battery_ac_pwr = pb_field(pb.power.info.ac_pwr)
     _ac_out_pwr = pb_field(pb.power.info.ac_out_pwr)
     _ac_out_pwr_fallback = pb_field(
         pb.ac.ac_out_pwr,
@@ -36,6 +37,27 @@ class Device(DeviceBase, ProtobufProps):
     @classmethod
     def check(cls, sn):
         return sn[:4] in cls.SN_PREFIX
+
+    @computed_field
+    def battery_ac_input_power(self) -> float | None:
+        """
+        AC power being converted into the battery, before conversion losses
+
+        `PowerInfo.ac_pwr` is the AC side of the converter, positive while charging. It
+        equals `-(grid_power + backup_port_power)` to within 0.01 W across every frame of
+        the paired captures, so exposing it beats deriving that sum. The DC side (`bp_pwr`)
+        differs from it by the conversion loss
+        """
+        if self._battery_ac_pwr is None:
+            return None
+        return round(max(self._battery_ac_pwr, 0.0), 2)
+
+    @computed_field
+    def battery_ac_output_power(self) -> float | None:
+        """AC power the battery is supplying, after conversion losses (see input)"""
+        if self._battery_ac_pwr is None:
+            return None
+        return round(max(-self._battery_ac_pwr, 0.0), 2)
 
     @computed_field
     def backup_port_power(self) -> float | None:
