@@ -194,6 +194,7 @@ type PacketReceivedListener = Callable[[bytes], None]
 type PacketParsedListener = Callable[[Packet], None]
 type DataReceivedListener = Callable[[bytes, ConnectionState], None]
 type DataSendListener = Callable[[bytes], None]
+type SessionKeyDerivedListener = Callable[[bytes, bytes], None]
 
 
 class _ConnectionListeners(ListenerRegistry):
@@ -203,6 +204,7 @@ class _ConnectionListeners(ListenerRegistry):
     on_packet_parsed: ListenerGroup[PacketParsedListener]
     on_data_received: ListenerGroup[DataReceivedListener]
     on_data_send: ListenerGroup[DataSendListener]
+    on_session_key_derived: ListenerGroup[SessionKeyDerivedListener]
 
 
 class Connection:
@@ -318,6 +320,9 @@ class Connection:
 
     def on_data_send(self, listener: DataSendListener):
         return self._listeners.on_data_send.add(listener)
+
+    def on_session_key_derived(self, listener: SessionKeyDerivedListener):
+        return self._listeners.on_session_key_derived.add(listener)
 
     def _notify_disconnect(self, exception: Exception | type[Exception] | None = None):
         if exception is None:
@@ -986,7 +991,7 @@ class Connection:
         self._undecryptable_frames = 0
 
     async def _type_0_session(self):
-        self._encryption = None
+        self._use_encryption(None)
 
         await self._start_notify(self.listenForDataHandler)
 
@@ -996,7 +1001,7 @@ class Connection:
     async def _type_1_session(self):
         session_key = hashlib.md5(self._dev_sn.encode()).digest()
         iv = hashlib.md5(self._dev_sn[::-1].encode()).digest()
-        self._encryption = Type1Encryption(session_key, iv)
+        self._use_encryption(Type1Encryption(session_key, iv))
         self._frame_assembler = self._create_frame_assembler()
 
         await self._start_notify(self.listenForDataHandler)
@@ -1052,7 +1057,7 @@ class Connection:
         # Set Initialization Vector from digest of the original shared key
         iv = hashlib.md5(shared_key).digest()
 
-        self._encryption = Type7Encryption(shared_key[:16], iv)
+        self._use_encryption(Type7Encryption(shared_key[:16], iv))
 
         await self.getKeyInfoReq()
 
@@ -1092,7 +1097,7 @@ class Connection:
         # Parse the data that contains sRand (first 16 bytes) & seed (last 2 bytes)
         session_key = await self.genSessionKey(data[16:18], data[:16])
         self._initial_session_key = self._encryption.session_key
-        self._encryption = Type7Encryption(session_key, self._encryption.iv)
+        self._use_encryption(Type7Encryption(session_key, self._encryption.iv))
         self._frame_assembler = self._create_frame_assembler()
 
         await self.getAuthStatus()
@@ -1244,6 +1249,13 @@ class Connection:
                 self._logger.log_filtered(
                     LogOptions.CONNECTION_DEBUG, "listenForDataHandler: %r", packet
                 )
+
+    def _use_encryption(self, encryption: EncryptionStrategy | None) -> None:
+        self._encryption = encryption
+        if encryption is not None:
+            self._listeners.on_session_key_derived(
+                encryption.session_key, encryption.iv
+            )
 
     def _create_frame_assembler(self):
         match self._encrypt_type:
