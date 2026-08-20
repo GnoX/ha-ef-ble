@@ -3,6 +3,9 @@
     "button": {
       "power_off": {
         "default": "mdi:power"
+      },
+      "power_on": {
+        "default": "mdi:power"
       }
     },
     "binary_sensor": {

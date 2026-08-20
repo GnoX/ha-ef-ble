@@ -302,6 +302,9 @@
       "power_off": {
         "name": "Power Off"
       },
+      "power_on": {
+        "name": "Power On"
+      },
       "unpause_solar": {
         "name": "Unpause Solar"
       }

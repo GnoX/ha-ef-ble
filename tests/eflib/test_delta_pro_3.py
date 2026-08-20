@@ -2,6 +2,8 @@ import pytest
 from pytest_mock import MockerFixture
 
 from custom_components.ef_ble.eflib.devices.delta_pro_3 import DCPortState, Device
+from custom_components.ef_ble.eflib.exceptions import NotConnectedError
+from custom_components.ef_ble.eflib.pb import mr521_pb2
 
 
 @pytest.fixture
@@ -122,3 +124,26 @@ async def test_delta_pro_3_battery_soc_values_are_valid(device, packet_sequence)
     assert 0 <= device.battery_level <= 100
     assert device.state_of_health is not None
     assert 0 <= device.state_of_health <= 100
+
+
+async def test_power_on_button_sends_cfg_power_on(device):
+    """The wake button writes cfg_power_on through the device's config path"""
+    await device.power_on()
+
+    device._conn.send_packet.assert_awaited_once()
+    packet = device._conn.send_packet.await_args.args[0]
+    assert (packet.cmd_set, packet.cmd_id) == (0xFE, 0x11)
+
+    message = mr521_pb2.ConfigWrite()
+    message.ParseFromString(packet.payload)
+    assert message.cfg_power_on is True
+    assert message.HasField("cfg_power_on")
+    assert not message.HasField("cfg_power_off")
+
+
+async def test_power_on_button_raises_when_not_connected(device):
+    """A user-pressed wake must report failure rather than silently vanish"""
+    device._conn = None
+
+    with pytest.raises(NotConnectedError):
+        await device.power_on()

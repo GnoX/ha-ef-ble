@@ -188,6 +188,13 @@ class Device(DeviceBase, ProtobufProps):
             )
         await self._send_config_packet(config)
 
+    @controls.button()
+    async def power_on(self) -> None:
+        # `cfg_power_on` sits beside `cfg_power_off` in the device's own schema and is the
+        # only field in it that could wake a unit from Bluetooth standby. The official app
+        # never sends it, so whether the firmware acts on it is unverified.
+        await self._send_config_packet(mr521_pb2.ConfigWrite(cfg_power_on=True))
+
     @controls.switch(dc_12v_port)
     async def enable_dc_12v_port(self, enabled: bool):
         await self._send_config_packet(
