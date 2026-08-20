@@ -98,12 +98,34 @@ class AuthErrors:
         return cls._PAYLOAD_TO_ERROR.get(payload, AuthErrors.UnknownError)
 
 
+# GAP and GATT are present on practically every peripheral and describe none of its
+# functionality, so a resolved table holding nothing else means service discovery did not
+# deliver the real services - not that the device is missing them.
+GENERIC_SERVICE_UUIDS = frozenset(
+    {
+        "00001800-0000-1000-8000-00805f9b34fb",
+        "00001801-0000-1000-8000-00805f9b34fb",
+    }
+)
+
+
 class UnsupportedBluetoothProtocol(Exception):
-    def __init__(self, characteristic_type: str, available_characteristics: list[str]):
+    def __init__(
+        self,
+        characteristic_type: str,
+        available_characteristics: list[str],
+        service_uuids: set[str] | None = None,
+    ):
         self.characteristic_type = characteristic_type
         self.available_characteristics = available_characteristics
+        self.service_uuids = frozenset(service_uuids or ())
         characteristics = "\n    ".join(available_characteristics)
         super().__init__(
             f"Device is using unsupported protocol for {characteristic_type}.\n"
             f"Available characteristics:\n    {characteristics}"
         )
+
+    @property
+    def only_generic_services(self) -> bool:
+        """Whether discovery resolved the generic services and nothing else"""
+        return bool(self.service_uuids) and self.service_uuids <= GENERIC_SERVICE_UUIDS

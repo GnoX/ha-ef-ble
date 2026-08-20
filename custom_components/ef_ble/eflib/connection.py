@@ -399,10 +399,11 @@ class Connection:
             self._validate_characteristics()
         except UnsupportedBluetoothProtocol as e:
             error = e
-            if not e.available_characteristics:
-                # An empty service table is a host-side GATT cache glitch, not the
-                # device genuinely lacking the protocol - wipe the cache so the
-                # reconnect re-discovers services instead of failing the same way.
+            if not e.available_characteristics or e.only_generic_services:
+                # An empty service table - or one holding only GAP and GATT, which every
+                # peripheral has and which describe nothing - is a host-side GATT cache
+                # glitch, not the device genuinely lacking the protocol. Wipe the cache
+                # so the reconnect re-discovers services instead of failing the same way.
                 await self._clear_gatt_cache()
             self._set_state(ConnectionState.ERROR_BLEAK, e)
         except TimeoutError as e:
@@ -722,11 +723,18 @@ class Connection:
                 uuid := self._client.services.get_characteristic(uuids[char_type])
             ) is not None:
                 return uuid
+        characteristics = list(self._client.services.characteristics.values())
         characteristic_list = [
-            f"{c.uuid} {c.description} {c.properties}"
-            for c in self._client.services.characteristics.values()
+            f"{c.uuid} {c.description} {c.properties}" for c in characteristics
         ]
-        raise UnsupportedBluetoothProtocol(char_type, characteristic_list)
+        service_uuids = {
+            c.service_uuid.lower()
+            for c in characteristics
+            if isinstance(getattr(c, "service_uuid", None), str)
+        }
+        raise UnsupportedBluetoothProtocol(
+            char_type, characteristic_list, service_uuids
+        )
 
     @property
     def _notify_characteristic(self):
