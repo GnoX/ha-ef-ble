@@ -142,6 +142,11 @@ class Device(DeviceBase, ProtobufProps):
     SN_PREFIX = (b"HR62", b"HR63", b"HR6C")
     NAME_PREFIX = "EF-SHP3"
 
+    # Address the panel itself reports telemetry from. Anything else on the same
+    # cmd set is a sub device forwarded by the panel. Siblings that speak this
+    # protocol from a different address override this rather than the parsing.
+    MAIN_SRC = 0x32
+
     NUM_OF_CIRCUITS = 32
     NUM_OF_CHANNELS = 3
     NUM_OF_BATTERIES = 10
@@ -381,7 +386,7 @@ class Device(DeviceBase, ProtobufProps):
         self.reset_updated()
 
         match packet.version, packet.src, packet.cmd_set, packet.cmd_id:
-            case 0x04, 0x32, 0x40, 0x30:
+            case 0x04, self.MAIN_SRC, 0x40, 0x30:
                 if isinstance(packet, PacketV4):
                     self._routing.remember_post(packet)
                 _, body = self._routing.split(packet.payload)
