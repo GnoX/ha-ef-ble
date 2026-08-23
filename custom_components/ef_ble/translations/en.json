@@ -297,6 +297,12 @@
       "description": "Failed to connect to {device_name} after {attempts} unsuccessful attempts. Check the logs for more info.\n\nAutomatic retry was disabled to not spam logs, integration has to be reloaded manually. This error clears after successful connection."
     }
   },
+  "device_automation": {
+    "trigger_type": {
+      "connected": "{entity_name} connected",
+      "disconnected": "{entity_name} disconnected"
+    }
+  },
   "entity": {
     "button": {
       "power_off": {
@@ -386,7 +392,28 @@
         "name": "LV Solar Voltage Low"
       }
     },
+    "event": {
+      "connection": {
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "connected": "Connected",
+              "disconnected": "Disconnected"
+            }
+          }
+        }
+      }
+    },
     "sensor": {
+      "connection_state": {
+        "name": "Connection state",
+        "state": {
+          "connected": "Connected",
+          "connecting": "Connecting",
+          "disconnected": "Disconnected",
+          "error": "Error"
+        }
+      },
       "collecting_data": {
         "name": "Collecting diagnostics data"
       },

@@ -297,6 +297,12 @@
       "description": "Не вдалося підключитися до {device_name} після {attempts} невдалих спроб. Перевірте журнали для отримання додаткової інформації.\n\nАвтоматичне повторення було вимкнено, щоб не засмічувати журнали, інтеграцію потрібно перезавантажити вручну. Ця помилка зникає після успішного підключення."
     }
   },
+  "device_automation": {
+    "trigger_type": {
+      "connected": "{entity_name} підключено",
+      "disconnected": "{entity_name} відключено"
+    }
+  },
   "entity": {
     "button": {
       "unpause_solar": {
@@ -381,6 +387,18 @@
       },
       "lv_solar_low_voltage": {
         "name": "Низька напруга сонячної енергії (LV)"
+      }
+    },
+    "event": {
+      "connection": {
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "connected": "Підключено",
+              "disconnected": "Відключено"
+            }
+          }
+        }
       }
     },
     "sensor": {
@@ -966,6 +984,15 @@
           "battery": "Акумулятор",
           "oil": "Розумний генератор",
           "station_charger": "Зарядна станція"
+        }
+      },
+      "connection_state": {
+        "name": "Стан підключення",
+        "state": {
+          "connected": "Підключено",
+          "connecting": "Підключення",
+          "disconnected": "Відключено",
+          "error": "Помилка"
         }
       }
     },
