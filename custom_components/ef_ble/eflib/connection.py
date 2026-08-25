@@ -11,7 +11,7 @@ from collections.abc import Awaitable, Callable, Collection, Coroutine, MutableS
 from dataclasses import dataclass
 from enum import StrEnum, auto
 from functools import cached_property
-from typing import Any, Literal
+from typing import Any, Concatenate, Literal, Self
 
 import ecdsa
 from bleak import BleakClient
@@ -254,7 +254,7 @@ class Connection:
         self._undecryptable_frames = 0
         self._last_errors = deque(maxlen=10)
         self._disconnect_log: deque[dict[str, Any]] = deque(maxlen=10)
-        self._client = None
+        self._client: BleakClient | None = None
         self._connected = asyncio.Event()
         self._disconnected = asyncio.Event()
         self._retry_on_disconnect = False
@@ -290,18 +290,34 @@ class Connection:
     def update_ble_device(self, ble_dev: BLEDevice):
         self._ble_dev = ble_dev
 
-    def with_logging_options(self, options: LogOptions):
+    def with_logging_options(self, options: LogOptions) -> Self:
         self._logger.set_options(options)
         return self
 
-    def with_disabled_reconnect(self, is_disabled: bool = True):
+    def with_disabled_reconnect(self, is_disabled: bool = True) -> Self:
         self._reconnect = not is_disabled
         return self
 
-    def with_options(self, options: "Connection.Options"):
+    def with_options(self, options: "Connection.Options") -> Self:
         """Set connection options."""
         self._options = options
         return self
+
+    @staticmethod
+    def _auth_stage[**P, R](state: ConnectionState):
+        """Enter `state` before running the decorated auth stage method"""
+
+        def decorator(
+            fn: "Callable[Concatenate[Self, P], Awaitable[R]]",
+        ) -> "Callable[Concatenate[Self, P], Awaitable[R]]":
+            @functools.wraps(fn)
+            async def wrapper(self: "Self", *args: P.args, **kwargs: P.kwargs) -> R:
+                self._set_state(state)
+                return await fn(self, *args, **kwargs)
+
+            return wrapper
+
+        return decorator
 
     @property
     def disconnect_log(self) -> list[dict[str, Any]]:
@@ -402,7 +418,7 @@ class Connection:
             self._client = await establish_connection(
                 BleakClient,
                 self.ble_dev(),
-                self._ble_dev.name,
+                self._ble_dev.name or self._address,
                 disconnected_callback=self.disconnected,
                 ble_device_callback=self.ble_dev,
                 max_attempts=ble_attempts,
@@ -669,7 +685,7 @@ class Connection:
                 case 1:
                     await self._type_1_session()
                 case _:
-                    await self._ecdh_session()
+                    await self._init_ble_session_key()
 
             await self._auto_authentication()
             await self._wait_authenticated()
@@ -713,20 +729,20 @@ class Connection:
 
         await self.send_auth_status_packet()
 
-    async def _ecdh_session(self):
+    async def _init_ble_session_key(self):
         """
         Establish the encrypted session
 
         ECDH public key exchange, then session key derivation and auth status query.
         """
-        await self._exchange_public_keys()
-        await self._request_session_key()
-        await self._request_auth_status()
+        await self._ecdh_key_exchange()
+        await self._get_key_info_req()
+        await self._get_auth_status()
 
-    async def _exchange_public_keys(self):
-        self._set_state(ConnectionState.PUBLIC_KEY_EXCHANGE)
+    @_auth_stage(ConnectionState.PUBLIC_KEY_EXCHANGE)
+    async def _ecdh_key_exchange(self):
         self._logger.log_filtered(
-            LogOptions.CONNECTION_DEBUG, "_exchange_public_keys: Pub key exchange"
+            LogOptions.CONNECTION_DEBUG, "initBleSessionKey: Pub key exchange"
         )
         self._private_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP160r1)
         self._public_key: ecdsa.VerifyingKey = self._private_key.get_verifying_key()  # pyright: ignore[reportAttributeAccessIssue]
@@ -761,10 +777,10 @@ class Connection:
 
         self._use_encryption(Type7Encryption(shared_key[:16], iv))
 
-    async def _request_session_key(self):
-        self._set_state(ConnectionState.REQUESTING_SESSION_KEY)
+    @_auth_stage(ConnectionState.REQUESTING_SESSION_KEY)
+    async def _get_key_info_req(self):
         self._logger.log_filtered(
-            LogOptions.CONNECTION_DEBUG, "_request_session_key: Receiving session key"
+            LogOptions.CONNECTION_DEBUG, "getKeyInfoReq: Receiving session key"
         )
         async with self._expecting_response():
             # Command to get key info to make the shared key
@@ -788,10 +804,10 @@ class Connection:
         self._initial_session_key = self._encryption.session_key
         self._use_encryption(Type7Encryption(session_key, self._encryption.iv))
 
-    async def _request_auth_status(self):
-        self._set_state(ConnectionState.REQUESTING_AUTH_STATUS)
+    @_auth_stage(ConnectionState.REQUESTING_AUTH_STATUS)
+    async def _get_auth_status(self):
         self._logger.log_filtered(
-            LogOptions.CONNECTION_DEBUG, "_request_auth_status: Receiving auth status"
+            LogOptions.CONNECTION_DEBUG, "getAuthStatus: Receiving auth status"
         )
         async with self._expecting_response():
             await self.send_auth_status_packet()
@@ -800,14 +816,14 @@ class Connection:
 
         self._logger.log_filtered(
             LogOptions.CONNECTION_DEBUG,
-            "_request_auth_status: data: %r",
+            "getAuthStatus: data: %r",
             packets[0].payload,
         )
 
+    @_auth_stage(ConnectionState.AUTHENTICATING)
     async def _auto_authentication(self):
-        self._set_state(ConnectionState.AUTHENTICATING)
         self._logger.info(
-            "_auto_authentication: Sending secretKey consists of user id and device "
+            "autoAuthentication: Sending secretKey consists of user id and device "
             "serial number",
         )
 
@@ -910,6 +926,8 @@ class Connection:
         return hashlib.md5(data).digest()
 
     async def _start_notify(self, callback: Callable):
+        assert self._client is not None
+
         kwargs = {}
         if self._options.bluez_start_notify:
             kwargs["bluez"] = {"use_start_notify": True}
@@ -1036,7 +1054,7 @@ class Connection:
 
             if not processed:
                 self._logger.log_filtered(
-                    LogOptions.CONNECTION_DEBUG, "_listen_for_data_handler: %r", packet
+                    LogOptions.CONNECTION_DEBUG, "listenForDataHandler: %r", packet
                 )
 
     async def reply_packet(self, packet: Packet):
@@ -1135,8 +1153,10 @@ class Connection:
             case 0:
                 return PassthroughAssembler()
             case 1:
+                assert self._encryption is not None
                 return RawHeaderAssembler(self._encryption)
             case 7:
+                assert self._encryption is not None
                 return EncPacketAssembler(self._encryption)
             case _:
                 raise ValueError(f"Unsupported encryption type: {self._encrypt_type}")
@@ -1244,11 +1264,12 @@ class Connection:
             else:
                 return
 
-        await self.add_error(err)
-        if raise_on_failure and err is not None:
-            # Retries exhausted while still nominally connected - the command never
-            # reached the device, so surface it instead of reporting success
-            raise err
+        if err is not None:
+            await self.add_error(err)
+            if raise_on_failure:
+                # Retries exhausted while still nominally connected - the command never
+                # reached the device, so surface it instead of reporting success
+                raise err
 
     async def _send_request(self, send_data: bytes, *, raise_on_failure: bool = False):
         # Make sure the connection is here, otherwise just skipping
