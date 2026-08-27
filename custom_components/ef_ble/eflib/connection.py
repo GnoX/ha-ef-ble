@@ -376,7 +376,9 @@ class Connection:
         self,
         max_attempts: int | None = None,
     ):
-        if self._state.is_connecting:
+        # `_reconnect` sets RECONNECTING before calling in, and that counts as
+        # connecting, so it has to be let through.
+        if self._state.is_connecting and self._state != ConnectionState.RECONNECTING:
             return
 
         max_attempts = (
@@ -458,6 +460,9 @@ class Connection:
         self._retry_on_disconnect = self._reconnect
 
         self._logger.info("Init completed, starting auth routine...")
+
+        # Not inside the auth task: a device can answer while that task is still queued.
+        self._reset_assemblers()
 
         try:
             await self._start_notify(self._on_notification)
@@ -669,11 +674,10 @@ class Connection:
         Drive the whole authentication procedure for this connection
 
         Each stage sends its request and awaits the device response through the
-        notification waiter, so the exchange reads top to bottom. The final auth
-        reply (or first data packet) is confirmed asynchronously by `_listen_for_data_handler`.
+        notification waiter, so the exchange reads top to bottom. The final auth reply
+        (or first data packet) is confirmed asynchronously by the data handler.
         """
         client = self._client
-        self._reset_assemblers()
         try:
             match self._encrypt_type:
                 case 0:
@@ -681,17 +685,37 @@ class Connection:
                 case 1:
                     await self._type_1_session()
                 case _:
-                    await self._ecdh_session()
+                    await self._init_ble_session_key()
 
             await self._auto_authentication()
+            await self._wait_authenticated()
         except TimeoutError as e:
-            if self._client is client and self.is_connected:
-                self._set_state(ConnectionState.ERROR_TIMEOUT, e)
-                await self._disconnect_client()
+            await self._auth_failed(ConnectionState.ERROR_TIMEOUT, e, client)
         except Exception as e:  # noqa: BLE001 - any auth stage failure ends the session
-            if self._client is client and self.is_connected:
-                self._set_state(ConnectionState.ERROR_AUTH_FAILED, e)
-                await self._disconnect_client()
+            await self._auth_failed(ConnectionState.ERROR_AUTH_FAILED, e, client)
+
+    async def _wait_authenticated(self) -> None:
+        # The reply is confirmed by the data handler, so nothing else bounds this stage.
+        async with asyncio.timeout(self._options.timeout):
+            while not self._state.authenticated:
+                if self._state.is_error:
+                    return
+                await self._state_changed.wait()
+
+    async def _auth_failed(
+        self, state: ConnectionState, exc: Exception, client: BleakClient | None
+    ) -> None:
+        if self._client is not client or not self.is_connected:
+            self._logger.warning(
+                "Auth stage failed after its link was gone (%r); "
+                "leaving the current connection alone",
+                exc,
+            )
+            await self.add_error(exc)
+            return
+
+        self._set_state(state, exc)
+        await self._disconnect_client()
 
     async def _type_0_session(self):
         self._use_encryption(None)
@@ -705,20 +729,20 @@ class Connection:
 
         await self.send_auth_status_packet()
 
-    async def _ecdh_session(self):
+    async def _init_ble_session_key(self):
         """
         Establish the encrypted session
 
         ECDH public key exchange, then session key derivation and auth status query.
         """
-        await self._exchange_public_keys()
-        await self._request_session_key()
-        await self._request_auth_status()
+        await self._ecdh_key_exchange()
+        await self._get_key_info_req()
+        await self._get_auth_status()
 
     @_auth_stage(ConnectionState.PUBLIC_KEY_EXCHANGE)
-    async def _exchange_public_keys(self):
+    async def _ecdh_key_exchange(self):
         self._logger.log_filtered(
-            LogOptions.CONNECTION_DEBUG, "_exchange_public_keys: Pub key exchange"
+            LogOptions.CONNECTION_DEBUG, "initBleSessionKey: Pub key exchange"
         )
         self._private_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP160r1)
         self._public_key: ecdsa.VerifyingKey = self._private_key.get_verifying_key()  # pyright: ignore[reportAttributeAccessIssue]
@@ -754,9 +778,9 @@ class Connection:
         self._use_encryption(Type7Encryption(shared_key[:16], iv))
 
     @_auth_stage(ConnectionState.REQUESTING_SESSION_KEY)
-    async def _request_session_key(self):
+    async def _get_key_info_req(self):
         self._logger.log_filtered(
-            LogOptions.CONNECTION_DEBUG, "_request_session_key: Receiving session key"
+            LogOptions.CONNECTION_DEBUG, "getKeyInfoReq: Receiving session key"
         )
         async with self._expecting_response():
             # Command to get key info to make the shared key
@@ -781,9 +805,9 @@ class Connection:
         self._use_encryption(Type7Encryption(session_key, self._encryption.iv))
 
     @_auth_stage(ConnectionState.REQUESTING_AUTH_STATUS)
-    async def _request_auth_status(self):
+    async def _get_auth_status(self):
         self._logger.log_filtered(
-            LogOptions.CONNECTION_DEBUG, "_request_auth_status: Receiving auth status"
+            LogOptions.CONNECTION_DEBUG, "getAuthStatus: Receiving auth status"
         )
         async with self._expecting_response():
             await self.send_auth_status_packet()
@@ -792,14 +816,14 @@ class Connection:
 
         self._logger.log_filtered(
             LogOptions.CONNECTION_DEBUG,
-            "_request_auth_status: data: %r",
+            "getAuthStatus: data: %r",
             packets[0].payload,
         )
 
     @_auth_stage(ConnectionState.AUTHENTICATING)
     async def _auto_authentication(self):
         self._logger.info(
-            "_auto_authentication: Sending secretKey consists of user id and device "
+            "autoAuthentication: Sending secretKey consists of user id and device "
             "serial number",
         )
 
@@ -944,29 +968,39 @@ class Connection:
             yield
         finally:
             self._notification_queue = None
+            # Unread notifications are still device data, and the assembler needs
+            # every byte in order.
+            while not queue.empty():
+                await self._listen_for_data_handler(queue.get_nowait())
 
     async def _wait_notification(self) -> bytes:
-        assert self._notification_queue is not None, (
-            "auth stages must read responses inside `_expecting_response()`"
-        )
-        async with asyncio.timeout(self._options.timeout):
-            return await self._notification_queue.get()
+        queue = self._notification_queue
+        if queue is None:
+            raise RuntimeError(
+                "auth stages must read responses inside `_expecting_response()`"
+            )
+        return await queue.get()
 
     async def _read_simple_response(self) -> bytes:
         """Await notifications until the simple assembler yields a complete payload"""
-        while (
-            data := await self._parse_simple(await self._wait_notification())
-        ) is None:
-            pass
-        return data
+        # One deadline for the whole read, not per notification.
+        async with asyncio.timeout(self._options.timeout):
+            while (
+                data := await self._parse_simple(await self._wait_notification())
+            ) is None:
+                pass
+            return data
 
     async def _read_packet_response(self) -> list[Packet]:
         """Await notifications until the frame assembler yields complete packets"""
-        while not (
-            packets := await self._parse_enc_packets(await self._wait_notification())
-        ):
-            pass
-        return packets
+        async with asyncio.timeout(self._options.timeout):
+            while not (
+                packets := await self._parse_enc_packets(
+                    await self._wait_notification()
+                )
+            ):
+                pass
+            return packets
 
     async def _listen_for_data_handler(self, data: bytes):
         try:
@@ -990,8 +1024,8 @@ class Connection:
 
             is_auth_reply = (
                 packet.src == self._auth_header_dst
-                and packet.cmdSet == 0x35
-                and packet.cmdId == 0x86
+                and packet.cmd_set == 0x35
+                and packet.cmd_id == 0x86
             )
             authenticating = self._state == ConnectionState.AUTHENTICATING
 
@@ -1020,7 +1054,7 @@ class Connection:
 
             if not processed:
                 self._logger.log_filtered(
-                    LogOptions.CONNECTION_DEBUG, "_listen_for_data_handler: %r", packet
+                    LogOptions.CONNECTION_DEBUG, "listenForDataHandler: %r", packet
                 )
 
     async def reply_packet(self, packet: Packet):
@@ -1031,14 +1065,14 @@ class Connection:
         reply_packet = Packet(
             packet.dst,  # Switching src to dst
             packet.src,  # Switching dst to src
-            packet.cmdSet,
-            packet.cmdId,
+            packet.cmd_set,
+            packet.cmd_id,
             packet.payload,
             0x01,
             0x01,  # Replacing 0 with 1
             packet.version,
             packet.seq,
-            packet.productId,
+            packet.product_id,
         )
         # Running reply asynchroneously
         self._add_task(self.send_packet(reply_packet))
@@ -1107,6 +1141,13 @@ class Connection:
 
         return packets
 
+    def _use_encryption(self, encryption: EncryptionStrategy | None) -> None:
+        self._encryption = encryption
+        if encryption is not None:
+            self._listeners.on_session_key_derived(
+                encryption.session_key, encryption.iv
+            )
+
     def _create_frame_assembler(self):
         match self._encrypt_type:
             case 0:
@@ -1119,13 +1160,6 @@ class Connection:
                 return EncPacketAssembler(self._encryption)
             case _:
                 raise ValueError(f"Unsupported encryption type: {self._encrypt_type}")
-
-    def _use_encryption(self, encryption: EncryptionStrategy | None) -> None:
-        self._encryption = encryption
-        if encryption is not None:
-            self._listeners.on_session_key_derived(
-                encryption.session_key, encryption.iv
-            )
 
     def _get_frame_assembler(self) -> FrameAssembler:
         if self._frame_assembler is None:
@@ -1265,13 +1299,13 @@ class Connection:
             f"{c.uuid} {c.description} {c.properties}"
             for c in self._client.services.characteristics.values()
         ]
-        raise UnsupportedBluetoothProtocol("write", characteristic_list)
+        raise UnsupportedBluetoothProtocol(char_type, characteristic_list)
 
-    @cached_property
+    @property
     def _notify_characteristic(self):
         return self._get_characteristics("notify")
 
-    @cached_property
+    @property
     def _write_characteristic(self):
         return self._get_characteristics("write")
 
