@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import dataclasses
 import time
 from collections.abc import Callable, Sequence
@@ -419,17 +420,27 @@ class Device(DeviceBase, ProtobufProps):
                 sent = True
             finally:
                 # If the send failed the mod never reached the device, so drop it;
-                # otherwise it would be silently re-applied on the next successful edit
+                # otherwise it would be silently re-applied on the next successful edit.
+                # It may already be gone: a send that hangs through a dropout outlasts
+                # the deferred discard below, which then runs while this one is still in
+                # flight. Nothing is owed in that case, so tolerate its absence rather
+                # than raising over it and masking the send's own error.
                 if not sent:
-                    chain.pending_mods.remove(pending_mod)
+                    with contextlib.suppress(ValueError):
+                        chain.pending_mods.remove(pending_mod)
 
-            # Clear pending mods after the device has had time to process and send back
-            # updated state
-            self.call_later(
-                5.0,
-                chain.pending_mods.clear,
-                key="pending_task_mods",
-            )
+            # Drop the mods once the device has had time to process them and report
+            # back. Only the ones this send actually applied are discarded: clearing the
+            # whole list would also throw away an edit appended after this point, whose
+            # own send has not happened yet, so its change would never reach the device.
+            applied = list(chain.pending_mods)
+
+            def _discard_applied() -> None:
+                for mod in applied:
+                    with contextlib.suppress(ValueError):
+                        chain.pending_mods.remove(mod)
+
+            self.call_later(5.0, _discard_applied, key="pending_task_mods")
 
             return True
 
