@@ -46,7 +46,7 @@ from .frame_assembler import (
 )
 from .listeners import ListenerGroup, ListenerRegistry
 from .logging_util import ConnectionLogger, LogOptions, caller_chain
-from .packet import InvalidPacket, Packet
+from .packet import InvalidPacket, Packet, SendablePacket
 from .props.utils import classproperty
 
 MAX_RECONNECT_ATTEMPTS = 2
@@ -1195,7 +1195,7 @@ class Connection:
 
     async def send_packet(
         self,
-        packet: Packet,
+        packet: SendablePacket,
         *,
         wait_for_response: bool = True,
         raise_on_failure: bool = False,

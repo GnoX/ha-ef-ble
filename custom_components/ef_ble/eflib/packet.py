@@ -195,12 +195,18 @@ class PacketV4:
 
       [8+payload_length:-1]   CRC16 LE  (computed over obfuscated bytes)
 
-    Two layers of obfuscation are applied to the body:
+    Two layers of obfuscation are applied to the body, but only on session frames:
 
-    1. CRC8 layer (always applied) - every byte from position [8] onward (inner cmd
-       header + payload) is XOR'd with the outer header CRC8 value at data[4]
+    1. CRC8 layer - every byte from position [8] onward (inner cmd header + payload) is
+       XOR'd with the outer header CRC8 value at data[4]
     2. v4_type_b layer (applied to the application payload only when v4_type_b is
        non-zero)
+
+    `v4_type_a` says whether the frame is a session frame at all. Some devices send
+    `v4_type_a == 0` frames that carry the same layout in the clear and close with a
+    `0xBBBB` sentinel instead of a CRC16, the same sentinel convention the V19 frames in
+    `Packet` use. Both properties are carried on the packet so a reply can mirror the
+    frame it answers.
     """
 
     src: int
@@ -218,9 +224,16 @@ class PacketV4:
     v4_type_a: int = 0
     v4_type_b: int = 0
     time_snap_b0: int = 0
+    sentinel: bool = False
 
     PREFIX: ClassVar[bytes] = b"\xaa"
     VERSION: ClassVar[int] = 0x04
+    SENTINEL: ClassVar[bytes] = b"\xbb\xbb"
+
+    @property
+    def obfuscated(self) -> bool:
+        """Whether the body carries the session obfuscation layers"""
+        return self.v4_type_a != 0
 
     @property
     def version(self) -> int:
@@ -244,7 +257,9 @@ class PacketV4:
             _LOGGER.error(error_msg, bytearray(data).hex())
             return InvalidPacket(error_msg % bytearray(data).hex())
 
-        if crc16(data[:-2]) != struct.unpack("<H", data[-2:])[0]:
+        sentinel = data.endswith(PacketV4.SENTINEL)
+
+        if not sentinel and crc16(data[:-2]) != struct.unpack("<H", data[-2:])[0]:
             error_msg = "Unable to parse packet - incorrect CRC16: %s"
             _LOGGER.error(error_msg, bytearray(data).hex())
             return InvalidPacket(error_msg % bytearray(data).hex())
@@ -268,8 +283,9 @@ class PacketV4:
         v4_type_a = data[6]
         v4_type_b = data[7]
 
-        # Layer-2 deobfuscate - XOR bytes [8:8+payload_length] with the CRC8 key
-        xor_key = data[4]
+        # Layer-2 deobfuscate - XOR bytes [8:8+payload_length] with the CRC8 key. Frames
+        # without a session (v4_type_a of zero) carry the same layout in the clear.
+        xor_key = data[4] if v4_type_a else 0
         inner_and_payload = bytes(b ^ xor_key for b in data[8 : 8 + payload_length])
 
         # Inner command header occupies the first 8 bytes of the deobfuscated block
@@ -287,7 +303,7 @@ class PacketV4:
             payload = inner_and_payload[8 : 8 + actual_payload_len]
             # Layer-3 deobfuscation - when v4_type_b is non-zero the device XOR-encodes
             # the application payload with it before encryption
-            if v4_type_b:
+            if v4_type_a and v4_type_b:
                 payload = bytes(b ^ v4_type_b for b in payload)
         else:
             payload = b""
@@ -308,6 +324,7 @@ class PacketV4:
             v4_type_a=v4_type_a,
             v4_type_b=v4_type_b,
             time_snap_b0=time_snap_b0,
+            sentinel=sentinel,
         )
 
     def to_bytes(self) -> bytes:
@@ -341,16 +358,18 @@ class PacketV4:
         data += struct.pack("<B", type_byte)
         data += struct.pack("<B", self.v4_type_a) + struct.pack("<B", self.v4_type_b)
 
-        if self.v4_type_b:
+        if self.obfuscated and self.v4_type_b:
             payload = bytes(b ^ self.v4_type_b for b in self.payload)
         else:
             payload = self.payload
         inner_content = inner_cmd + payload
-        data += bytes(b ^ crc8_byte for b in inner_content)
+        xor_key = crc8_byte if self.obfuscated else 0
+        data += bytes(b ^ xor_key for b in inner_content)
 
-        data += struct.pack("<H", crc16(data))
+        if self.sentinel:
+            return data + PacketV4.SENTINEL
 
-        return data
+        return data + struct.pack("<H", crc16(data))
 
     def __repr__(self) -> str:
         return (
@@ -388,3 +407,7 @@ class InvalidPacket(Packet):
 
     def __repr__(self) -> str:
         return f"InvalidPacket(error_message='{self.error_message}')"
+
+
+SendablePacket = Packet | PacketV4
+"""Packet flavours that can be handed to `send_packet`"""

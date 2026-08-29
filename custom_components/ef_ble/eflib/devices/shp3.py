@@ -1,4 +1,3 @@
-import dataclasses
 import time
 from collections.abc import Callable
 from enum import IntEnum
@@ -27,6 +26,7 @@ from ..props import (
 from ..props.enums import IntFieldValue
 from ..props.protobuf_field import TransformIfMissing
 from ..props.transforms import out_power, pround
+from ..serial_routing import SerialRouting
 
 pb = proto_attr_mapper(dev_apl_comm_pb2.DisplayPropertyUpload)
 pb_cfg = proto_attr_mapper(dev_apl_comm_pb2.ConfigWrite)
@@ -342,7 +342,9 @@ class Device(DeviceBase, ProtobufProps):
     ) -> None:
         super().__init__(ble_dev, adv_data, sn)
         self._time_commands = TimeCommands(self)
-        self._routing = _StandardProtocolRouting(sn)
+        self._routing = SerialRouting(
+            sn, cmd_set=0xFE, cmd_id=0x11, dst=0x0B, fallback_dst=0x60
+        )
         self.add_timer_task(self._send_keepalive, interval=self._KEEPALIVE_INTERVAL)
         self._userid_sent = False
 
@@ -570,76 +572,3 @@ class Device(DeviceBase, ProtobufProps):
         backup.ctrl_en = 1 if enable else 2
         backup.ctrl_force_chg = 1 if force_charge else 2
         await self._send_config_packet(config)
-
-
-class _StandardProtocolRouting:
-    """
-    SHP3 standard-protocol routing layer that wraps the protobuf inside the v4 payload
-
-    Reads: the v4 application payload is a routing header (the device-side SN fragment
-    plus a 13-byte envelope) followed by the `DisplayPropertyUpload` protobuf.
-
-    Writes:  mirror the latest telemetry post's v4 frame - reusing its session
-    obfuscation, addressing and inner header via `dataclasses.replace` - and only
-    override cmd_flags / is_ack / is_rw_cmd and the application payload. The payload is
-    `serial9 + full_serial16 + envelope + ConfigWrite`, where the envelope is `40 03 03
-    <seq> FE 11 00 21 01 0B 01` (FE 11 = PROPERTY_WRITE). Before any post is seen it
-    falls back to a plain v3 frame.
-    """
-
-    HEADER_LEN = 22  # device SN fragment (9) + envelope (13), on reads
-    _SERIAL_FRAGMENT_LEN = 9
-    _WRITE_CMD_FLAGS = 0x10
-    _WRITE_ENVELOPE_PREFIX = bytes([0x40, 0x03, 0x03])
-    _WRITE_ENVELOPE_MID = bytes(
-        [0xFE, 0x11, 0x00]
-    )  # cmd_set 0xFE, cmd_id 0x11, reserved
-    _WRITE_ENVELOPE_SUFFIX = bytes([0x21, 0x01, 0x0B, 0x01])
-
-    def __init__(self, serial: str) -> None:
-        self._serial = serial
-        self._post_template: PacketV4 | None = None
-        self._envelope_template: bytes | None = None
-        self._write_seq = 0x20
-
-    @classmethod
-    def split(cls, payload: bytes) -> tuple[str, bytes]:
-        """Split a v4 application payload into (device SN fragment, protobuf body)"""
-        serial = payload[: cls._SERIAL_FRAGMENT_LEN].decode("ascii", errors="replace")
-        return serial, payload[cls.HEADER_LEN :]
-
-    def remember_post(self, packet: PacketV4) -> None:
-        """Capture the post as the transport template + routing envelope (for seq)"""
-        self._post_template = packet
-        self._envelope_template = packet.payload[
-            self._SERIAL_FRAGMENT_LEN : self.HEADER_LEN
-        ]
-
-    def _next_seq(self) -> int:
-        # Track the panel's session seq from the latest post, else a local counter.
-        if self._envelope_template is not None and len(self._envelope_template) > 5:
-            return self._envelope_template[5]
-        self._write_seq = (self._write_seq + 1) & 0xFF
-        return self._write_seq
-
-    def write_packet(self, config_bytes: bytes) -> Packet | PacketV4:
-        """Build the control-write frame for a serialized `ConfigWrite`"""
-        if self._post_template is None:
-            # No telemetry post captured yet: plain v3 fallback.
-            return Packet(0x21, 0x60, 0xFE, 0x11, config_bytes, 0x01, 0x01, 0x13)
-        envelope = (
-            self._WRITE_ENVELOPE_PREFIX
-            + bytes([self._next_seq()])
-            + self._WRITE_ENVELOPE_MID
-            + self._WRITE_ENVELOPE_SUFFIX
-        )
-        serial9 = self._serial[-self._SERIAL_FRAGMENT_LEN :].encode("ascii")
-        serial16 = self._serial.encode("ascii")
-        payload = serial9 + serial16 + envelope + config_bytes
-        return dataclasses.replace(
-            self._post_template,
-            cmd_flags=self._WRITE_CMD_FLAGS,
-            is_ack=True,
-            is_rw_cmd=False,
-            payload=payload,
-        )
