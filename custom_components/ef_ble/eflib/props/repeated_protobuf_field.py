@@ -12,7 +12,12 @@ from typing import (
 
 from google.protobuf.message import Message
 
-from .protobuf_field import ProtobufField
+from .protobuf_field import (
+    ProtobufField,
+    TransformIfMissing,
+    proto_attr_name,
+    proto_has_attr,
+)
 
 if TYPE_CHECKING:
     from .protobuf_props import ProtobufProps
@@ -150,3 +155,58 @@ def repeated_pb_field_type[T_ITEM, T_OUT](
         pb_field = list_field
 
     return CustomPerItemRepeatedField
+
+
+@overload
+def repeated_pb_field[T_ITEM, T_ATTR](
+    list_field: Sequence[T_ITEM],
+    item_attr: T_ATTR,
+    transform: None = None,
+) -> ProtobufCompositeRepeatedField[T_ITEM, T_ATTR]: ...
+
+
+@overload
+def repeated_pb_field[T_ITEM, T_ATTR, T_OUT](
+    list_field: Sequence[T_ITEM],
+    item_attr: T_ATTR,
+    transform: Callable[[T_ATTR], T_OUT],
+) -> ProtobufCompositeRepeatedField[T_ITEM, T_OUT]: ...
+
+
+def repeated_pb_field(
+    list_field: Sequence[Any],
+    item_attr: Any,
+    transform: Callable[[Any], Any] | None = None,
+) -> ProtobufCompositeRepeatedField[Any, Any]:
+    """
+    Create a field reading one attribute out of a repeated protobuf message
+
+    The value comes from the first item that reports the attribute, which is what a
+    device wants when the list carries an entry per unit of a linked system and the one
+    on the other end of the link reports only itself.
+
+    Parameters
+    ----------
+    list_field
+        Accessor for the repeated field, from `proto_attr_mapper`
+    item_attr
+        Accessor for the attribute to read off an item, from `proto_attr_mapper` of the
+        item's own message type
+    transform, optional
+        Function applied to the raw value. Wrap it in `TransformIfMissing` to have it
+        called with `None` for an item that omits the attribute, which is how a
+        measurement reports its off value instead of holding the last one
+    """
+    apply = transform if transform is not None else lambda value: value
+    process_if_missing = isinstance(transform, TransformIfMissing)
+    attr_name = proto_attr_name(item_attr)
+
+    class _RepeatedItemField(ProtobufCompositeRepeatedField[Any, Any]):
+        pb_field = list_field
+
+        def get_value(self, item: Message) -> Any:
+            if not proto_has_attr(item, item_attr):
+                return apply(None) if process_if_missing else None
+            return apply(getattr(item, attr_name))
+
+    return _RepeatedItemField()
