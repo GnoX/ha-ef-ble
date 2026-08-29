@@ -442,6 +442,9 @@
       "grid_power": {
         "name": "Grid Power"
       },
+      "backup_port_power": {
+        "name": "Backup Port Power"
+      },
       "in_use_power": {
         "name": "In Use Power"
       },
@@ -970,6 +973,12 @@
       },
       "ac_c20_in_type": {
         "name": "AC C20 In Type"
+      },
+      "battery_ac_input_power": {
+        "name": "Battery AC Input Power"
+      },
+      "battery_ac_output_power": {
+        "name": "Battery AC Output Power"
       }
     },
     "select": {
