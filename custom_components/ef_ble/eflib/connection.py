@@ -57,6 +57,8 @@ MAX_CONNECTION_ATTEMPTS = 10
 # (notably through an ESPHome proxy). Left unbounded it stalls `async_unload_entry`
 # long enough for HA to mark the entry `FAILED_UNLOAD`, so cap every disconnect.
 DISCONNECT_TIMEOUT = 5.0
+# Waited before DISCONNECT_TIMEOUT rather than inside it, so a teardown costs the sum
+PUMP_STOP_TIMEOUT = 1.0
 
 
 _BT_PROTOCOL_UUIDS = {
@@ -246,7 +248,6 @@ class Connection:
         self._encrypt_type = encrypt_type
         self._encryption: EncryptionStrategy | None = None
         self._initial_session_key: bytes = b""
-        self._simple_assembler = SimplePacketAssembler()
         self._frame_assembler: FrameAssembler | None = None
         self._options = Connection.Options()
 
@@ -264,7 +265,9 @@ class Connection:
         self._tasks: set[asyncio.Task] = set()
         self._call_later_handles: dict[str, asyncio.TimerHandle] = {}
         self._auth_task: asyncio.Task | None = None
-        self._notification_queue: asyncio.Queue[bytes] | None = None
+        self._inbox: asyncio.Queue[bytes | None] | None = None
+        self._data_pump: asyncio.Task | None = None
+        self._stage_reading = False
 
         self._logger = ConnectionLogger(self)
         self._state_changed = asyncio.Event()
@@ -464,6 +467,9 @@ class Connection:
         # Not inside the auth task: a device can answer while that task is still queued.
         self._reset_assemblers()
 
+        await self._stop_data_pump()
+        self._inbox = asyncio.Queue()
+
         try:
             await self._start_notify(self._on_notification)
         except Exception as e:  # noqa: BLE001 - any subscribe failure is fatal here
@@ -493,6 +499,11 @@ class Connection:
         # manages its own retries and will raise on final failure)
         if self._state is ConnectionState.ESTABLISHING_CONNECTION:
             return
+
+        if (inbox := self._inbox) is not None:
+            # Woken rather than cancelled, see `_stop_data_pump`
+            self._inbox = None
+            inbox.put_nowait(None)
 
         # Auth can't proceed without the link; any new attempt starts its own run
         if self._auth_task is not None and not self._auth_task.done():
@@ -565,6 +576,7 @@ class Connection:
         self._retry_on_disconnect = False
 
         self._reconnect_attempt = 0
+        await self._stop_data_pump()
         self._cancel_tasks()
 
         if self._client is not None and self._client.is_connected:
@@ -670,13 +682,7 @@ class Connection:
         await self._disconnected.wait()
 
     async def _run_auth(self) -> None:
-        """
-        Drive the whole authentication procedure for this connection
-
-        Each stage sends its request and awaits the device response through the
-        notification waiter, so the exchange reads top to bottom. The final auth reply
-        (or first data packet) is confirmed asynchronously by the data handler.
-        """
+        """Drive the whole authentication procedure for this connection"""
         client = self._client
         try:
             match self._encrypt_type:
@@ -686,6 +692,9 @@ class Connection:
                     await self._type_1_session()
                 case _:
                     await self._init_ble_session_key()
+
+            # What confirms the link is the auth reply, or the first data packet
+            self._start_data_pump()
 
             await self._auto_authentication()
             await self._wait_authenticated()
@@ -730,11 +739,7 @@ class Connection:
         await self.send_auth_status_packet()
 
     async def _init_ble_session_key(self):
-        """
-        Establish the encrypted session
-
-        ECDH public key exchange, then session key derivation and auth status query.
-        """
+        """Establish the encrypted session"""
         await self._ecdh_key_exchange()
         await self._get_key_info_req()
         await self._get_auth_status()
@@ -752,15 +757,16 @@ class Connection:
             await self.send_request(
                 SimplePacketAssembler.encode(b"\x01\x00" + self._public_key.to_string())
             )
-            data = await self._read_simple_response()
+            data = await self._read_simple_reply(0x01, min_length=43)
         self._set_state(ConnectionState.PUBLIC_KEY_RECEIVED)
 
-        if len(data) < 3:
-            raise PacketParseError(
-                "Incorrect size of the returned pub key data: " + data.hex()
-            )
         # status = data[1]
         ecdh_type_size = _get_ecdh_type_size(data[2])
+        if len(data) < ecdh_type_size + 3:
+            raise PacketParseError(
+                f"Pub key data is {len(data)} bytes, need {ecdh_type_size + 3}: "
+                + data.hex()
+            )
         self._dev_pub_key = ecdsa.VerifyingKey.from_string(
             data[3 : ecdh_type_size + 3], curve=ecdsa.SECP160r1
         )
@@ -785,14 +791,7 @@ class Connection:
         async with self._expecting_response():
             # Command to get key info to make the shared key
             await self.send_request(SimplePacketAssembler.encode(b"\x02"))
-            encrypted_data = await self._read_simple_response()
-        self._set_state(ConnectionState.SESSION_KEY_RECEIVED)
-
-        if encrypted_data[0] != 0x02:
-            raise AuthErrors.KeyInfoReqFailed(
-                "Received type of KeyInfo is != 0x02, need to dig into: "
-                f"{encrypted_data.hex()}"
-            )
+            encrypted_data = await self._read_simple_reply(0x02, min_length=33)
 
         assert self._encryption is not None
 
@@ -803,6 +802,9 @@ class Connection:
         session_key = await self._gen_session_key(data[16:18], data[:16])
         self._initial_session_key = self._encryption.session_key
         self._use_encryption(Type7Encryption(session_key, self._encryption.iv))
+        # The state is what opens the decode gate, so flipping it before the key exists
+        # feeds bytes queued in between to the assembler as the head of its stream
+        self._set_state(ConnectionState.SESSION_KEY_RECEIVED)
 
     @_auth_stage(ConnectionState.REQUESTING_AUTH_STATUS)
     async def _get_auth_status(self):
@@ -811,7 +813,7 @@ class Connection:
         )
         async with self._expecting_response():
             await self.send_auth_status_packet()
-            packets = await self._read_packet_response()
+            packets = await self._read_auth_status_reply()
         self._set_state(ConnectionState.AUTH_STATUS_RECEIVED)
 
         self._logger.log_filtered(
@@ -936,77 +938,201 @@ class Connection:
     async def _on_notification(
         self, characteristic: BleakGATTCharacteristic, recv_data: bytearray
     ):
-        """
-        Dispatch every BLE notification for the whole connection lifetime
-
-        While an auth stage awaits its response the data is routed to the pending
-        waiter, anything else is device data.
-        """
+        """Queue every BLE notification in arrival order, deciding nothing here"""
         if self._client is None or not self._client.is_connected:
             return
 
         data = bytes(recv_data)
-        if (queue := self._notification_queue) is not None:
-            queue.put_nowait(data)
+        self._listeners.on_data_received(data, self._connection_state)
+        if (inbox := self._inbox) is None:
+            self._logger.log_filtered(
+                LogOptions.CONNECTION_DEBUG,
+                "Dropping %d bytes that arrived with no inbox",
+                len(data),
+            )
             return
 
-        await self._listen_for_data_handler(data)
+        inbox.put_nowait(data)
 
     @contextlib.asynccontextmanager
     async def _expecting_response(self):
-        """
-        Buffer notifications for an auth stage instead of handing them to `_handle_data`
+        """The stage inside this block owns the inbox"""
+        # The pump owns the inbox once the handshake is done, so this is a bug here
+        if self._data_pump is not None:
+            raise RuntimeError("the data pump already owns the inbox")
 
-        The buffer has to exist before the request goes out: a device can answer faster
-        than this coroutine is scheduled again after the write, and a reply that arrives
-        with nothing expecting it is parsed as device data and lost, which strands the
-        stage until it times out.
-        """
-        queue: asyncio.Queue[bytes] = asyncio.Queue()
-        self._notification_queue = queue
+        self._stage_reading = True
         try:
             yield
         finally:
-            self._notification_queue = None
-            # Unread notifications are still device data, and the assembler needs
-            # every byte in order.
-            while not queue.empty():
-                await self._listen_for_data_handler(queue.get_nowait())
+            self._stage_reading = False
 
-    async def _wait_notification(self) -> bytes:
-        queue = self._notification_queue
-        if queue is None:
-            raise RuntimeError(
-                "auth stages must read responses inside `_expecting_response()`"
-            )
-        return await queue.get()
+    async def _hand_to_data_path(self, work: Coroutine) -> None:
+        """Run data-path work from an auth stage without exposing it to a cancel"""
+        # Bleak cancels this task from its disconnect callback, and a cancel landing
+        # inside a device parser half-applies the packet it was holding
+        task = self._add_task(work)
+        task.add_done_callback(self._stage_spill_finished)
+        try:
+            await asyncio.shield(task)
+        except asyncio.CancelledError:
+            # Swallowing the cancel strands the stage past its own deadline, and
+            # waiting unbounded for a parser that retries sends makes it a floor
+            await asyncio.wait([task], timeout=PUMP_STOP_TIMEOUT)
+            task.cancel()
+            raise
+        except Exception:  # noqa: BLE001 - the callback reports it, and device data
+            pass  # arriving mid-handshake cannot be what fails the handshake
 
-    async def _read_simple_response(self) -> bytes:
-        """Await notifications until the simple assembler yields a complete payload"""
-        # One deadline for the whole read, not per notification.
+    def _stage_spill_finished(self, task: asyncio.Task) -> None:
+        if task.cancelled():
+            return
+
+        if (error := task.exception()) is not None:
+            self._add_task(self._data_path_failed(error))
+
+    async def _next_notification(self) -> bytes:
+        if not self._stage_reading:
+            raise RuntimeError("auth stages must read inside `_expecting_response()`")
+
+        inbox = self._inbox
+        if inbox is None:
+            raise NotConnectedError("No inbox: the link is not up")
+
+        data = await inbox.get()
+        if data is None:
+            raise NotConnectedError("The link was torn down mid-handshake")
+        return data
+
+    async def _read_simple_reply(self, expected_type: int, min_length: int) -> bytes:
+        """Read notifications until this stage's own reply arrives"""
+        # Its own assembler: a foreign fragment left in a shared one would be spliced
+        # onto whatever the next stage reads
+        assembler = SimplePacketAssembler()
         async with asyncio.timeout(self._options.timeout):
-            while (
-                data := await self._parse_simple(await self._wait_notification())
-            ) is None:
-                pass
-            return data
+            while True:
+                data = await self._next_notification()
+                payload = await self._parse_simple(data, assembler)
+                # Device data shares this framing, and a device may repeat the previous
+                # step, so taking the next frame on faith reads one as key material
+                if (
+                    payload is not None
+                    and payload[:1] == bytes([expected_type])
+                    and len(payload) >= min_length
+                ):
+                    return payload
 
-    async def _read_packet_response(self) -> list[Packet]:
-        """Await notifications until the frame assembler yields complete packets"""
+                if payload is not None and payload[:1] == bytes([expected_type]):
+                    self._logger.warning(
+                        "Ignoring a %d byte type %#04x reply, need %d bytes: %s",
+                        len(payload),
+                        expected_type,
+                        min_length,
+                        payload.hex(),
+                    )
+
+                await self._hand_to_data_path(self._listen_for_data_handler(data))
+
+    async def _read_auth_status_reply(self) -> list[Packet]:
+        """Read notifications until the auth status reply arrives, passing on the rest"""
         async with asyncio.timeout(self._options.timeout):
-            while not (
-                packets := await self._parse_enc_packets(
-                    await self._wait_notification()
-                )
-            ):
-                pass
-            return packets
+            while True:
+                data = await self._next_notification()
+                try:
+                    packets = await self._parse_enc_packets(data)
+                except Exception as e:  # noqa: BLE001 - one frame does not fail auth
+                    await self.add_error(e)
+                    continue
+
+                replies = [p for p in packets if self._is_auth_reply(p)]
+                if others := [p for p in packets if not self._is_auth_reply(p)]:
+                    await self._hand_to_data_path(self._process_packets(others))
+                if replies:
+                    return replies
+
+    def _is_auth_reply(self, packet: Packet) -> bool:
+        return packet.src == self._auth_header_dst and packet.cmd_set == 0x35
+
+    def _start_data_pump(self) -> None:
+        """Hand the inbox to the data path, which owns it for the rest of the link"""
+        inbox = self._inbox
+        if inbox is None or self._data_pump is not None or self._stage_reading:
+            return
+
+        async def pump() -> None:
+            while (data := await inbox.get()) is not None:
+                if self._inbox is not inbox:
+                    # A dead link's backlog latches errors over the real reason
+                    return
+
+                await self._listen_for_data_handler(data)
+
+        self._data_pump = self._add_task(pump())
+        self._data_pump.add_done_callback(self._data_pump_finished)
+
+    def _data_pump_finished(self, task: asyncio.Task) -> None:
+        if task is not self._data_pump:
+            return
+
+        self._data_pump = None
+        if task.cancelled() or (error := task.exception()) is None:
+            return
+
+        self._logger.error("Data path stopped: %r", error)
+        self._inbox = None
+        self._set_state(ConnectionState.ERROR_UNKNOWN, error)
+        # Nothing reads the inbox now, and `_disconnect_client` is a no-op once gone
+        if self.is_connected:
+            self._add_task(self._disconnect_client())
+        else:
+            self.disconnected()
+
+    async def _stop_data_pump(self) -> None:
+        """Retire the pump, waiting briefly for it to finish the packet it is on"""
+        pump = self._data_pump
+        inbox, self._inbox = self._inbox, None
+        if inbox is not None:
+            inbox.put_nowait(None)
+        if pump is None or pump is asyncio.current_task():
+            return
+
+        self._data_pump = None
+
+        # A device parser can hold a packet for as long as a retrying send takes, and
+        # an entry stuck unloading costs more than a half-applied packet on a dead link
+        try:
+            await asyncio.wait_for(asyncio.shield(pump), PUMP_STOP_TIMEOUT)
+        except asyncio.CancelledError:
+            pump.cancel()
+            raise
+        except TimeoutError:
+            pump.cancel()
+        except Exception as e:  # noqa: BLE001 - the done callback no longer owns this
+            self._logger.error("Data path stopped while retiring it: %r", e)
+            pump.cancel()
 
     async def _listen_for_data_handler(self, data: bytes):
         try:
-            packets = await self._parse_enc_packets(data)
-        except Exception as e:  # noqa: BLE001
-            await self.add_error(e)
+            await self._process_packets(await self._parse_enc_packets(data))
+        except Exception as e:  # noqa: BLE001 - one frame does not end the data path
+            await self._data_path_failed(e)
+
+    async def _data_path_failed(self, e: Exception) -> None:
+        if self._state is ConnectionState.ERROR_AUTH_FAILED or (
+            self._state.is_error and not self.is_connected
+        ):
+            # `_check_auth` raises deliberately once it has set the reason, and a link
+            # that is gone already said why: counting either would replace it
+            self._logger.log_filtered(
+                LogOptions.CONNECTION_DEBUG, "Data path stopping: %r", e
+            )
+            return
+
+        await self.add_error(e)
+
+    async def _process_packets(self, packets: list[Packet]) -> None:
+        """Hand decoded packets to the device, whoever parsed them"""
+        if not packets:
             return
 
         self._reset_error_counter()
@@ -1077,9 +1203,10 @@ class Connection:
         # Running reply asynchroneously
         self._add_task(self.send_packet(reply_packet))
 
-    async def _parse_simple(self, data: bytes) -> bytes | None:
+    async def _parse_simple(
+        self, data: bytes, assembler: SimplePacketAssembler
+    ) -> bytes | None:
         """Deserializes bytes stream into the simple bytes"""
-        self._listeners.on_data_received(data, self._connection_state)
 
         self._logger.log_filtered(
             LogOptions.ENCRYPTED_PAYLOADS,
@@ -1088,7 +1215,7 @@ class Connection:
         )
 
         try:
-            return self._simple_assembler.parse(data)
+            return assembler.parse(data)
         except PacketParseError as e:
             error_msg = "_parse_simple: Unable to parse simple packet: %r"
             self._logger.error(error_msg, str(e))
@@ -1097,13 +1224,26 @@ class Connection:
 
     async def _parse_enc_packets(self, data: bytes) -> list[Packet]:
         """Deserializes bytes stream into a list of Packets"""
-        self._listeners.on_data_received(data, self._connection_state)
-
         self._logger.log_filtered(
             LogOptions.ENCRYPTED_PAYLOADS,
             "_parse_enc_packets: Data: %r",
             data,
         )
+
+        awaiting_session_key = (
+            self._encrypt_type == 7 and not self._connection_state.received_session_key
+        )
+        if self._encrypt_type != 0 and (
+            self._encryption is None or awaiting_session_key
+        ):
+            # Type 7 cannot decode before the session key, and the state resets with
+            # the link; type 1 derives its key from the serial and is usable at once
+            self._logger.log_filtered(
+                LogOptions.CONNECTION_DEBUG,
+                "Dropping %d bytes that this link cannot decode yet",
+                len(data),
+            )
+            return []
 
         frame_assembler = (
             self._get_frame_assembler()
@@ -1168,7 +1308,6 @@ class Connection:
 
     def _reset_assemblers(self) -> None:
         """Drop buffered frame data and rebuild assemblers for a fresh auth routine"""
-        self._simple_assembler = SimplePacketAssembler()
         # Clear it so the next use rebuilds it against this attempt's encryption rather
         # than reusing a previous attempt's session key.
         self._frame_assembler = None
