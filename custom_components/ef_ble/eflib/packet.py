@@ -58,6 +58,16 @@ class Packet:
     def cmdId(self):
         return self._cmd_id
 
+    # Upstream renamed these to snake_case; both names read the same field, so code
+    # taken from either tree works here unchanged
+    @property
+    def cmd_set(self):
+        return self._cmd_set
+
+    @property
+    def cmd_id(self):
+        return self._cmd_id
+
     @property
     def payload(self):
         return self._payload
@@ -84,6 +94,10 @@ class Packet:
 
     @property
     def productId(self):
+        return self._product_id
+
+    @property
+    def product_id(self):
         return self._product_id
 
     @staticmethod
@@ -322,6 +336,16 @@ class PacketV4:
 
     @property
     def cmdId(self):
+        return self._cmd_id
+
+    # Upstream renamed these to snake_case; both names read the same field, so code
+    # taken from either tree works here unchanged
+    @property
+    def cmd_set(self):
+        return self._cmd_set
+
+    @property
+    def cmd_id(self):
         return self._cmd_id
 
     @property
