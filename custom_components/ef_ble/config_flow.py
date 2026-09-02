@@ -23,7 +23,7 @@ from homeassistant.config_entries import (
     OptionsFlow,
 )
 from homeassistant.const import CONF_ADDRESS, CONF_EMAIL, CONF_PASSWORD, CONF_REGION
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import AbortFlow, section
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
@@ -40,6 +40,7 @@ from .const import (
     CONF_BLUEZ_START_NOTIFY,
     CONF_COLLECT_PACKETS,
     CONF_COLLECT_PACKETS_AMOUNT,
+    CONF_CONNECTION_DELAY,
     CONF_CONNECTION_TIMEOUT,
     CONF_DIAGNOSTICS_ENCRYPT,
     CONF_DIAGNOSTICS_ON_EXCEPTION,
@@ -53,20 +54,55 @@ from .const import (
     CONF_LOG_PACKETS,
     CONF_LOG_PAYLOADS,
     CONF_PACKET_VERSION,
+    CONF_PREFERRED_PROXY,
+    CONF_PREFERRED_PROXY_TIMEOUT,
     CONF_UPDATE_PERIOD,
     CONF_USER_ID,
+    DEFAULT_CONNECTION_DELAY,
     DEFAULT_CONNECTION_TIMEOUT,
+    DEFAULT_PREFERRED_PROXY_TIMEOUT,
     DEFAULT_UPDATE_PERIOD,
     DOMAIN,
     LINK_WIKI_SUPPORTING_NEW_DEVICES,
+    NO_PREFERRED_PROXY,
 )
 from .eflib.connection import Connection, ConnectionState
 from .eflib.device_mappings import battery_name_from_device, extra_battery_indices
 from .eflib.exceptions import AuthErrors
 from .eflib.logging_util import LogOptions
 from .eflib.login import EcoFlowLogin, Region
+from .proxy import connectable_proxies
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _proxy_options(
+    hass: HomeAssistant, selected: str | None = None
+) -> list[SelectOptionDict]:
+    """
+    List the Bluetooth adapters and proxies a device could be connected through
+
+    A proxy that is currently offline is not registered, so a previously selected one is
+    kept in the list rather than dropped - otherwise reopening the options would
+    silently clear the setting while that proxy is down. Only its source is known while
+    it is gone, so it is labelled as offline to tell it apart from a proxy that is
+    merely unnamed.
+
+    "No preference" is an option of its own rather than an empty dropdown, because a
+    cleared dropdown is left out of the submitted data and the stored value would be
+    reapplied from the schema default - leaving a preference impossible to undo.
+    """
+    proxies = connectable_proxies(hass)
+    if selected and selected != NO_PREFERRED_PROXY and selected not in proxies:
+        proxies[selected] = f"{selected} (offline)"
+
+    return [
+        SelectOptionDict(value=NO_PREFERRED_PROXY, label="Any available proxy"),
+        *(
+            SelectOptionDict(value=source, label=name)
+            for source, name in proxies.items()
+        ),
+    ]
 
 
 class PacketVersion(enum.StrEnum):
@@ -174,7 +210,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                 .required(CONF_ADDRESS, vol.In([full_name]))
                 .update_period()
                 .conf_log(self._log_options)
-                .advanced_connection_options()
+                .advanced_connection_options(self.hass)
                 .build()
             ),
         )
@@ -273,7 +309,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                 .login(self._collapsed)
                 .update_period()
                 .conf_log(self._log_options)
-                .advanced_connection_options()
+                .advanced_connection_options(self.hass)
                 .build()
             ),
         )
@@ -315,7 +351,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                 )
                 .login(self._collapsed)
                 .conf_log(self._log_options)
-                .advanced_connection_options()
+                .advanced_connection_options(self.hass)
                 .build()
             ),
         )
@@ -387,7 +423,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         entry_data[CONF_ADDRESS] = device.address
         # Persist the validated user ID explicitly - the form field is optional, so
         # relying on it round-tripping through user_input can produce an entry
-        # without a user ID that then silently fails to set up (issue #403)
+        # without a user ID that then fails to set up
         entry_data[CONF_USER_ID] = self._user_id
         entry_data["local_name"] = self._local_names.get(device.address, None)
         entry_data.pop("login", None)
@@ -742,7 +778,7 @@ class OptionsFlowHandler(OptionsFlow):
                         else 100,
                     )
                     .update(ConfLogOptions.schema(merged_entry))
-                    .advanced_connection_options(merged_entry)
+                    .advanced_connection_options(self.hass, merged_entry)
                     .build()
                 ),
                 options,
@@ -902,11 +938,17 @@ class _SchemaBuilder:
         )
 
     def advanced_connection_options(
-        self, defaults_dict: Mapping[str, Any] | None = None, collapsed: bool = True
+        self,
+        hass: HomeAssistant,
+        defaults_dict: Mapping[str, Any] | None = None,
+        collapsed: bool = True,
     ):
         if defaults_dict is None:
             defaults_dict = {}
         advanced = defaults_dict.get(CONF_ADVANCED_CONNECTION_OPTIONS, defaults_dict)
+        preferred_proxy = advanced.get(CONF_PREFERRED_PROXY) or NO_PREFERRED_PROXY
+        proxies = connectable_proxies(hass)
+        offers_proxy_choice = bool(proxies) or preferred_proxy != NO_PREFERRED_PROXY
         return self.update(
             {
                 vol.Required(CONF_ADVANCED_CONNECTION_OPTIONS): section(
@@ -918,6 +960,37 @@ class _SchemaBuilder:
                             advanced.get(
                                 CONF_CONNECTION_TIMEOUT, DEFAULT_CONNECTION_TIMEOUT
                             ),
+                        )
+                        .optional(
+                            CONF_CONNECTION_DELAY,
+                            vol.All(vol.Coerce(float), vol.Range(min=0, max=60)),
+                            advanced.get(
+                                CONF_CONNECTION_DELAY, DEFAULT_CONNECTION_DELAY
+                            ),
+                        )
+                        .optional(
+                            CONF_PREFERRED_PROXY,
+                            SelectSelector(
+                                SelectSelectorConfig(
+                                    options=_proxy_options(hass, preferred_proxy),
+                                    mode=SelectSelectorMode.DROPDOWN,
+                                    translation_key=CONF_PREFERRED_PROXY,
+                                ),
+                            ),
+                            preferred_proxy,
+                            # Shown even when there is a single path today, so that it
+                            # is discoverable before a second proxy is added; picking
+                            # the only proxy costs nothing, as the wait ends at once.
+                            condition=offers_proxy_choice,
+                        )
+                        .optional(
+                            CONF_PREFERRED_PROXY_TIMEOUT,
+                            vol.All(vol.Coerce(float), vol.Range(min=0, max=300)),
+                            advanced.get(
+                                CONF_PREFERRED_PROXY_TIMEOUT,
+                                DEFAULT_PREFERRED_PROXY_TIMEOUT,
+                            ),
+                            condition=offers_proxy_choice,
                         )
                         .optional(
                             CONF_BLUEZ_START_NOTIFY,

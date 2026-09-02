@@ -29,16 +29,22 @@ from .const import (
     CONF_ADVANCED_CONNECTION_OPTIONS,
     CONF_BLUEZ_START_NOTIFY,
     CONF_COLLECT_PACKETS_AMOUNT,
+    CONF_CONNECTION_DELAY,
     CONF_CONNECTION_TIMEOUT,
     CONF_DIAGNOSTICS_ON_EXCEPTION,
     CONF_DIAGNOSTICS_OPTIONS,
     CONF_EXTRA_BATTERY,
     CONF_PACKET_VERSION,
+    CONF_PREFERRED_PROXY,
+    CONF_PREFERRED_PROXY_TIMEOUT,
     CONF_UPDATE_PERIOD,
     CONF_USER_ID,
+    DEFAULT_CONNECTION_DELAY,
     DEFAULT_CONNECTION_TIMEOUT,
+    DEFAULT_PREFERRED_PROXY_TIMEOUT,
     DEFAULT_UPDATE_PERIOD,
     DOMAIN,
+    NO_PREFERRED_PROXY,
 )
 from .eflib.connection import (
     BleakError,
@@ -48,6 +54,7 @@ from .eflib.connection import (
 )
 from .eflib.exceptions import AuthErrors, UnsupportedBluetoothProtocol
 from .eflib.logging_util import ConnectionLog
+from .proxy import connect_gate, wait_for_preferred_proxy
 
 PLATFORMS: list[Platform] = [
     Platform.BUTTON,
@@ -82,8 +89,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
     )
 
     if address is None or user_id is None:
-        # Returning False here would fail setup without any log or UI message
-        # (issue #403) - raise instead so the user sees what is wrong
+        # Returning False here would fail setup without any log or UI message, so
+        # raise instead to tell the user which of the two is missing
         raise ConfigEntryError(
             translation_key="missing_address_or_user_id",
             translation_placeholders={
@@ -118,26 +125,41 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
 
     advanced = merged_options.get(CONF_ADVANCED_CONNECTION_OPTIONS, {})
     timeout = advanced.get(CONF_CONNECTION_TIMEOUT, DEFAULT_CONNECTION_TIMEOUT)
+    connection_delay = advanced.get(CONF_CONNECTION_DELAY, DEFAULT_CONNECTION_DELAY)
+    preferred_proxy = advanced.get(CONF_PREFERRED_PROXY) or NO_PREFERRED_PROXY
     options = Connection.Options(
         timeout=timeout,
         bluez_start_notify=advanced.get(CONF_BLUEZ_START_NOTIFY, False),
     )
     issue_id = f"{entry.entry_id}_max_connection_attempts"
 
+    preference_wait = (
+        advanced.get(CONF_PREFERRED_PROXY_TIMEOUT, DEFAULT_PREFERRED_PROXY_TIMEOUT)
+        if preferred_proxy != NO_PREFERRED_PROXY
+        else 0.0
+    )
+
     try:
-        await (
-            device.with_update_period(update_period)
-            .with_logging_options(ConfLogOptions.from_config(merged_options))
-            .with_disabled_reconnect()
-            .with_packet_version(packet_version.to_num())
-            .with_enabled_packet_diagnostics(packet_collection_enabled)
-            .with_diagnostics_on_exception(diagnostics_on_exception)
-            .with_connection_options(options)
-            .connect(
-                user_id=user_id,
-                max_attempts=0 if eflib.is_solar_only(device) else None,
+        async with connect_gate(
+            hass, device.name, connection_delay, timeout, preference_wait
+        ):
+            if preference_wait:
+                await wait_for_preferred_proxy(
+                    hass, address, device.name, preferred_proxy, preference_wait
+                )
+            await (
+                device.with_update_period(update_period)
+                .with_logging_options(ConfLogOptions.from_config(merged_options))
+                .with_disabled_reconnect()
+                .with_packet_version(packet_version.to_num())
+                .with_enabled_packet_diagnostics(packet_collection_enabled)
+                .with_diagnostics_on_exception(diagnostics_on_exception)
+                .with_connection_options(options)
+                .connect(
+                    user_id=user_id,
+                    max_attempts=0 if eflib.is_solar_only(device) else None,
+                )
             )
-        )
         async with asyncio.timeout(timeout):
             state = await device.wait_until_authenticated_or_error(raise_on_error=True)
     except (
