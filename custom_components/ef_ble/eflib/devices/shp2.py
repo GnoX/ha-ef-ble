@@ -130,6 +130,7 @@ class Device(DeviceBase, ProtobufProps):
     circuit_current = field_group(lambda n: CircuitCurrentField(n - 1), count=12)
 
     circuit = _circuit_sta_group(_hall1.ch1_sta.load_sta)
+    circuit_name = _circuit_info_group(_hall1.ch1_info.ch_name)
     circuit_split_link = _circuit_info_group(_hall1.ch1_info.splitphase.link_ch)
     circuit_split_info_loaded = _circuit_info_group(
         _hall1.ch1_info.splitphase.link_ch, transform=lambda value: value is not None
@@ -234,13 +235,13 @@ class Device(DeviceBase, ProtobufProps):
             case 0x0B, 0x0C, 0x01:
                 # master_info, load_info, backup_info, watt_info, master_ver_info
                 self._logger.debug("Parsed data: %r", packet)
-                await self._conn.replyPacket(packet)
+                await self._conn.reply_packet(packet)
                 self.update_from_bytes(pd303_pb2.ProtoTime, packet.payload)
                 processed = True
 
             case 0x0B, 0x0C, 0x20:  # backup_incre_info
                 self._logger.debug("Parsed data: %r", packet)
-                await self._conn.replyPacket(packet)
+                await self._conn.reply_packet(packet)
                 self.update_from_bytes(pd303_pb2.ProtoPushAndSet, packet.payload)
                 processed = True
 
@@ -274,7 +275,7 @@ class Device(DeviceBase, ProtobufProps):
     async def _send_config_packet(self, message):
         payload = message.SerializeToString()
         packet = Packet(0x21, 0x0B, 0x0C, 0x21, payload, 0x01, 0x01, 0x13)
-        await self._conn.sendPacket(packet)
+        await self.send_packet(packet, raise_on_failure=True)
 
     async def set_config_flag(self, enable):
         """Send command to enable/disable sending config data from device to the host"""
@@ -291,7 +292,8 @@ class Device(DeviceBase, ProtobufProps):
         control=controls.outlet,
         availability=circuit_split_info_loaded,
         translation_key="circuit_is_enabled",
-        translation_placeholders=lambda i: {"circuit": str(i)},
+        translation_placeholders=lambda i: {"circuit": f"{i:02d}"},
+        name_field=lambda i: f"circuit_name_{i}",
     )
     async def set_circuit_power(self, circuit_id: int, enable: bool):
         """Send command to power on / off the specific circuit of the panel"""

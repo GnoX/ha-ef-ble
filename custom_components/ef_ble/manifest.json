@@ -214,6 +214,12 @@
             "manufacturer_id": 46517,
             "manufacturer_data_start": [19, 82, 55, 48],
             "connectable": true
+        },
+        {
+            "local_name": "EF-J32*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 74, 51, 50],
+            "connectable": true
         }
     ],
 
@@ -232,5 +238,5 @@
         "protobuf~=6.30"
     ],
 
-    "version": "1.0.1"
+    "version": "1.1.0"
 }

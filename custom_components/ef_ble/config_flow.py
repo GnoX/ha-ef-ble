@@ -5,8 +5,9 @@ from __future__ import annotations
 import asyncio
 import enum
 import logging
-from collections.abc import Iterable, Mapping
-from functools import cached_property
+from collections.abc import Callable, Coroutine, Iterable, Mapping
+from contextlib import suppress
+from functools import cached_property, partial
 from typing import Any, ClassVar, cast
 
 import voluptuous as vol
@@ -22,8 +23,8 @@ from homeassistant.config_entries import (
     OptionsFlow,
 )
 from homeassistant.const import CONF_ADDRESS, CONF_EMAIL, CONF_PASSWORD, CONF_REGION
-from homeassistant.core import callback
-from homeassistant.data_entry_flow import section
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.data_entry_flow import AbortFlow, section
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
     SelectOptionDict,
@@ -39,6 +40,7 @@ from .const import (
     CONF_BLUEZ_START_NOTIFY,
     CONF_COLLECT_PACKETS,
     CONF_COLLECT_PACKETS_AMOUNT,
+    CONF_CONNECTION_DELAY,
     CONF_CONNECTION_TIMEOUT,
     CONF_DIAGNOSTICS_ENCRYPT,
     CONF_DIAGNOSTICS_ON_EXCEPTION,
@@ -52,20 +54,55 @@ from .const import (
     CONF_LOG_PACKETS,
     CONF_LOG_PAYLOADS,
     CONF_PACKET_VERSION,
+    CONF_PREFERRED_PROXY,
+    CONF_PREFERRED_PROXY_TIMEOUT,
     CONF_UPDATE_PERIOD,
     CONF_USER_ID,
+    DEFAULT_CONNECTION_DELAY,
     DEFAULT_CONNECTION_TIMEOUT,
+    DEFAULT_PREFERRED_PROXY_TIMEOUT,
     DEFAULT_UPDATE_PERIOD,
     DOMAIN,
     LINK_WIKI_SUPPORTING_NEW_DEVICES,
+    NO_PREFERRED_PROXY,
 )
 from .eflib.connection import Connection, ConnectionState
-from .eflib.device_mappings import battery_name_from_device
+from .eflib.device_mappings import battery_name_from_device, extra_battery_indices
 from .eflib.exceptions import AuthErrors
 from .eflib.logging_util import LogOptions
 from .eflib.login import EcoFlowLogin, Region
+from .proxy import connectable_proxies
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _proxy_options(
+    hass: HomeAssistant, selected: str | None = None
+) -> list[SelectOptionDict]:
+    """
+    List the Bluetooth adapters and proxies a device could be connected through
+
+    A proxy that is currently offline is not registered, so a previously selected one is
+    kept in the list rather than dropped - otherwise reopening the options would
+    silently clear the setting while that proxy is down. Only its source is known while
+    it is gone, so it is labelled as offline to tell it apart from a proxy that is
+    merely unnamed.
+
+    "No preference" is an option of its own rather than an empty dropdown, because a
+    cleared dropdown is left out of the submitted data and the stored value would be
+    reapplied from the schema default - leaving a preference impossible to undo.
+    """
+    proxies = connectable_proxies(hass)
+    if selected and selected != NO_PREFERRED_PROXY and selected not in proxies:
+        proxies[selected] = f"{selected} (offline)"
+
+    return [
+        SelectOptionDict(value=NO_PREFERRED_PROXY, label="Any available proxy"),
+        *(
+            SelectOptionDict(value=source, label=name)
+            for source, name in proxies.items()
+        ),
+    ]
 
 
 class PacketVersion(enum.StrEnum):
@@ -110,6 +147,18 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         self._log_options = LogOptions.no_options()
         self._collapsed = True
 
+        self._connect_task: asyncio.Task[dict[str, Any]] | None = None
+        self._connect_result: dict[str, Any] | None = None
+        self._progress_task: asyncio.Task[None] | None = None
+        self._shown_phase: ProgressPhase | None = None
+        self._finalizing: bool = False
+        self._connect_timeout: float = DEFAULT_CONNECTION_TIMEOUT
+        self._needs_connection: bool = False
+        self._entry_created: bool = False
+        self._pending_user_input: dict[str, Any] = {}
+        self._pending_errors: dict[str, Any] = {}
+        self._origin_step: str = "bluetooth_confirm"
+
     async def async_step_bluetooth(
         self, discovery_info: BluetoothServiceInfoBleak
     ) -> ConfigFlowResult:
@@ -135,29 +184,24 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         device = self._discovered_device
         assert self._discovery_info is not None
 
-        errors = {}
+        errors, result = await self._async_process_confirm(
+            "bluetooth_confirm", user_input, partial(self._validate_user_id, device)
+        )
+        if result is not None:
+            return result
+
         title = f"{device.device} ({self._local_names[device.address]})"
-
-        if data := await self._store.async_load():
-            self._user_id = data["user_id"]
-
         self._set_confirm_only()
 
         placeholders = {"name": title}
         self.context["title_placeholders"] = placeholders
-
-        if user_input is not None:
-            errors |= await self._validate_user_id(self._discovered_device, user_input)
-            if not errors and self._user_id_validated:
-                return self._create_entry(user_input, device)
-            self._log_options = ConfLogOptions.from_config(user_input)
 
         full_name = (
             f"{device.device} - {self._local_names[device.address]} [{device.address}]"
         )
         return self.async_show_form(
             step_id="bluetooth_confirm",
-            description_placeholders=placeholders | errors.get("__placeholders", {}),
+            description_placeholders=placeholders,
             errors=errors,
             data_schema=(
                 schema_builder()
@@ -166,7 +210,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                 .required(CONF_ADDRESS, vol.In([full_name]))
                 .update_period()
                 .conf_log(self._log_options)
-                .advanced_connection_options()
+                .advanced_connection_options(self.hass)
                 .build()
             ),
         )
@@ -246,17 +290,13 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         assert self._discovered_device is not None
         device = self._discovered_device
 
-        errors = {}
+        errors, result = await self._async_process_confirm(
+            "device_confirm", user_input, self._validate_current_device
+        )
+        if result is not None:
+            return result
 
-        if data := await self._store.async_load():
-            self._user_id = data["user_id"]
-
-        if user_input is not None:
-            errors |= await self._validate_current_device(user_input)
-            if not errors:
-                return self._create_entry(user_input, device)
-
-        placeholders = {"name": device.device} | errors.pop("__placeholders", {})
+        placeholders = {"name": device.device}
         self.context["title_placeholders"] = placeholders
 
         return self.async_show_form(
@@ -269,7 +309,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                 .login(self._collapsed)
                 .update_period()
                 .conf_log(self._log_options)
-                .advanced_connection_options()
+                .advanced_connection_options(self.hass)
                 .build()
             ),
         )
@@ -280,19 +320,16 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         assert eflib.is_unsupported(self._discovered_device)
         device = self._discovered_device
 
-        if data := await self._store.async_load():
-            self._user_id = data["user_id"]
-
-        errors = {}
-        if user_input is not None:
-            errors |= await self._validate_current_device(user_input)
-            if not errors:
-                return self._create_entry(user_input, device)
+        errors, result = await self._async_process_confirm(
+            "unsupported_device", user_input, self._validate_current_device
+        )
+        if result is not None:
+            return result
 
         placeholders = {
             "name": device.device,
             "wiki_link": LINK_WIKI_SUPPORTING_NEW_DEVICES,
-        } | errors.pop("__placeholders", {})
+        }
         self.context["title_placeholders"] = placeholders
 
         return self.async_show_form(
@@ -314,7 +351,7 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                 )
                 .login(self._collapsed)
                 .conf_log(self._log_options)
-                .advanced_connection_options()
+                .advanced_connection_options(self.hass)
                 .build()
             ),
         )
@@ -374,10 +411,8 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
             self._abort_if_unique_id_configured()
 
             errors |= await self._validate_user_id(device, user_input)
-            if not errors and self._user_id_validated:
-                return {}
-
-            self._log_options = ConfLogOptions.from_config(user_input)
+        except AbortFlow:
+            raise
         except Exception:  # pylint: disable=broad-except
             _LOGGER.exception("Unexpected exception")
             errors["base"] = "unknown"
@@ -386,12 +421,16 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
     def _create_entry(self, user_input: dict[str, Any], device: eflib.DeviceBase):
         entry_data = user_input.copy()
         entry_data[CONF_ADDRESS] = device.address
+        # Persist the validated user ID explicitly - the form field is optional, so
+        # relying on it round-tripping through user_input can produce an entry
+        # without a user ID that then fails to set up
+        entry_data[CONF_USER_ID] = self._user_id
         entry_data["local_name"] = self._local_names.get(device.address, None)
         entry_data.pop("login", None)
 
         if CONF_EXTRA_BATTERY not in entry_data:
             entry_data[CONF_EXTRA_BATTERY] = _find_enabled_batteries(
-                device, range(1, 6)
+                device, extra_battery_indices(device)
             )
 
         return self.async_create_entry(title=device.name, data=entry_data)
@@ -408,6 +447,8 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
         self, device: eflib.DeviceBase, user_input: dict[str, Any]
     ) -> dict[str, Any]:
         self._user_id_validated = False
+        self._needs_connection = False
+        self._log_options = ConfLogOptions.from_config(user_input)
 
         self._email = user_input.get("login", {}).get(CONF_EMAIL, "")
         password = user_input.get("login", {}).get(CONF_PASSWORD, "")
@@ -441,6 +482,191 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
             .with_connection_options(Connection.Options(timeout=timeout))
         )
 
+        self._connect_timeout = timeout
+        self._needs_connection = True
+        return {}
+
+    async def _async_process_confirm(
+        self,
+        origin: str,
+        user_input: dict[str, Any] | None,
+        validate: Callable[[dict[str, Any]], Coroutine[Any, Any, dict[str, Any]]],
+    ) -> tuple[dict[str, Any], ConfigFlowResult | None]:
+        """
+        Run the part shared by all confirm steps
+
+        Collects errors from a previous connection test, restores the stored user ID
+        and, when submitted input validates cleanly, hands off to the connection test
+        progress step. Returns the form errors and, when the hand-off happened, the flow
+        result the step must return.
+        """
+        errors = dict(self._pending_errors)
+
+        if not errors and (data := await self._store.async_load()):
+            self._user_id = data["user_id"]
+
+        if user_input is None:
+            return errors, None
+
+        self._pending_errors = {}
+        errors = await validate(user_input)
+        if not errors and self._needs_connection:
+            return errors, await self._async_start_connection(user_input, origin)
+        return errors, None
+
+    async def _async_start_connection(
+        self, user_input: dict[str, Any], origin: str
+    ) -> ConfigFlowResult:
+        self._pending_user_input = user_input
+        self._origin_step = origin
+        self._connect_result = None
+        self._shown_phase = None
+        self._finalizing = False
+        return await self.async_step_connect()
+
+    async def async_step_connect(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """
+        Show connection progress while the device is tested in the background
+
+        The flow manager and the frontend both re-invoke this step (once per completed
+        progress task plus once per dialog refresh), so it must be idempotent: the
+        running phase task is reused unless the phase changed.
+        """
+        assert self._discovered_device is not None
+        device = self._discovered_device
+
+        if self._connect_task is None:
+            self._connect_task = self.hass.async_create_task(
+                self._async_connect_device(device)
+            )
+
+        if self._connect_task.done():
+            return self.async_show_progress_done(next_step_id="connect_done")
+
+        phase = (
+            ProgressPhase.FINALIZING
+            if self._finalizing
+            else ProgressPhase.from_state(device.connection_state)
+        )
+        if (
+            self._progress_task is None
+            or self._progress_task.done()
+            or self._shown_phase != phase
+        ):
+            if self._progress_task is not None and not self._progress_task.done():
+                self._progress_task.cancel()
+            self._shown_phase = phase
+            self._progress_task = self.hass.async_create_task(
+                self._async_wait_for_phase_change(device, phase)
+            )
+        return self.async_show_progress(
+            step_id="connect",
+            progress_action=phase,
+            description_placeholders={"name": device.device},
+            progress_task=self._progress_task,
+        )
+
+    async def _async_wait_for_phase_change(
+        self, device: eflib.DeviceBase, phase: ProgressPhase
+    ) -> None:
+        """Finish when the connection leaves the given phase or the test completes"""
+        connect_task = self._connect_task
+        assert connect_task is not None
+
+        async def _observe() -> None:
+            async for state in device.observe_connection():
+                if ProgressPhase.from_state(state) is not phase:
+                    return
+
+        observer = asyncio.ensure_future(_observe())
+        try:
+            await asyncio.wait(
+                (observer, connect_task),
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+        finally:
+            observer.cancel()
+
+    async def async_step_connect_done(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """
+        Create the entry or send the user back to the form with errors
+
+        Stale progress-task callbacks and frontend refreshes can invoke this step
+        multiple times, so the connection result is kept in `_connect_result` and
+        repeated invocations must stay side-effect free.
+        """
+        if self._connect_task is not None:
+            if not self._connect_task.done():
+                return await self.async_step_connect()
+            task, self._connect_task = self._connect_task, None
+            self._connect_result = (
+                {"base": "unknown"} if task.cancelled() else task.result()
+            )
+
+        if self._connect_result is None:
+            return await self._async_step_origin()
+
+        errors = self._connect_result
+        if not errors and self._user_id_validated:
+            if self._entry_created:
+                return self.async_abort(reason="already_configured")
+            assert self._discovered_device is not None
+            self._entry_created = True
+            return self._create_entry(self._pending_user_input, self._discovered_device)
+
+        self._pending_errors = dict(errors) or {"base": "unknown"}
+        return await self._async_step_origin()
+
+    async def _async_step_origin(self) -> ConfigFlowResult:
+        origin_step = getattr(self, f"async_step_{self._origin_step}")
+        return await origin_step()
+
+    @callback
+    def async_remove(self) -> None:
+        """Cancel the background connection test when the flow is closed"""
+        if self._progress_task is not None and not self._progress_task.done():
+            self._progress_task.cancel()
+
+        connect_task = self._connect_task
+        if connect_task is not None and not connect_task.done():
+            connect_task.cancel()
+
+        device = self._discovered_device
+        if device is not None and device.connection_state is not None:
+            self.hass.async_create_task(
+                self._async_cleanup_device(device, connect_task)
+            )
+
+    @staticmethod
+    async def _async_cleanup_device(
+        device: eflib.DeviceBase, connect_task: asyncio.Task[dict[str, Any]] | None
+    ) -> None:
+        """Disconnect after the cancelled connection test has fully unwound"""
+        if connect_task is not None:
+            with suppress(asyncio.CancelledError):
+                await connect_task
+        try:
+            await device.disconnect()
+        except Exception:  # pylint: disable=broad-except
+            _LOGGER.exception("Error disconnecting device after config flow removal")
+
+    async def _async_connect_device(self, device: eflib.DeviceBase) -> dict[str, Any]:
+        try:
+            return await self._connect_and_check(device)
+        except Exception:  # pylint: disable=broad-except
+            _LOGGER.exception("Unexpected exception")
+            try:
+                await device.disconnect()
+            except Exception:  # pylint: disable=broad-except
+                _LOGGER.exception("Error disconnecting after failed connection test")
+            return {"base": "unknown"}
+
+    async def _connect_and_check(self, device: eflib.DeviceBase) -> dict[str, Any]:
+        timeout = self._connect_timeout
         await device.connect(self._user_id)
         exc = None
         try:
@@ -452,10 +678,10 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
             device.set_connection_state(ConnectionState.ERROR_TIMEOUT, e)
             conn_state = device.connection_state
 
+        self._finalizing = True
         await device.disconnect()
 
         error = None
-        placeholders = {}
         match conn_state:
             case ConnectionState.ERROR_AUTH_FAILED:
                 error = self._get_auth_translation_from_exc(exc)
@@ -477,10 +703,8 @@ class EFBLEConfigFlow(ConfigFlow, domain=DOMAIN):
                     else "error_try_refresh_unsupported"
                 )
 
-        await device.wait_disconnected()
-
         if error is not None:
-            return {"base": error, "__placeholders": placeholders}
+            return {"base": error}
         return {}
 
     def _get_auth_translation_from_exc(self, exc: Exception):
@@ -554,7 +778,7 @@ class OptionsFlowHandler(OptionsFlow):
                         else 100,
                     )
                     .update(ConfLogOptions.schema(merged_entry))
-                    .advanced_connection_options(merged_entry)
+                    .advanced_connection_options(self.hass, merged_entry)
                     .build()
                 ),
                 options,
@@ -714,11 +938,17 @@ class _SchemaBuilder:
         )
 
     def advanced_connection_options(
-        self, defaults_dict: Mapping[str, Any] | None = None, collapsed: bool = True
+        self,
+        hass: HomeAssistant,
+        defaults_dict: Mapping[str, Any] | None = None,
+        collapsed: bool = True,
     ):
         if defaults_dict is None:
             defaults_dict = {}
         advanced = defaults_dict.get(CONF_ADVANCED_CONNECTION_OPTIONS, defaults_dict)
+        preferred_proxy = advanced.get(CONF_PREFERRED_PROXY) or NO_PREFERRED_PROXY
+        proxies = connectable_proxies(hass)
+        offers_proxy_choice = bool(proxies) or preferred_proxy != NO_PREFERRED_PROXY
         return self.update(
             {
                 vol.Required(CONF_ADVANCED_CONNECTION_OPTIONS): section(
@@ -730,6 +960,37 @@ class _SchemaBuilder:
                             advanced.get(
                                 CONF_CONNECTION_TIMEOUT, DEFAULT_CONNECTION_TIMEOUT
                             ),
+                        )
+                        .optional(
+                            CONF_CONNECTION_DELAY,
+                            vol.All(vol.Coerce(float), vol.Range(min=0, max=60)),
+                            advanced.get(
+                                CONF_CONNECTION_DELAY, DEFAULT_CONNECTION_DELAY
+                            ),
+                        )
+                        .optional(
+                            CONF_PREFERRED_PROXY,
+                            SelectSelector(
+                                SelectSelectorConfig(
+                                    options=_proxy_options(hass, preferred_proxy),
+                                    mode=SelectSelectorMode.DROPDOWN,
+                                    translation_key=CONF_PREFERRED_PROXY,
+                                ),
+                            ),
+                            preferred_proxy,
+                            # Shown even when there is a single path today, so that it
+                            # is discoverable before a second proxy is added; picking
+                            # the only proxy costs nothing, as the wait ends at once.
+                            condition=offers_proxy_choice,
+                        )
+                        .optional(
+                            CONF_PREFERRED_PROXY_TIMEOUT,
+                            vol.All(vol.Coerce(float), vol.Range(min=0, max=300)),
+                            advanced.get(
+                                CONF_PREFERRED_PROXY_TIMEOUT,
+                                DEFAULT_PREFERRED_PROXY_TIMEOUT,
+                            ),
+                            condition=offers_proxy_choice,
                         )
                         .optional(
                             CONF_BLUEZ_START_NOTIFY,
@@ -771,9 +1032,7 @@ class _SchemaBuilder:
         self, extra_battery_conf: list[str] | None, device: eflib.DeviceBase
     ):
         available_battery_slots = (
-            [i for i in range(1, 6) if hasattr(device, f"battery_{i}_battery_level")]
-            if device is not None
-            else []
+            extra_battery_indices(device) if device is not None else []
         )
 
         if not available_battery_slots:
@@ -813,3 +1072,56 @@ def schema_builder():
 
 def _find_enabled_batteries(device: eflib.DeviceBase, slots: Iterable[int]):
     return [str(i) for i in slots if getattr(device, f"battery_{i}_enabled", False)]
+
+
+class ProgressPhase(enum.StrEnum):
+    """
+    Connection test phase shown as progress text in the config flow
+
+    Each member's value is the `progress_action` translation key and `states` holds the
+    connection states that belong to the phase.
+    """
+
+    states: frozenset[ConnectionState]
+
+    def __new__(cls, value: str, states: Iterable[ConnectionState] = ()):
+        obj = str.__new__(cls, value)
+        obj._value_ = value
+        obj.states = frozenset(states)
+        return obj
+
+    CONNECTING = (
+        "connecting",
+        (
+            ConnectionState.NOT_CONNECTED,
+            ConnectionState.CREATED,
+            ConnectionState.ESTABLISHING_CONNECTION,
+            ConnectionState.RECONNECTING,
+        ),
+    )
+    EXCHANGING_KEYS = (
+        "exchanging_keys",
+        (
+            ConnectionState.CONNECTED,
+            ConnectionState.PUBLIC_KEY_EXCHANGE,
+            ConnectionState.PUBLIC_KEY_RECEIVED,
+            ConnectionState.REQUESTING_SESSION_KEY,
+            ConnectionState.SESSION_KEY_RECEIVED,
+        ),
+    )
+    AUTHENTICATING = (
+        "authenticating",
+        (
+            ConnectionState.REQUESTING_AUTH_STATUS,
+            ConnectionState.AUTH_STATUS_RECEIVED,
+            ConnectionState.AUTHENTICATING,
+        ),
+    )
+    FINALIZING = "finalizing", ()
+
+    @classmethod
+    def from_state(cls, state: ConnectionState | None) -> ProgressPhase:
+        """Get the phase a connection state belongs to, `CONNECTING` for `None`"""
+        if state is None:
+            return cls.CONNECTING
+        return next((phase for phase in cls if state in phase.states), cls.FINALIZING)

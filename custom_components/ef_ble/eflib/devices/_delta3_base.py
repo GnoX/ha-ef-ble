@@ -164,7 +164,11 @@ class Delta3Base(DeviceBase, ProtobufProps):
     async def _send_config_packet(self, message: Message):
         payload = message.SerializeToString()
         packet = Packet(0x20, 0x02, 0xFE, 0x11, payload, 0x01, 0x01, 0x13)
-        await self._conn.sendPacket(packet)
+        await self.send_packet(packet, raise_on_failure=True)
+
+    @controls.button(enabled=False)
+    async def power_off(self) -> None:
+        await self._send_config_packet(pd335_sys_pb2.ConfigWrite(cfg_power_off=True))
 
     @controls.outlet(ac_ports)
     async def enable_ac_ports(self, enabled: bool):

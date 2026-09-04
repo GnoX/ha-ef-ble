@@ -18,6 +18,7 @@ class EntityType:
     translation_placeholders: dict[str, str] | None = dataclasses.field(
         default=None, kw_only=True
     )
+    name_field: str | None = dataclasses.field(default=None, kw_only=True)
 
     @property
     def _field(self) -> "updatable_props.Field":
@@ -45,6 +46,12 @@ type EntityKind = type[EntityType] | EntityType
 class DynamicValue[F, T]:
     field: "updatable_props.Field[F]"
     transform: Callable[[F], T] | None = None
+
+    def resolve(self, instance) -> T | None:
+        raw = getattr(instance, self.field.public_name, None)
+        if raw is None:
+            return None
+        return self.transform(raw) if self.transform is not None else raw  # type: ignore[return-value]
 
 
 def dynamic[F, T](

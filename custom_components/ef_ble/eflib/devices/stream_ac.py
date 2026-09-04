@@ -126,6 +126,13 @@ class EnergyStrategy(IntFieldValue):
         return operate_mode
 
 
+class EnergyMonitoringMode(IntFieldValue):
+    SEMI_AUTOMATED = 1
+    SMART_METER = 2
+
+    UNKNOWN = -1
+
+
 class Device(DeviceBase, ProtobufProps):
     """STREAM AC"""
 
@@ -162,6 +169,10 @@ class Device(DeviceBase, ProtobufProps):
         EnergyStrategy.from_pb,
     )
     energy_backup_battery_level = pb_field(pb.backup_reverse_soc)
+    energy_monitoring_mode = pb_field(
+        pb.pow_consumption_measurement,
+        EnergyMonitoringMode.from_value,
+    )
 
     grid_in_power_limit = pb_field(pb.sys_grid_in_pwr_limit)
     max_ac_in_power = pb_field(pb.pow_sys_ac_in_max)
@@ -260,7 +271,7 @@ class Device(DeviceBase, ProtobufProps):
         message.cfg_utc_time = round(time.time())
         payload = message.SerializeToString()
         packet = Packet(0x20, 0x02, 0xFE, 0x11, payload, 0x01, 0x01, 0x13)
-        await self._conn.sendPacket(packet)
+        await self.send_packet(packet, raise_on_failure=True)
 
     @controls.battery(
         battery_charge_limit_max,
@@ -313,6 +324,15 @@ class Device(DeviceBase, ProtobufProps):
         cfg = bk_series_pb2.ConfigWrite()
         strategy.as_pb(cfg.cfg_energy_strategy_operate_mode)
         await self._send_config_packet(cfg)
+
+    @controls.select(energy_monitoring_mode, options=EnergyMonitoringMode)
+    async def set_energy_monitoring_mode(self, mode: EnergyMonitoringMode):
+        if mode is EnergyMonitoringMode.UNKNOWN:
+            return
+
+        await self._send_config_packet(
+            bk_series_pb2.ConfigWrite(cfg_pow_consumption_measurement=mode.value)
+        )
 
     @controls.power(
         base_load_power,
@@ -380,7 +400,8 @@ class Device(DeviceBase, ProtobufProps):
             if target is None or self._all_timer_tasks is None:
                 return False
 
-            chain.pending_mods.append((target.task_index, modify))
+            pending_mod = (target.task_index, modify)
+            chain.pending_mods.append(pending_mod)
 
             config = bk_series_pb2.ConfigWrite()
 
@@ -392,7 +413,15 @@ class Device(DeviceBase, ProtobufProps):
                     if task.task_index == mod_idx:
                         mod_fn(new_task)
 
-            await self._send_config_packet(config)
+            sent = False
+            try:
+                await self._send_config_packet(config)
+                sent = True
+            finally:
+                # If the send failed the mod never reached the device, so drop it;
+                # otherwise it would be silently re-applied on the next successful edit
+                if not sent:
+                    chain.pending_mods.remove(pending_mod)
 
             # Clear pending mods after the device has had time to process and send back
             # updated state

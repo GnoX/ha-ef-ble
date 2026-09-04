@@ -69,10 +69,16 @@
             "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
             "data": {
               "connection_timeout": "Connection timeout",
+              "connection_delay": "Connection delay",
+              "preferred_proxy": "Preferred Bluetooth proxy",
+              "preferred_proxy_timeout": "Preferred proxy timeout",
               "bluez_start_notify": "Use BlueZ start notify"
             },
             "data_description": {
               "connection_timeout": "Number of seconds to wait for the device to connect and authenticate.",
+              "connection_delay": "Number of seconds to wait before connecting when another EcoFlow device has just connected. Home Assistant picks which Bluetooth proxy each connection goes through and penalizes proxies that are already busy connecting, so devices coming up at the same moment can end up on a more distant proxy for the rest of the session. Spacing them out gives each device a better chance of being connected through the proxy closest to it. A device that is not coming up alongside another is never delayed. Set to 0 to disable this for the device.",
+              "preferred_proxy": "Connect this device through a particular Bluetooth adapter or proxy when possible, for example the one sitting next to it. Home Assistant chooses the path itself and cannot be told to use a specific one, so the integration instead waits until the proxy you pick is the one Home Assistant would choose anyway, and connects at that moment. A proxy whose signal is weaker than another may therefore never be chosen. The list is taken when this page opens and only holds adapters and proxies that are online right now, so if one is missing, bring it back online and reopen this page. Leave this on \"Any available proxy\" unless a device keeps connecting through the wrong one.",
+              "preferred_proxy_timeout": "Number of seconds to wait for the preferred proxy before connecting through whatever proxy is available. A proxy that is already online is usually picked straight away, so this only comes into play when it is still starting up - after restarting Home Assistant, a proxy can take a while to come back, and the device stays disconnected until it does or this runs out. Set to 0 to connect immediately through whichever proxy is best at that moment.",
               "bluez_start_notify": "Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
             }
           }
@@ -126,10 +132,16 @@
             "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
             "data": {
               "connection_timeout": "Connection timeout",
+              "connection_delay": "Connection delay",
+              "preferred_proxy": "Preferred Bluetooth proxy",
+              "preferred_proxy_timeout": "Preferred proxy timeout",
               "bluez_start_notify": "Use BlueZ start notify"
             },
             "data_description": {
               "connection_timeout": "Number of seconds to wait for the device to connect and authenticate.",
+              "connection_delay": "Number of seconds to wait before connecting when another EcoFlow device has just connected. Home Assistant picks which Bluetooth proxy each connection goes through and penalizes proxies that are already busy connecting, so devices coming up at the same moment can end up on a more distant proxy for the rest of the session. Spacing them out gives each device a better chance of being connected through the proxy closest to it. A device that is not coming up alongside another is never delayed. Set to 0 to disable this for the device.",
+              "preferred_proxy": "Connect this device through a particular Bluetooth adapter or proxy when possible, for example the one sitting next to it. Home Assistant chooses the path itself and cannot be told to use a specific one, so the integration instead waits until the proxy you pick is the one Home Assistant would choose anyway, and connects at that moment. A proxy whose signal is weaker than another may therefore never be chosen. The list is taken when this page opens and only holds adapters and proxies that are online right now, so if one is missing, bring it back online and reopen this page. Leave this on \"Any available proxy\" unless a device keeps connecting through the wrong one.",
+              "preferred_proxy_timeout": "Number of seconds to wait for the preferred proxy before connecting through whatever proxy is available. A proxy that is already online is usually picked straight away, so this only comes into play when it is still starting up - after restarting Home Assistant, a proxy can take a while to come back, and the device stays disconnected until it does or this runs out. Set to 0 to connect immediately through whichever proxy is best at that moment.",
               "bluez_start_notify": "Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
             }
           }
@@ -178,10 +190,16 @@
             "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
             "data": {
               "connection_timeout": "Connection timeout",
+              "connection_delay": "Connection delay",
+              "preferred_proxy": "Preferred Bluetooth proxy",
+              "preferred_proxy_timeout": "Preferred proxy timeout",
               "bluez_start_notify": "Use BlueZ start notify"
             },
             "data_description": {
               "connection_timeout": "Number of seconds to wait for the device to connect and authenticate.",
+              "connection_delay": "Number of seconds to wait before connecting when another EcoFlow device has just connected. Home Assistant picks which Bluetooth proxy each connection goes through and penalizes proxies that are already busy connecting, so devices coming up at the same moment can end up on a more distant proxy for the rest of the session. Spacing them out gives each device a better chance of being connected through the proxy closest to it. A device that is not coming up alongside another is never delayed. Set to 0 to disable this for the device.",
+              "preferred_proxy": "Connect this device through a particular Bluetooth adapter or proxy when possible, for example the one sitting next to it. Home Assistant chooses the path itself and cannot be told to use a specific one, so the integration instead waits until the proxy you pick is the one Home Assistant would choose anyway, and connects at that moment. A proxy whose signal is weaker than another may therefore never be chosen. The list is taken when this page opens and only holds adapters and proxies that are online right now, so if one is missing, bring it back online and reopen this page. Leave this on \"Any available proxy\" unless a device keeps connecting through the wrong one.",
+              "preferred_proxy_timeout": "Number of seconds to wait for the preferred proxy before connecting through whatever proxy is available. A proxy that is already online is usually picked straight away, so this only comes into play when it is still starting up - after restarting Home Assistant, a proxy can take a while to come back, and the device stays disconnected until it does or this runs out. Set to 0 to connect immediately through whichever proxy is best at that moment.",
               "bluez_start_notify": "Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
             }
           }
@@ -193,14 +211,15 @@
           "extra_battery": "Enabled Extra Batteries"
         }
       },
-      "connecting": {
+      "connect": {
         "title": "Connecting to device"
       }
     },
     "progress": {
-      "connecting": "Connecting to device...",
-      "authenticating": "Connection successful, running authentication procedure...",
-      "disconnecting": "Sucess! Disconnecting from device..."
+      "connecting": "Establishing Bluetooth connection to {name}...",
+      "exchanging_keys": "Connected to {name}, exchanging encryption keys...",
+      "authenticating": "Authenticating with {name}...",
+      "finalizing": "Finishing the connection check..."
     }
   },
   "options": {
@@ -247,10 +266,16 @@
             "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
             "data": {
               "connection_timeout": "Connection timeout",
+              "connection_delay": "Connection delay",
+              "preferred_proxy": "Preferred Bluetooth proxy",
+              "preferred_proxy_timeout": "Preferred proxy timeout",
               "bluez_start_notify": "Use BlueZ start notify"
             },
             "data_description": {
               "connection_timeout": "Number of seconds to wait for the device to connect and authenticate.",
+              "connection_delay": "Number of seconds to wait before connecting when another EcoFlow device has just connected. Home Assistant picks which Bluetooth proxy each connection goes through and penalizes proxies that are already busy connecting, so devices coming up at the same moment can end up on a more distant proxy for the rest of the session. Spacing them out gives each device a better chance of being connected through the proxy closest to it. A device that is not coming up alongside another is never delayed. Set to 0 to disable this for the device.",
+              "preferred_proxy": "Connect this device through a particular Bluetooth adapter or proxy when possible, for example the one sitting next to it. Home Assistant chooses the path itself and cannot be told to use a specific one, so the integration instead waits until the proxy you pick is the one Home Assistant would choose anyway, and connects at that moment. A proxy whose signal is weaker than another may therefore never be chosen. The list is taken when this page opens and only holds adapters and proxies that are online right now, so if one is missing, bring it back online and reopen this page. Leave this on \"Any available proxy\" unless a device keeps connecting through the wrong one.",
+              "preferred_proxy_timeout": "Number of seconds to wait for the preferred proxy before connecting through whatever proxy is available. A proxy that is already online is usually picked straight away, so this only comes into play when it is still starting up - after restarting Home Assistant, a proxy can take a while to come back, and the device stays disconnected until it does or this runs out. Set to 0 to connect immediately through whichever proxy is best at that moment.",
               "bluez_start_notify": "Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
             }
           }
@@ -285,6 +310,9 @@
     },
     "failed_after_successful_connection": {
       "message": "Device connected but did not get to auth procedure, last state: {last_state}"
+    },
+    "missing_address_or_user_id": {
+      "message": "Stored configuration is missing the device {missing}. Remove the device and add it again to repair the configuration entry."
     }
   },
   "issues": {
@@ -295,6 +323,9 @@
   },
   "entity": {
     "button": {
+      "power_off": {
+        "name": "Power Off"
+      },
       "unpause_solar": {
         "name": "Unpause Solar"
       }
@@ -479,7 +510,7 @@
         "name": "Grid Energy"
       },
       "circuit_power": {
-        "name": "Circuit Power {index}"
+        "name": "C{index} {name} Power"
       },
       "circuit_current": {
         "name": "Circuit Current {index}"
@@ -488,7 +519,7 @@
         "name": "Circuit Voltage {index}"
       },
       "circuit_status": {
-        "name": "Circuit {index} Status",
+        "name": "C{index} {name} Status",
         "state": {
           "unknown": "Unknown",
           "off": "Off",
@@ -615,6 +646,12 @@
       "cell_temperature": {
         "name": "Cell Temperature"
       },
+      "max_cell_voltage": {
+        "name": "Max Cell Voltage"
+      },
+      "min_cell_voltage": {
+        "name": "Min Cell Voltage"
+      },
       "dc_port_input_power": {
         "name": "DC Port Input Power"
       },
@@ -656,6 +693,12 @@
       },
       "dc_hv_input_state": {
         "name": "HV DC Input Port State"
+      },
+      "ac_lv_tt30_output_power": {
+        "name": "AC LV TT-30 Output Power"
+      },
+      "state_of_health": {
+        "name": "State of Health"
       },
       "engine_state": {
         "name": "Engine State",
@@ -1018,6 +1061,13 @@
           "intelligent_schedule": "Intelligent Schedule"
         }
       },
+      "energy_monitoring_mode": {
+        "name": "Energy Monitoring",
+        "state": {
+          "semi_automated": "Semi-Automated Monitoring",
+          "smart_meter": "Smart Meter Monitoring"
+        }
+      },
       "operating_submode": {
         "name": "Operating Submode",
         "state": {
@@ -1026,6 +1076,13 @@
           "max": "Max",
           "sleep": "Sleep",
           "eco": "Eco"
+        }
+      },
+      "power_supply_priority": {
+        "name": "Power Supply Priority",
+        "state": {
+          "power_supply": "Power Supply",
+          "power_storage": "Power Storage"
         }
       }
     },
@@ -1050,6 +1107,9 @@
       },
       "base_load_power": {
         "name": "Base Load Power"
+      },
+      "load_power": {
+        "name": "Load Power"
       },
       "grid_in_power_limit": {
         "name": "Grid Input Power Limit"
@@ -1094,7 +1154,7 @@
     },
     "switch": {
       "circuit_is_enabled": {
-        "name": "Circuit {circuit}"
+        "name": "C{circuit} {name}"
       },
       "channel_is_enabled": {
         "name": "Channel {channel}"
@@ -1158,6 +1218,9 @@
       },
       "discharging_task_enabled": {
         "name": "Discharging Task"
+      },
+      "feed_protect": {
+        "name": "Feed-in Control"
       }
     }
   },
@@ -1171,6 +1234,11 @@
         "api-j": "api-j.ecoflow.com (Japan)",
         "api-r": "api-r.ecoflow.com (Russia)",
         "api-cn": "api-cn.ecoflow.com (China - phone number only)"
+      }
+    },
+    "preferred_proxy": {
+      "options": {
+        "any": "Any available proxy"
       }
     }
   }

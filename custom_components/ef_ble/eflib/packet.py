@@ -61,7 +61,7 @@ class Packet:
 
         # Sentinel-format frames (high-nibble bit set, e.g. 0x13) carry a 0xBB sentinel
         # inside the payload instead of a trailing CRC16.
-        if version in (2, 3) and not sentinel_format:
+        if version in (2, 3) and not sentinel_format and not data.endswith(b"\xbb\xbb"):
             if crc16(data[:-2]) != struct.unpack("<H", data[-2:])[0]:
                 error_msg = "Unable to parse packet - incorrect CRC16: %s"
                 _LOGGER.error(error_msg, bytearray(data).hex())

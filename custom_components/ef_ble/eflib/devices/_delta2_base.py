@@ -57,11 +57,17 @@ class Delta2Base(DeviceBase, RawDataProps):
     battery_1_enabled = Field[bool]()
     battery_1_battery_level = Field[float]()
     battery_1_cell_temperature = raw_field(pb_bms_1.max_cell_temp)
+    battery_1_voltage = raw_field(pb_bms_1.vol, pdiv(1000, 2))
+    battery_1_max_cell_voltage = raw_field(pb_bms_1.max_cell_vol, pdiv(1000, 3))
+    battery_1_min_cell_voltage = raw_field(pb_bms_1.min_cell_vol, pdiv(1000, 3))
     battery_1_sn = Field[str]()
 
     battery_2_enabled = Field[bool]()
     battery_2_battery_level = Field[float]()
     battery_2_cell_temperature = raw_field(pb_bms_2.max_cell_temp)
+    battery_2_voltage = raw_field(pb_bms_2.vol, pdiv(1000, 2))
+    battery_2_max_cell_voltage = raw_field(pb_bms_2.max_cell_vol, pdiv(1000, 3))
+    battery_2_min_cell_voltage = raw_field(pb_bms_2.min_cell_vol, pdiv(1000, 3))
     battery_2_sn = Field[str]()
 
     battery_level = raw_field(pb_ems.f32_lcd_show_soc, pround(2))
@@ -88,6 +94,9 @@ class Delta2Base(DeviceBase, RawDataProps):
     remaining_time_discharging = raw_field(pb_ems.dsg_remain_time)
 
     cell_temperature = raw_field(pb_bms.max_cell_temp)
+    battery_voltage = raw_field(pb_bms.vol, pdiv(1000, 2))
+    max_cell_voltage = raw_field(pb_bms.max_cell_vol, pdiv(1000, 3))
+    min_cell_voltage = raw_field(pb_bms.min_cell_vol, pdiv(1000, 3))
 
     dc_input_voltage = raw_field(pb_mppt.in_vol, pdiv(1000, 2))
     dc_input_current = raw_field(pb_mppt.in_amp, pdiv(1000, 2))
@@ -112,7 +121,7 @@ class Delta2Base(DeviceBase, RawDataProps):
     def device(self):
         model = "2"
         match self._sn[:4]:
-            case "D361":
+            case "D361" | "D365":
                 model = "3 1500"
             case "R351" | "R354":
                 model = "2 Max"
@@ -167,7 +176,7 @@ class Delta2Base(DeviceBase, RawDataProps):
     @controls.switch(usb_ports)
     async def enable_usb_ports(self, enabled: bool):
         packet = Packet(0x21, 0x02, 0x20, 0x22, enabled.to_bytes(), version=0x02)
-        await self._conn.sendPacket(packet)
+        await self.send_packet(packet, raise_on_failure=True)
 
     @controls.switch(dc_12v_port)
     async def enable_dc_12v_port(self, enabled: bool):
@@ -179,13 +188,13 @@ class Delta2Base(DeviceBase, RawDataProps):
             enabled.to_bytes(),
             version=0x02,
         )
-        await self._conn.sendPacket(packet)
+        await self.send_packet(packet, raise_on_failure=True)
 
     @controls.outlet(ac_ports)
     async def enable_ac_ports(self, enabled: bool):
         payload = bytes([1 if enabled else 0, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
         packet = Packet(0x21, self.ac_commands_dst, 0x20, 0x42, payload, version=0x02)
-        await self._conn.sendPacket(packet)
+        await self.send_packet(packet, raise_on_failure=True)
 
     @controls.battery(battery_charge_limit_max, min=dynamic(battery_charge_limit_min))
     async def set_battery_charge_limit_max(self, limit: float):
@@ -195,7 +204,7 @@ class Delta2Base(DeviceBase, RawDataProps):
         ):
             return False
         packet = Packet(0x21, 0x03, 0x20, 0x31, int(limit).to_bytes(), version=0x02)
-        await self._conn.sendPacket(packet)
+        await self.send_packet(packet, raise_on_failure=True)
         return True
 
     @controls.battery(battery_charge_limit_min, max=dynamic(battery_charge_limit_max))
@@ -206,7 +215,7 @@ class Delta2Base(DeviceBase, RawDataProps):
         ):
             return False
         packet = Packet(0x21, 0x03, 0x20, 0x33, int(limit).to_bytes(), version=0x02)
-        await self._conn.sendPacket(packet)
+        await self.send_packet(packet, raise_on_failure=True)
         return True
 
     def _update_extra_batteries(self, kit_data: AllKitDetailData):

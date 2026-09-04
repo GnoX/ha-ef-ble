@@ -19,7 +19,9 @@ from .connection import (
     DisconnectListener,
     PacketParsedListener,
     PacketReceivedListener,
+    SessionKeyDerivedListener,
 )
+from .exceptions import NotConnectedError
 from .listeners import ListenerGroup, ListenerRegistry
 from .logging_util import (
     ConnectionLog,
@@ -45,6 +47,7 @@ class _Listeners(ListenerRegistry):
     on_packet_parsed: ListenerGroup[PacketParsedListener]
     on_data_received: ListenerGroup[DataReceivedListener]
     on_data_send: ListenerGroup[DataSendListener]
+    on_session_key_derived: ListenerGroup[SessionKeyDerivedListener]
 
 
 class DeviceBase(abc.ABC):
@@ -81,7 +84,7 @@ class DeviceBase(abc.ABC):
             sn,
         )
 
-        self._conn: Connection = None
+        self._conn: Connection | None = None
         self._connection_event = asyncio.Event()
         self._callbacks = set()
         self._callbacks_map = {}
@@ -177,6 +180,47 @@ class DeviceBase(abc.ABC):
 
         self.on_connection_state_change(_register_timer_task)
 
+    async def send_packet(
+        self,
+        packet: Packet,
+        *,
+        wait_for_response: bool = True,
+        raise_on_failure: bool = False,
+    ) -> None:
+        """
+        Send `packet` to the device, tolerating a link that is down
+
+        `_conn` is `None` for the whole disconnect/reconnect window, so every send has
+        to cope with it. Background traffic (time sync, heartbeat polls, auto-replies)
+        is best-effort and silently dropped, which is the default here. A user-initiated
+        command must not be lost without notice, so those pass `raise_on_failure=True`:
+        `NotConnectedError` when there is no live link or it drops mid-send, and the
+        underlying `BleakError` when the write fails after retries, so a swallowed write
+        is never reported as success. A command whose write and response both completed
+        counts as delivered even if the link drops immediately afterwards.
+
+        Parameters
+        ----------
+        packet
+            Packet to deliver.
+        wait_for_response
+            Forwarded to `Connection.send_packet`.
+        raise_on_failure
+            Raise instead of dropping the packet when it cannot be delivered.
+        """
+        conn = self._conn
+        if conn is None:
+            if raise_on_failure:
+                raise NotConnectedError(
+                    f"{self.name}: cannot send packet, device is not connected"
+                )
+            return
+        await conn.send_packet(
+            packet,
+            wait_for_response=wait_for_response,
+            raise_on_failure=raise_on_failure,
+        )
+
     def call_later(
         self,
         delay: float,
@@ -200,6 +244,10 @@ class DeviceBase(abc.ABC):
             Optional deduplication key. When set, a new call with the same key cancels
             the previous one.
         """
+        # `_conn` is None during a disconnect/reconnect window; any pending callback
+        # would be cancelled on disconnect anyway, so there is nothing to schedule
+        if self._conn is None:
+            return
         self._conn.call_later(delay, callback, key)
 
     def with_update_period(self, period: int):
@@ -295,6 +343,7 @@ class DeviceBase(abc.ABC):
             self._conn.on_state_change(self._append_state_to_log)
             self._conn.on_data_received(self._listeners.on_data_received)
             self._conn.on_data_send(self._listeners.on_data_send)
+            self._conn.on_session_key_derived(self._listeners.on_session_key_derived)
 
         elif self._conn._user_id != user_id:
             self._conn._user_id = user_id
@@ -386,6 +435,9 @@ class DeviceBase(abc.ABC):
 
     def on_data_send(self, listener: DataSendListener):
         return self._listeners.on_data_send.add(listener)
+
+    def on_session_key_derived(self, listener: SessionKeyDerivedListener):
+        return self._listeners.on_session_key_derived.add(listener)
 
     def on_connection_state_change(
         self, connection_state_listener: ConnectionStateListener

@@ -1,10 +1,13 @@
 import dataclasses
 import enum
+import functools
 import inspect
 from collections.abc import Awaitable, Callable, Iterable
+from types import MethodType
 from typing import TYPE_CHECKING, Any, cast, get_type_hints
 
 from ..props.enums import IntFieldValue
+from ..props.updatable_props import Field
 from . import DynamicValue, EntityType, units
 
 if TYPE_CHECKING:
@@ -62,6 +65,53 @@ class switch(toggle):
     pass
 
 
+class _ButtonField(Field[None]):
+    """
+    Stateless placeholder field backing a `button` control
+
+    Exists only so the control is registered for discovery like any other field;
+    reading it from a device instance returns the bound press method, keeping the
+    decorated function directly callable.
+    """
+
+    def __init__(self, press_func: Callable[..., Awaitable[Any]]) -> None:
+        self._press_func = press_func
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return MethodType(self._press_func, instance)
+
+
+class button(ControlType):
+    """
+    Stateless action control mapped to a HA button entity
+
+    Unlike other controls, a button is not tied to an existing state field. The
+    decorator replaces the method with an internal field named after it, so the
+    entity key matches the method name and the method stays callable on the device:
+
+        @controls.button()
+        async def power_off(self) -> None: ...
+    """
+
+    type PressFunc[D: "DeviceBase"] = Callable[[D], Awaitable[Any]]
+
+    field: Any = None
+    press_func: PressFunc = dataclasses.field(
+        default=cast("PressFunc", None),
+        repr=False,
+        init=False,
+    )
+
+    def __call__[D: "DeviceBase"](
+        self,
+        func: Callable[[D], Awaitable[Any]],
+    ) -> _ButtonField:
+        self.press_func = func
+        return _ButtonField(func).sensor(self)
+
+
 class NumberType(ControlType):
     type ValueFunc[D: "DeviceBase", float] = Callable[[D, float], Awaitable[bool]]
 
@@ -82,6 +132,7 @@ class NumberType(ControlType):
 
         control = self
 
+        @functools.wraps(func)
         async def _check_limits(
             device: "DeviceBase", value: float, *args, **kwargs
         ) -> bool:
@@ -125,6 +176,7 @@ class select[E: IntFieldValue](ControlType):
     type SetFunc = Callable[[DeviceBase, E], Awaitable[None]]
 
     options: type[E] | list[str]
+    exclude: list[E] = dataclasses.field(default_factory=list, kw_only=True)
     set_value_func: SetFunc = dataclasses.field(
         repr=False,
         init=False,
@@ -135,7 +187,9 @@ class select[E: IntFieldValue](ControlType):
             self._value_type: type[E] | None = None
         else:
             self._value_type = self.options
-            self.options = self.options.options(include_unknown=False)
+            self.options = self.options.options(
+                include_unknown=False, exclude=self.exclude
+            )
 
     @property
     def options_str(self) -> list[str]:
@@ -154,6 +208,7 @@ class select[E: IntFieldValue](ControlType):
 
         value_type = self._value_type
 
+        @functools.wraps(func)
         async def _func(device: D, value: E | str) -> None:
             if isinstance(value, str) and value_type is not None:
                 value = value_type[value.upper()]
@@ -172,12 +227,16 @@ def for_each(
     availability: "Iterable[updatable_props.Field | None] | None" = None,
     translation_key: str | None = None,
     translation_placeholders: Callable[[int], dict[str, str]] | None = None,
+    name_field: Callable[[int], str] | None = None,
 ) -> Callable[[Callable], Callable]:
     """
     Decorate a function to register a toggle control for each field in the list
 
     The decorated function must accept (self, index: int, enabled: bool) where
     index is 1-based (i.e. 1 for the first field, 2 for the second, etc.).
+
+    `name_field(idx)` returns the device field whose value names the entity (e.g. a
+    circuit name); the HA platform composes the display name from it.
     """
 
     def decorator(func: Callable) -> Callable:
@@ -195,6 +254,7 @@ def for_each(
                 availability=avail,
                 translation_key=translation_key,
                 translation_placeholders=placeholders,
+                name_field=name_field(idx) if name_field is not None else None,
             )
 
             async def _enable(
@@ -214,10 +274,10 @@ def for_each(
 
 type _PowerSetter = Callable[[Any, bool], Awaitable[None]]
 type _ModeSetter = Callable[[Any, Any], Awaitable[None]]
-type _TargetTempSetter = Callable[[Any, float], Awaitable[None]]
-type _TargetTempRangeSetter = Callable[[Any, float, float], Awaitable[None]]
-type _HumiditySetter = Callable[[Any, int], Awaitable[None]]
-type _FanSpeedSetter = Callable[[Any, Any], Awaitable[None]]
+type _TargetTempSetter = Callable[[Any, float], Awaitable[Any]]
+type _TargetTempRangeSetter = Callable[[Any, float, float], Awaitable[Any]]
+type _HumiditySetter = Callable[[Any, int], Awaitable[Any]]
+type _FanSpeedSetter = Callable[[Any, Any], Awaitable[Any]]
 type _Decorator[F] = Callable[[F], F]
 
 
@@ -337,6 +397,7 @@ class climate(ControlType):
         step: float | None = None,
         min: float | None = None,
         max: float | None = None,
+        unit: units.Temperature | None = None,
     ) -> _Decorator[_TargetTempSetter]:
         def bind(f: _TargetTempSetter) -> _TargetTempSetter:
             self.set_target_temperature = _virtual_dispatch(f, notify_fields=[field])
@@ -350,6 +411,8 @@ class climate(ControlType):
                 self.min_temp = min
             if max is not None:
                 self.max_temp = max
+            if unit is not None:
+                self.temperature_unit = unit
             return f
 
         return bind

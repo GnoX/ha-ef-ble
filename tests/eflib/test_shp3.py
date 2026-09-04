@@ -144,6 +144,16 @@ def test_shp3_field_groups_are_expanded_and_renamed():
             f"circuit_split_info_loaded_{i}"
             for i in range(1, Device.NUM_OF_CIRCUITS + 1)
         ),
+        *(f"_battery_slot_sn_{i}" for i in range(1, Device.NUM_OF_BATTERIES + 1)),
+        *(f"_battery_slot_soc_{i}" for i in range(1, Device.NUM_OF_BATTERIES + 1)),
+        *(f"_battery_slot_power_{i}" for i in range(1, Device.NUM_OF_BATTERIES + 1)),
+        *(f"_ch{i}_dev_id" for i in range(1, Device.NUM_OF_CHANNELS + 1)),
+        *(f"channel{i}_sn" for i in range(1, Device.NUM_OF_CHANNELS + 1)),
+        *(
+            f"channel{i}_battery_percentage"
+            for i in range(1, Device.NUM_OF_CHANNELS + 1)
+        ),
+        *(f"channel{i}_output_power" for i in range(1, Device.NUM_OF_CHANNELS + 1)),
         *(f"ch{i}_is_enabled" for i in range(1, Device.NUM_OF_CHANNELS + 1)),
         *(f"ch{i}_type" for i in range(1, Device.NUM_OF_CHANNELS + 1)),
         *(f"ch{i}_force_charge" for i in range(1, Device.NUM_OF_CHANNELS + 1)),
@@ -163,8 +173,8 @@ def test_shp3_field_groups_are_expanded_and_renamed():
 async def test_shp3_set_backup_reserve_level_sends_config_write(device):
     await device.set_backup_reserve_level(40)
 
-    device._conn.sendPacket.assert_awaited_once()
-    packet = device._conn.sendPacket.await_args.args[0]
+    device._conn.send_packet.assert_awaited_once()
+    packet = device._conn.send_packet.await_args.args[0]
     assert not isinstance(packet, PacketV4)
     assert (packet.src, packet.dst, packet.cmd_set, packet.cmd_id) == (
         0x21,
@@ -180,7 +190,7 @@ async def test_shp3_charge_limit_controls_send_expected_fields(device):
     await device.set_battery_charge_limit_max(95)
     await device.set_battery_charge_limit_min(15)
 
-    packets = [call.args[0] for call in device._conn.sendPacket.await_args_list]
+    packets = [call.args[0] for call in device._conn.send_packet.await_args_list]
     assert _config_write(device, packets[0]).cfg_max_chg_soc == 95
     assert _config_write(device, packets[1]).cfg_min_dsg_soc == 15
 
@@ -209,19 +219,19 @@ async def test_shp3_set_circuit_power_writes_ctrl_info(device):
     device.set_value("circuit_split_link_28", 0)
     await device.set_circuit_power(28, True)
 
-    packet = device._conn.sendPacket.await_args.args[0]
+    packet = device._conn.send_packet.await_args.args[0]
     ctrl = _config_write(device, packet).cfg_load_ch28_ctrl_info
     assert ctrl.chanel_enable_ctrl == 1
     assert ctrl.ctrl_mode == dev_apl_comm_pb2.LOAD_RLY_CTRL_MODE_HAND
 
     await device.set_circuit_power(28, False)
-    packet = device._conn.sendPacket.await_args.args[0]
+    packet = device._conn.send_packet.await_args.args[0]
     assert _config_write(device, packet).cfg_load_ch28_ctrl_info.chanel_enable_ctrl == 2
 
 
 async def test_shp3_set_circuit_power_skips_when_split_info_missing(device):
     await device.set_circuit_power(28, True)
-    device._conn.sendPacket.assert_not_awaited()
+    device._conn.send_packet.assert_not_awaited()
 
 
 async def test_shp3_set_circuit_power_gangs_split_phase(device, packet_sequence):
@@ -230,7 +240,7 @@ async def test_shp3_set_circuit_power_gangs_split_phase(device, packet_sequence)
 
     await device.set_circuit_power(2, True)
 
-    packet = device._conn.sendPacket.await_args.args[0]
+    packet = device._conn.send_packet.await_args.args[0]
     config = _config_write(device, packet)
     assert config.cfg_load_ch2_ctrl_info.chanel_enable_ctrl == 1
     assert config.cfg_load_ch4_ctrl_info.chanel_enable_ctrl == 1
@@ -239,7 +249,7 @@ async def test_shp3_set_circuit_power_gangs_split_phase(device, packet_sequence)
 async def test_shp3_set_ac_charging_speed_rounds_to_step(device):
     await device.set_ac_charging_speed(5050)
 
-    packet = device._conn.sendPacket.await_args.args[0]
+    packet = device._conn.send_packet.await_args.args[0]
     assert _config_write(device, packet).cfg_panel_max_charge_pow_set == 5000
 
 
@@ -248,7 +258,7 @@ async def test_shp3_set_operating_mode_preserves_eps_and_mix(device):
 
     await device.set_operating_mode(OperatingMode.SELF_POWERED)
 
-    packet = device._conn.sendPacket.await_args.args[0]
+    packet = device._conn.send_packet.await_args.args[0]
     mode = _config_write(device, packet).cfg_panle_energy_strategy_operate_mode
     assert mode.operate_self_powered_open is True
     assert mode.operate_scheduled_open is False
@@ -271,6 +281,33 @@ async def test_shp3_channel_is_enabled_state_from_backup_channels(device):
     assert device.channel_is_enabled[3] is None
 
 
+async def test_shp3_channel_battery_info_resolves_through_dev_id(device):
+    msg = dev_apl_comm_pb2.DisplayPropertyUpload()
+    msg.panel_backup_ch1_Info.ch_dev_id = 5
+    msg.panel_backup_ch2_Info.ch_dev_id = 6
+    msg.panel_backup_ch3_Info.ch_dev_id = 7
+    # Channel 1's battery charging, channel 2's discharging into the panel;
+    # channel 3 has a dev id but no battery info slot (empty channel).
+    msg.panel_generate_energy_battery_info_5.sn = "Y711XXXXXXXXX001"
+    msg.panel_generate_energy_battery_info_5.soc_cms = 93.456
+    msg.panel_generate_energy_battery_info_5.ac_pwr = 1520
+    msg.panel_generate_energy_battery_info_6.sn = "P101XXXXXXXXX002"
+    msg.panel_generate_energy_battery_info_6.soc_cms = 92.0
+    msg.panel_generate_energy_battery_info_6.ac_pwr = -352
+
+    device.update_from_message(msg)
+
+    assert device.channel_sn[1] == "Y711XXXXXXXXX001"
+    assert device.channel_battery_percentage[1] == 93.46
+    assert device.channel_output_power[1] == -1520
+    assert device.channel_sn[2] == "P101XXXXXXXXX002"
+    assert device.channel_battery_percentage[2] == 92.0
+    assert device.channel_output_power[2] == 352
+    assert device.channel_sn[3] is None
+    assert device.channel_battery_percentage[3] is None
+    assert device.channel_output_power[3] is None
+
+
 async def test_shp3_set_channel_enable_writes_backup_ctrl(device):
     """The enable switch writes ctrl_en and preserves the current force-charge state"""
     # ch2 currently force-charging; toggling its enable must keep that on.
@@ -280,28 +317,21 @@ async def test_shp3_set_channel_enable_writes_backup_ctrl(device):
     device.update_from_message(msg)
 
     await device.set_channel_enable(2, True)
-    ctrl = _config_write(device, device._conn.sendPacket.await_args.args[0])
+    ctrl = _config_write(device, device._conn.send_packet.await_args.args[0])
     assert ctrl.cfg_panel_backup_ch2_ctrl.ctrl_en == 1
     assert ctrl.cfg_panel_backup_ch2_ctrl.ctrl_force_chg == 1  # preserved (on)
 
     await device.set_channel_enable(2, False)
-    ctrl = _config_write(device, device._conn.sendPacket.await_args.args[0])
+    ctrl = _config_write(device, device._conn.send_packet.await_args.args[0])
     assert ctrl.cfg_panel_backup_ch2_ctrl.ctrl_en == 2
 
 
 async def test_shp3_config_write_mirrors_post_frame(device, packet_sequence):
-    """
-    After a post, PR #389 mirrors the panel's own v4 frame for the write.
-
-    The transport (addressing, inner header, obfuscation keys) is the post's verbatim
-    via `dataclasses.replace`; only cmd_flags / is_ack / is_rw_cmd and the application
-    payload change. The payload is `serial9 + serial16 + envelope + ConfigWrite`.
-    """
     post = await device.packet_parse(bytes.fromhex(packet_sequence[1]))
     await device.data_parse(post)
 
     await device.set_backup_reserve_level(40)
-    sent = device._conn.sendPacket.await_args.args[0]
+    sent = device._conn.send_packet.await_args.args[0]
     assert isinstance(sent, PacketV4)
     # Addressing + obfuscation keys are inherited from the post (frame mirroring).
     assert (sent.src, sent.dst, sent.cmd_set, sent.cmd_id) == (
@@ -330,7 +360,7 @@ async def test_shp3_registers_userid_once_on_time_request(device, packet_sequenc
 
     userid = [
         c.args[0]
-        for c in device._conn.sendPacket.await_args_list
+        for c in device._conn.send_packet.await_args_list
         if (c.args[0].cmd_set, c.args[0].cmd_id) == (0x35, 0xA8)
     ]
     assert len(userid) == 1
@@ -338,13 +368,13 @@ async def test_shp3_registers_userid_once_on_time_request(device, packet_sequenc
     assert len(userid[0].payload) == 69
 
     # A second time request must not re-register.
-    device._conn.sendPacket.reset_mock()
+    device._conn.send_packet.reset_mock()
     await device.data_parse(
         await device.packet_parse(bytes.fromhex(packet_sequence[0]))
     )
     assert not [
         c
-        for c in device._conn.sendPacket.await_args_list
+        for c in device._conn.send_packet.await_args_list
         if (c.args[0].cmd_set, c.args[0].cmd_id) == (0x35, 0xA8)
     ]
 
@@ -375,7 +405,7 @@ async def test_shp3_echoes_liveness_ping(device):
     ping = Packet(0x35, 0x35, 0x35, 0x20, b"", 0x01, 0x01, 0x03)
     processed = await device.data_parse(ping)
     assert processed is True
-    device._conn.replyPacket.assert_awaited_once()
+    device._conn.reply_packet.assert_awaited_once()
 
 
 async def test_shp3_set_eps_mode_preserves_operating_mode_and_mix(device):
@@ -388,7 +418,7 @@ async def test_shp3_set_eps_mode_preserves_operating_mode_and_mix(device):
 
     await device.set_eps_mode(True)
 
-    packet = device._conn.sendPacket.await_args.args[0]
+    packet = device._conn.send_packet.await_args.args[0]
     mode = _config_write(device, packet).cfg_panle_energy_strategy_operate_mode
     assert mode.operate_eps_mode is True
     assert mode.operate_scheduled_open is True
@@ -407,7 +437,7 @@ async def test_shp3_set_channel_force_charge_preserves_enable(device):
 
     await device.set_channel_force_charge(1, True)
 
-    packet = device._conn.sendPacket.await_args.args[0]
+    packet = device._conn.send_packet.await_args.args[0]
     ctrl = _config_write(device, packet).cfg_panel_backup_ch1_ctrl
     assert ctrl.ctrl_force_chg == 1
     assert ctrl.ctrl_en == 1
@@ -423,7 +453,7 @@ async def test_shp3_set_channel_force_charge_off_on_disabled_channel(device):
 
     await device.set_channel_force_charge(2, False)
 
-    packet = device._conn.sendPacket.await_args.args[0]
+    packet = device._conn.send_packet.await_args.args[0]
     ctrl = _config_write(device, packet).cfg_panel_backup_ch2_ctrl
     assert ctrl.ctrl_force_chg == 2
     assert ctrl.ctrl_en == 2

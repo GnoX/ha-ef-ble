@@ -180,7 +180,11 @@ class Device(DeviceBase, ProtobufProps):
     async def _send_config_packet(self, message):
         payload = message.SerializeToString()
         packet = Packet(0x20, 0x02, 0xFE, 0x11, payload, 0x01, 0x01, 0x13)
-        await self._conn.sendPacket(packet)
+        await self.send_packet(packet, raise_on_failure=True)
+
+    @controls.button(enabled=False)
+    async def power_off(self) -> None:
+        await self._send_config_packet(pr705_pb2.ConfigWrite(cfg_power_off=True))
 
     @controls.battery(
         energy_backup_battery_level,
@@ -250,8 +254,6 @@ class Device(DeviceBase, ProtobufProps):
         max=dynamic(max_ac_charging_power),
     )
     async def set_ac_charging_speed(self, value: float):
-        await self.set_battery_charge_limit_max(12)
-
         if (
             self.max_ac_charging_power is None
             or value > self.max_ac_charging_power

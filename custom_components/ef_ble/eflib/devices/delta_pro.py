@@ -40,6 +40,7 @@ class Device(DeviceBase, RawDataProps):
         b"DCG",
         b"DCS",
         b"DCF",
+        b"DCJ",
         b"Z1",
         b"R511",
     )
@@ -76,7 +77,9 @@ class Device(DeviceBase, RawDataProps):
     dc_input_current = raw_field(rd_mppt.in_amp, pdiv(100, 2))
 
     ac_charging_speed = raw_field(rd_inv.cfg_slow_chg_watts)
-    max_ac_charging_power = Field[int]()
+    max_ac_charging_power = raw_field(
+        rd_inv.ac_chg_rated_power, lambda x: x if x and x > 200 else 1800
+    )
 
     input_power = raw_field(rd_pd.watts_in_sum)
     output_power = raw_field(rd_pd.watts_out_sum)
@@ -106,7 +109,6 @@ class Device(DeviceBase, RawDataProps):
         self._dormant = True
         self._wake_up_sent = False
         self._initialized = False
-        self.max_ac_charging_power = 2900
 
         self.add_timer_task(self.request_heartbeat, 0.35)
 
@@ -138,7 +140,7 @@ class Device(DeviceBase, RawDataProps):
 
                 if dormant:
                     # dormancy status
-                    await self._conn.sendPacket(
+                    await self.send_packet(
                         Packet(
                             src=0x21,
                             dst=0x32,
@@ -183,7 +185,7 @@ class Device(DeviceBase, RawDataProps):
         async with self._lock:
             self._wake_up_sent = True
 
-        await self._conn.sendPacket(
+        await self.send_packet(
             Packet(
                 src=0x21,
                 dst=0x03,
@@ -212,7 +214,7 @@ class Device(DeviceBase, RawDataProps):
         async with self._lock:
             self.index = (self.index + 1) % len(cmd_map)
 
-        await self._conn.sendPacket(
+        await self.send_packet(
             Packet(
                 src=src,
                 dst=dst,
@@ -250,8 +252,9 @@ class Device(DeviceBase, RawDataProps):
         return 0x07 if self._sn.startswith("R511") else 0x05
 
     async def _send_config_packet(self, dst: int, cmd_id: int, payload: bytes):
-        await self._conn.sendPacket(
-            Packet(0x21, dst, 0x20, cmd_id, payload, version=0x02)
+        await self.send_packet(
+            Packet(0x21, dst, 0x20, cmd_id, payload, version=0x02),
+            raise_on_failure=True,
         )
 
     async def enable_ac_ports(self, enabled: bool):
@@ -276,8 +279,9 @@ class Device(DeviceBase, RawDataProps):
             return False
         value = max(1, min(value, self.max_ac_charging_power))
         payload = bytes([0xFF, 0xFF]) + value.to_bytes(2, "little") + bytes([0xFF])
-        await self._conn.sendPacket(
-            Packet(0x20, 0x04, 0x20, 0x45, payload, version=0x02)
+        await self.send_packet(
+            Packet(0x20, 0x04, 0x20, 0x45, payload, version=0x02),
+            raise_on_failure=True,
         )
         return True
 

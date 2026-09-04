@@ -1,11 +1,13 @@
 from typing import TYPE_CHECKING
 
+from . import devices as _devices
+
 if TYPE_CHECKING:
     from .devicebase import DeviceBase
 
 ADDON_BATTERY_MAP: dict[str, str] = {
     "Y712": "Delta Pro Ultra Battery",
-    "D3E1": "DELTA 3 Max Extra Battery",
+    "D3E1": "DELTA 3 Max Plus Extra Battery",
     "MR52": "DELTA Pro 3 Smart Extra Battery",
     "R361": "DELTA 2 Max Smart Extra Battery",
     "R341": "DELTA 2 Extra Battery",
@@ -25,13 +27,57 @@ ADDON_BATTERY_MAP: dict[str, str] = {
 }
 
 
+MAX_EXTRA_BATTERIES = 10
+
+
+def extra_battery_indices(device: "DeviceBase") -> list[int]:
+    """Slots for which the device declares an extra-battery level field"""
+    return [
+        i
+        for i in range(1, MAX_EXTRA_BATTERIES + 1)
+        if hasattr(device, f"battery_{i}_battery_level")
+    ]
+
+
+def _supported_device_name(sn: str) -> str | None:
+    """Model name of the supported device whose serial prefix matches `sn`, if any"""
+    try:
+        sn_bytes = sn.encode("ASCII")
+    except UnicodeEncodeError:
+        return None
+    for item in _devices.devices:
+        device_cls = getattr(item, "Device", None)
+        if device_cls is None or device_cls is _devices.unsupported.UnsupportedDevice:
+            continue
+        try:
+            matched = device_cls.check(sn_bytes)
+        except Exception:  # noqa: BLE001 - a device check must never break naming
+            matched = False
+        if matched:
+            return (device_cls.__doc__ or "").strip() or None
+    return None
+
+
 def battery_name_from_sn(sn: str | None) -> str:
     if not sn:
         return "Extra Battery"
 
-    for serial_num in [sn[:4], sn[:2]]:
+    if name := ADDON_BATTERY_MAP.get(sn[:4]):
+        return name
+
+    # A connected "battery" may actually be a full supported device (e.g. a Delta Pro
+    # Ultra feeding a panel), so fall back to its real model name before the generic one,
+    # and before the 2-3 char battery prefixes: "P3" also matches the P32x Delta 3 Classic.
+    if name := _supported_device_name(sn):
+        return name
+
+    for serial_num in [sn[:3], sn[:2]]:
         if name := ADDON_BATTERY_MAP.get(serial_num):
             return name
+
+    for serial_num in [sn[:4], sn[:3], sn[:2]]:
+        if device := ECOFLOW_DEVICE_LIST.get(serial_num):
+            return device["name"]
     return "Extra Battery"
 
 
@@ -62,6 +108,7 @@ ECOFLOW_DEVICE_LIST = {
 
     "DCA": {"name": "EcoFlow DELTA Pro", "packets": "v1"},
     "DCF": {"name": "EcoFlow DELTA Pro", "packets": "v1"},
+    "DCJ": {"name": "EcoFlow DELTA Pro", "packets": "v1"},
     "R511":{"name": "EcoFlow DELTA Pro", "packets": "v1"},
     "Z0":  {"name": "EcoFlow DELTA Pro DZ500", "packets": "v1"},
 
@@ -78,13 +125,15 @@ ECOFLOW_DEVICE_LIST = {
     # DELTA 3 FAMILY
     # =====================
     "P231":{"name": "EcoFlow DELTA 3", "packets": "v3"},
-    "D361":{"name": "EcoFlow DELTA 3 (1500)", "packets": "v3"},
+    "D361":{"name": "EcoFlow DELTA 3 (1500)", "packets": "v2"},
+    "D365":{"name": "EcoFlow DELTA 3 (1500)", "packets": "v2"},
+    "P32": {"name": "EcoFlow DELTA 3 Classic", "packets": "v3"},
     "P351":{"name": "EcoFlow DELTA 3 Plus", "packets": "v3"},
-    "D3N1":{"name": "EcoFlow DELTA 3 Classic", "packets": "v3"},
-    "D3M1":{"name": "EcoFlow DELTA 3 Max", "packets": "v3"},
-    "D3E1":{"name": "EcoFlow DELTA 3 Max Plus", "packets": "v3"},
-    "D3U1":{"name": "EcoFlow DELTA 3 Ultra", "packets": "v3"},
-    "D3UP":{"name": "EcoFlow DELTA 3 Ultra Plus", "packets": "v3"},
+    "D3N1":{"name": "EcoFlow DELTA 3 Max", "packets": "v3"},
+    "D3M1":{"name": "EcoFlow DELTA 3 Max Plus", "packets": "v3"},
+    "D3E1":{"name": "EcoFlow DELTA 3 Max Plus Extra Battery", "packets": "v3"},
+    "D751":{"name": "EcoFlow DELTA 3 Ultra", "packets": "v3"},
+    "D511":{"name": "EcoFlow DELTA 3 Ultra Plus", "packets": "v3"},
     "PR11":{"name": "EcoFlow DELTA 3 1000 Air", "packets": "v3"},
     "PR12":{"name": "EcoFlow DELTA 3 1000 Air (10ms UPS)", "packets": "v3"},
     "PR21":{"name": "EcoFlow DELTA 3 2000 Air", "packets": "v3"},

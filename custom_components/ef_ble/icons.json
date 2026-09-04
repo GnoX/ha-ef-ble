@@ -1,5 +1,10 @@
 {
   "entity": {
+    "button": {
+      "power_off": {
+        "default": "mdi:power"
+      }
+    },
     "binary_sensor": {
       "fan_running": {
         "default": "mdi:fan",
@@ -209,6 +214,9 @@
           "emergency_stop": "mdi:alert-octagon",
           "off_power": "mdi:power-off"
         }
+      },
+      "state_of_health": {
+        "default": "mdi:battery-heart"
       }
     },
     "switch": {
@@ -329,6 +337,12 @@
           "off": "mdi:battery-off"
         }
       },
+      "feed_protect": {
+        "default": "mdi:transmission-tower-off",
+        "state": {
+          "off": "mdi:transmission-tower-export"
+        }
+      },
       "discharging_task_enabled": {
         "default": "mdi:battery-arrow-down",
         "state": {
@@ -362,6 +376,20 @@
           "scheduled": "mdi:calendar-clock",
           "tou": "mdi:clock-time-eight",
           "intelligent_schedule": "mdi:head-lightbulb"
+        }
+      },
+      "power_supply_priority": {
+        "default": "mdi:swap-vertical-bold",
+        "state": {
+          "power_supply": "mdi:home-lightning-bolt",
+          "power_storage": "mdi:battery-charging"
+        }
+      },
+      "energy_monitoring_mode": {
+        "default": "mdi:meter-electric",
+        "state": {
+          "semi_automated": "mdi:home-lightning-bolt",
+          "smart_meter": "mdi:meter-electric"
         }
       },
       "operating_submode": {
@@ -416,6 +444,9 @@
         "default": "mdi:transmission-tower"
       },
       "base_load_power": {
+        "default": "mdi:home-lightning-bolt"
+      },
+      "load_power": {
         "default": "mdi:home-lightning-bolt"
       },
       "grid_in_power_limit": {
