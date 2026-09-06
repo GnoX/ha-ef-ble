@@ -142,7 +142,7 @@ async def test_ocean_pro_charge_limit_writes_go_to_e7_mcu(device):
     device.update_from_message(display)
 
     await device.set_battery_charge_limit_max(88)
-    pkt = device._conn.sendPacket.await_args.args[0]
+    pkt = device._conn.send_packet.await_args.args[0]
     assert (pkt.src, pkt.dst, pkt.cmd_set, pkt.cmd_id) == (0x21, 0x60, 0x60, 0x70)
     assert pkt.version == 0x13
     msg = jt_s1_sys_pb2.SysBatChgDsgSet.FromString(pkt.payload)
@@ -150,7 +150,7 @@ async def test_ocean_pro_charge_limit_writes_go_to_e7_mcu(device):
     assert msg.sys_bat_dsg_down_limie == 15
 
     await device.set_battery_charge_limit_min(10)
-    pkt = device._conn.sendPacket.await_args.args[0]
+    pkt = device._conn.send_packet.await_args.args[0]
     msg = jt_s1_sys_pb2.SysBatChgDsgSet.FromString(pkt.payload)
     assert msg.sys_bat_chg_up_limit == 95
     assert msg.sys_bat_dsg_down_limie == 10
@@ -158,13 +158,13 @@ async def test_ocean_pro_charge_limit_writes_go_to_e7_mcu(device):
 
 async def test_ocean_pro_keepalive_reasserts_energy_stream(device):
     await device._send_keepalive()
-    pkt = device._conn.sendPacket.await_args.args[0]
+    pkt = device._conn.send_packet.await_args.args[0]
     assert (pkt.src, pkt.dst, pkt.cmd_set, pkt.cmd_id) == (0x21, 0x60, 0x60, 0x61)
     assert pkt.payload == bytes([0x08, 0x01])
 
 
 async def test_ocean_pro_sends_report_rate_ctrl(device):
     await device._send_report_rate_ctrl()
-    pkt = device._conn.sendPacket.await_args.args[0]
+    pkt = device._conn.send_packet.await_args.args[0]
     assert (pkt.src, pkt.dst, pkt.cmd_set, pkt.cmd_id) == (0x21, 0x60, 0x60, 0x74)
     assert pkt.payload == bytes([0x08, 0x01, 0x20, 0x03, 0x28, 0x01])

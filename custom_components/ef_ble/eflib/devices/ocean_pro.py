@@ -104,7 +104,7 @@ class Device(V4ProtocolDevice):
         )
 
     async def _send_keepalive(self) -> None:
-        await self._conn.sendPacket(
+        await self.send_packet(
             Packet(
                 src=0x21,
                 dst=0x60,
@@ -119,7 +119,7 @@ class Device(V4ProtocolDevice):
         )
 
     async def _send_report_rate_ctrl(self) -> None:
-        await self._conn.sendPacket(
+        await self.send_packet(
             Packet(
                 src=0x21,
                 dst=0x60,
@@ -138,7 +138,7 @@ class Device(V4ProtocolDevice):
         self.update_from_bytes(dev_apl_comm_pb2.RuntimePropertyUpload, body)
 
     async def _send_s1_config(self, cmd_id: int, message: Message) -> None:
-        await self._conn.sendPacket(
+        await self.send_packet(
             Packet(
                 src=0x21,
                 dst=0x60,
@@ -150,6 +150,7 @@ class Device(V4ProtocolDevice):
                 version=0x13,
             ),
             wait_for_response=False,
+            raise_on_failure=True,
         )
 
     @controls.battery(

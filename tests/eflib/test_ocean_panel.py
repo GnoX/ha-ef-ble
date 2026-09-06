@@ -130,7 +130,7 @@ async def test_ocean_panel_set_circuit_power_gangs_split_phase(device, packet_se
     assert device.circuit_split_link[26] == 28
 
     await device.set_circuit_power(26, False)
-    config = _config_write(device._conn.sendPacket.await_args.args[0])
+    config = _config_write(device._conn.send_packet.await_args.args[0])
     assert config.cfg_load_ch26_ctrl_info.chanel_enable_ctrl == 2  # OFF
     assert config.cfg_load_ch28_ctrl_info.chanel_enable_ctrl == 2  # ganged leg
     assert (
@@ -148,7 +148,7 @@ async def test_ocean_panel_registers_userid_once_on_time_request(
 
     userid = [
         c.args[0]
-        for c in device._conn.sendPacket.await_args_list
+        for c in device._conn.send_packet.await_args_list
         if (c.args[0].cmd_set, c.args[0].cmd_id) == (0x35, 0xA8)
     ]
     assert len(userid) == 1
@@ -156,10 +156,10 @@ async def test_ocean_panel_registers_userid_once_on_time_request(
     assert len(userid[0].payload) == 69
 
     # A second time request must not re-register.
-    device._conn.sendPacket.reset_mock()
+    device._conn.send_packet.reset_mock()
     await device.data_parse(await device.packet_parse(bytes.fromhex(time_request)))
     assert not [
         c
-        for c in device._conn.sendPacket.await_args_list
+        for c in device._conn.send_packet.await_args_list
         if (c.args[0].cmd_set, c.args[0].cmd_id) == (0x35, 0xA8)
     ]
