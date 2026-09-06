@@ -72,7 +72,10 @@ def get_updatable_prop_device(device: DeviceBase):
 def get_controls[E: controls.ControlType](
     device: DeviceBase, control_type: type[E]
 ) -> list[E]:
-    return get_updatable_prop_device(device).get_controls(control_type)
+    if not isinstance(device, UpdatableProps):
+        return []
+
+    return device.get_controls(control_type)
 
 
 __all__ = [
