@@ -57,6 +57,12 @@ MAX_CONNECTION_ATTEMPTS = 10
 # (notably through an ESPHome proxy). Left unbounded it stalls `async_unload_entry`
 # long enough for HA to mark the entry `FAILED_UNLOAD`, so cap every disconnect.
 DISCONNECT_TIMEOUT = 5.0
+
+# Some devices answer the first auth of a session with `NeedBindInstallFirst` while
+# their own bind state is still settling, then accept an identical retry moments
+# later. Retrying in-session beats dropping the link and reconnecting.
+AUTH_TRANSIENT_RETRY_MAX = 5
+AUTH_TRANSIENT_RETRY_DELAY = 0.7
 # Waited before DISCONNECT_TIMEOUT rather than inside it, so a teardown costs the sum
 PUMP_STOP_TIMEOUT = 1.0
 
@@ -277,6 +283,7 @@ class Connection:
         self._reconnect_task: asyncio.Task | None = None
         self._connection_attempt: int = 0
         self._reconnect_attempt: int = 0
+        self._auth_retry_attempt: int = 0
         self._reconnect = True
 
         self._connection_state: ConnectionState = None  # pyright: ignore[reportAttributeAccessIssue]
@@ -828,14 +835,16 @@ class Connection:
             "autoAuthentication: Sending secretKey consists of user id and device "
             "serial number",
         )
+        # The auth reply (and everything after) arrives through `_on_notification`
+        await self.send_packet(self._build_auth_packet())
 
-        # Building payload for auth
+    def _build_auth_packet(self) -> Packet:
+        """Build the shared-secret auth packet, rebuilt as-is for a transient retry"""
+        # The secret is the upper case MD5 hex of user id plus device serial number
         md5_data = hashlib.md5((self._user_id + self._dev_sn).encode("ASCII")).digest()
-        # We need upper case in MD5 data here
         payload = ("".join(f"{c:02X}" for c in md5_data)).encode("ASCII")
 
-        # Forming packet - use detected protocol version (V2 or V3)
-        packet = Packet(
+        return Packet(
             0x21,
             self._auth_header_dst,
             0x35,
@@ -843,16 +852,49 @@ class Connection:
             payload,
             0x01,
             0x01,
-            self._packet_version,
+            self._packet_version,  # use detected protocol version (V2 or V3)
         )
 
-        # The auth reply (and everything after) arrives through `_on_notification`
-        await self.send_packet(packet)
+    async def _retry_authentication(self) -> None:
+        """Re-send the auth exchange after a transient rejection, if still relevant"""
+        await asyncio.sleep(AUTH_TRANSIENT_RETRY_DELAY)
+        if self._state is not ConnectionState.AUTHENTICATING or self._client is None:
+            return
+        try:
+            await self.send_auth_status_packet()
+            await self.send_packet(self._build_auth_packet())
+        except Exception as e:  # noqa: BLE001 - a failed retry ends the session, not us
+            await self.add_error(e)
 
-    async def _check_auth(self, packet: Packet):
+    async def _check_auth(self, packet: Packet) -> bool:
+        """
+        Validate an auth reply
+
+        Returns `True` once authentication has succeeded and `False` while an exchange
+        is still in flight, either because a transient failure is being retried or
+        because a multi-step scheme has further packets to send. Raises the mapped
+        `AuthErrors` exception on a fatal failure, after disconnecting.
+        """
         exc = AuthErrors.from_payload(packet.payload)
         if not exc:
-            return
+            self._auth_retry_attempt = 0
+            return True
+
+        if (
+            exc is AuthErrors.NeedBindInstallFirst
+            and self._auth_retry_attempt < AUTH_TRANSIENT_RETRY_MAX
+        ):
+            self._auth_retry_attempt += 1
+            self._logger.warning(
+                "Auth returned %s (%s), retrying auth %d/%d",
+                exc.__name__,
+                packet.payload.hex(),
+                self._auth_retry_attempt,
+                AUTH_TRANSIENT_RETRY_MAX,
+            )
+            self._add_task(self._retry_authentication())
+            return False
+
         exc = exc(f"Authentication failed with response: {packet.payload.hex()}")
 
         self._logger.error("Authentication failed, packet: %s", packet, exc_info=exc)
@@ -860,6 +902,14 @@ class Connection:
 
         await self._disconnect_client()
         raise exc
+
+    def _is_auth_ack(self, packet: Packet) -> bool:
+        """Whether `packet` is a reply the auth exchange is waiting on"""
+        return (
+            packet.src == self._auth_header_dst
+            and packet.cmd_set == 0x35
+            and packet.cmd_id == 0x86
+        )
 
     async def send_auth_status_packet(self):
         """Send the auth status packet used for initial auth wake-up."""
@@ -1148,21 +1198,18 @@ class Connection:
 
             processed = False
 
-            is_auth_reply = (
-                packet.src == self._auth_header_dst
-                and packet.cmd_set == 0x35
-                and packet.cmd_id == 0x86
-            )
+            is_auth_reply = self._is_auth_ack(packet)
             authenticating = self._state == ConnectionState.AUTHENTICATING
 
             if is_auth_reply and authenticating:
-                await self._check_auth(packet)
-                self._connection_attempt = 0
-                self._reconnect_attempt = 0
                 processed = True
-                self._logger.info("Auth completed, everything is fine")
-                self._set_state(ConnectionState.AUTHENTICATED)
-                self._connected.set()
+                if await self._check_auth(packet):
+                    self._connection_attempt = 0
+                    self._reconnect_attempt = 0
+                    self._logger.info("Auth completed, everything is fine")
+                    self._set_state(ConnectionState.AUTHENTICATED)
+                    self._connected.set()
+                # Otherwise the exchange continues and the state stays AUTHENTICATING
             else:
                 if authenticating and not is_auth_reply:
                     self._connection_attempt = 0
