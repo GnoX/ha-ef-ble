@@ -44,7 +44,12 @@ class Device(DeviceBase, ProtobufProps):
     _TELEMETRY_CMD_ID: ClassVar[int] = 0x27
     _WRITE_CMD_SET: ClassVar[int] = 0xFE
     _WRITE_CMD_ID: ClassVar[int] = 0x26
+    _ACTION_CMD_ID: ClassVar[int] = 0x25
     _SYSTEM_MODULE: ClassVar[int] = 0x02
+
+    # `ActionCmd` ids are not the field numbers `PropertyCmd` uses, so this one is the
+    # app's own value for a once-off report of every property
+    _ACTION_FULL_UPLOAD: ClassVar[int] = 88
 
     battery_level = repeated_pb_field(
         pb.system_sub_dev_battery_report.system_sub_dev_battery_info,
@@ -113,7 +118,13 @@ class Device(DeviceBase, ProtobufProps):
             cmd_id=self._WRITE_CMD_ID,
             dst=self._SYSTEM_MODULE,
             fallback_dst=self._SYSTEM_MODULE,
+            # A write names both ends by serial, where the device's own posts name only
+            # their own end that way and address the app by module
+            cmd_flags=(SerialRouting.ADDRESSED_BY_SERIAL << 4)
+            | SerialRouting.ADDRESSED_BY_SERIAL,
+            sequenced_writes=True,
         )
+        self._full_upload_requested = False
 
     @classmethod
     def check(cls, sn):
@@ -136,6 +147,9 @@ class Device(DeviceBase, ProtobufProps):
 
         if isinstance(packet, PacketV4):
             processed = self._parse_routed(packet)
+            if processed and not self._full_upload_requested:
+                self._full_upload_requested = True
+                await self._request_full_upload()
         elif (packet.src, packet.cmd_set, packet.cmd_id) == (
             self._SYSTEM_MODULE,
             self._WRITE_CMD_SET,
@@ -161,6 +175,23 @@ class Device(DeviceBase, ProtobufProps):
         _, body = SerialRouting.split(packet.payload)
         self.update_from_bytes(es22_bkw_pb2.DisplayPropertyUpload, body)
         return True
+
+    async def _request_full_upload(self) -> None:
+        """
+        Ask the device to post every property once
+
+        The request changes no setting, and the device answers it with a report that is
+        larger than the incremental ones it sends unprompted, so it says whether a frame
+        we build is accepted at all - the one thing no control can tell us, since a
+        control that is ignored looks exactly like a control the device refuses
+        """
+        message = es22_bkw_pb2.ActionCmd(
+            action_id=self._ACTION_FULL_UPLOAD, active_display_property_full_upload=True
+        )
+        packet = self._routing.write_packet(
+            message.SerializeToString(), cmd_id=self._ACTION_CMD_ID
+        )
+        await self.send_packet(packet)
 
     async def _write_property(self, config: Message) -> None:
         # `action_id` selects which of the optional blocks the device applies, and is
