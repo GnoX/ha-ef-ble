@@ -284,6 +284,7 @@ class Connection:
         self._connection_attempt: int = 0
         self._reconnect_attempt: int = 0
         self._auth_retry_attempt: int = 0
+        self._auth_status_payload: bytes = b""
         self._reconnect = True
 
         self._connection_state: ConnectionState = None  # pyright: ignore[reportAttributeAccessIssue]
@@ -822,6 +823,10 @@ class Connection:
             await self.send_auth_status_packet()
             packets = await self._read_auth_status_reply()
         self._set_state(ConnectionState.AUTH_STATUS_RECEIVED)
+
+        # Kept because the scheme the device wants is encoded in this reply, and the
+        # auth stage that follows has no other way to see it
+        self._auth_status_payload = packets[0].payload
 
         self._logger.log_filtered(
             LogOptions.CONNECTION_DEBUG,

@@ -20,6 +20,10 @@ class Device(V4ProtocolDevice):
     SN_PREFIX = (b"HR51",)
     NAME_PREFIX = "EF-HR5"
 
+    @property
+    def supports_device_token(self) -> bool:
+        return True
+
     _TELEMETRY_SRC = 0x30
 
     _KEEPALIVE_INTERVAL = 10

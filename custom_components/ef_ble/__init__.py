@@ -17,6 +17,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ADDRESS, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import (
+    ConfigEntryAuthFailed,
     ConfigEntryError,
     ConfigEntryNotReady,
 )
@@ -54,6 +55,7 @@ from .eflib.connection import (
 )
 from .eflib.exceptions import AuthErrors, UnsupportedBluetoothProtocol
 from .eflib.logging_util import ConnectionLog
+from .omos import connect_omos, is_configured
 from .proxy import connect_gate, wait_for_preferred_proxy
 
 PLATFORMS: list[Platform] = [
@@ -74,6 +76,92 @@ ConfigEntryNotReady = partial(ConfigEntryNotReady, translation_domain=DOMAIN)
 ConfigEntryError = partial(ConfigEntryError, translation_domain=DOMAIN)
 
 _REAPPEAR_CALLBACKS_KEY = f"{DOMAIN}_reappear_callbacks"
+
+
+async def _open_link(
+    hass: HomeAssistant,
+    entry: "DeviceConfigEntry",
+    device: "eflib.DeviceBase",
+    *,
+    user_id: str,
+    timeout: float,
+    merged_options: dict,
+):
+    """
+    Open the BLE link from inside the connect gate
+
+    A model that hints at token auth, or an entry that already carries a device token,
+    takes the OMOS path. Returns the authenticated state for such a device, whose
+    bind/refresh loop has to own the auth wait, and `None` for every other device so
+    the caller waits for authentication after the gate is released.
+    """
+    if device.supports_device_token or is_configured(merged_options):
+        try:
+            return await connect_omos(
+                hass,
+                entry,
+                device,
+                user_id=user_id,
+                timeout=timeout,
+                merged_options=merged_options,
+            )
+        except AuthErrors.NeedRefreshToken as e:
+            # The token is exhausted and cannot be renewed without fresh input; hand
+            # off to the reauth flow instead of retrying setup forever.
+            raise ConfigEntryAuthFailed(
+                translation_domain=DOMAIN, translation_key="token_expired"
+            ) from e
+
+    await device.connect(
+        user_id=user_id,
+        max_attempts=0 if eflib.is_solar_only(device) else None,
+    )
+    return None
+
+
+async def _connect_gated(
+    hass: HomeAssistant,
+    entry: "DeviceConfigEntry",
+    device: "eflib.DeviceBase",
+    *,
+    address: str,
+    user_id: str,
+    timeout: float,
+    advanced: dict,
+    merged_options: dict,
+):
+    """Connect through the stagger gate and return the authenticated state"""
+    connection_delay = advanced.get(CONF_CONNECTION_DELAY, DEFAULT_CONNECTION_DELAY)
+    preferred_proxy = advanced.get(CONF_PREFERRED_PROXY) or NO_PREFERRED_PROXY
+    preference_wait = (
+        advanced.get(CONF_PREFERRED_PROXY_TIMEOUT, DEFAULT_PREFERRED_PROXY_TIMEOUT)
+        if preferred_proxy != NO_PREFERRED_PROXY
+        else 0.0
+    )
+
+    async with connect_gate(
+        hass, device.name, connection_delay, timeout, preference_wait
+    ):
+        if preference_wait:
+            await wait_for_preferred_proxy(
+                hass, address, device.name, preferred_proxy, preference_wait
+            )
+        state = await _open_link(
+            hass,
+            entry,
+            device,
+            user_id=user_id,
+            timeout=timeout,
+            merged_options=merged_options,
+        )
+
+    if state is not None:
+        return state
+
+    # The gate is released before waiting, so a slow handshake never blocks the next
+    # device's connect attempt
+    async with asyncio.timeout(timeout):
+        return await device.wait_until_authenticated_or_error(raise_on_error=True)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bool:
@@ -125,43 +213,33 @@ async def async_setup_entry(hass: HomeAssistant, entry: DeviceConfigEntry) -> bo
 
     advanced = merged_options.get(CONF_ADVANCED_CONNECTION_OPTIONS, {})
     timeout = advanced.get(CONF_CONNECTION_TIMEOUT, DEFAULT_CONNECTION_TIMEOUT)
-    connection_delay = advanced.get(CONF_CONNECTION_DELAY, DEFAULT_CONNECTION_DELAY)
-    preferred_proxy = advanced.get(CONF_PREFERRED_PROXY) or NO_PREFERRED_PROXY
     options = Connection.Options(
         timeout=timeout,
         bluez_start_notify=advanced.get(CONF_BLUEZ_START_NOTIFY, False),
     )
     issue_id = f"{entry.entry_id}_max_connection_attempts"
 
-    preference_wait = (
-        advanced.get(CONF_PREFERRED_PROXY_TIMEOUT, DEFAULT_PREFERRED_PROXY_TIMEOUT)
-        if preferred_proxy != NO_PREFERRED_PROXY
-        else 0.0
+    configured = (
+        device.with_update_period(update_period)
+        .with_logging_options(ConfLogOptions.from_config(merged_options))
+        .with_disabled_reconnect()
+        .with_packet_version(packet_version.to_num())
+        .with_enabled_packet_diagnostics(packet_collection_enabled)
+        .with_diagnostics_on_exception(diagnostics_on_exception)
+        .with_connection_options(options)
     )
 
     try:
-        async with connect_gate(
-            hass, device.name, connection_delay, timeout, preference_wait
-        ):
-            if preference_wait:
-                await wait_for_preferred_proxy(
-                    hass, address, device.name, preferred_proxy, preference_wait
-                )
-            await (
-                device.with_update_period(update_period)
-                .with_logging_options(ConfLogOptions.from_config(merged_options))
-                .with_disabled_reconnect()
-                .with_packet_version(packet_version.to_num())
-                .with_enabled_packet_diagnostics(packet_collection_enabled)
-                .with_diagnostics_on_exception(diagnostics_on_exception)
-                .with_connection_options(options)
-                .connect(
-                    user_id=user_id,
-                    max_attempts=0 if eflib.is_solar_only(device) else None,
-                )
-            )
-        async with asyncio.timeout(timeout):
-            state = await device.wait_until_authenticated_or_error(raise_on_error=True)
+        state = await _connect_gated(
+            hass,
+            entry,
+            configured,
+            address=address,
+            user_id=user_id,
+            timeout=timeout,
+            advanced=advanced,
+            merged_options=merged_options,
+        )
     except (
         ConnectionTimeout,
         BleakError,
