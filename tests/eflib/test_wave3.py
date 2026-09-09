@@ -7,6 +7,7 @@ from custom_components.ef_ble.eflib.devices.wave3 import (
     OperatingMode,
     SleepState,
 )
+from custom_components.ef_ble.eflib.pb import ac517_apl_comm_pb2
 
 
 @pytest.fixture
@@ -163,3 +164,35 @@ async def test_wave3_exact_values_from_known_packets(device, packet_sequence):
     assert device.input_power is None
     assert device.output_power is None
     assert device.power is False
+
+
+def _config_write(packet) -> ac517_apl_comm_pb2.ConfigWrite:
+    return ac517_apl_comm_pb2.ConfigWrite.FromString(packet.payload)
+
+
+async def test_wave3_climate_off_goes_to_standby_not_power_off(device):
+    """Powering off cuts Bluetooth, so the climate entity must use standby instead"""
+    await device.enable_power(False)
+    cfg = _config_write(device._conn.send_packet.await_args.args[0])
+    assert cfg.cfg_sys_pause is True
+    assert cfg.cfg_sys_resume is False
+    assert cfg.cfg_power_off is False
+
+    await device.enable_power(True)
+    cfg = _config_write(device._conn.send_packet.await_args.args[0])
+    assert cfg.cfg_sys_resume is True
+    assert cfg.cfg_sys_pause is False
+
+
+async def test_wave3_power_off_button_still_powers_down(device):
+    """The destructive power-down stays available as its own button"""
+    await device.power_off()
+    cfg = _config_write(device._conn.send_packet.await_args.args[0])
+    assert cfg.cfg_power_off is True
+    assert cfg.cfg_sys_pause is False
+
+
+def test_wave3_has_no_standby_switch():
+    """The switch is replaced by the climate off state, so it must be gone"""
+    assert not hasattr(Device, "standby")
+    assert "standby" not in [f.public_name for f in Device._fields]
