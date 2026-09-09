@@ -196,3 +196,21 @@ def test_wave3_has_no_standby_switch():
     """The switch is replaced by the climate off state, so it must be gone"""
     assert not hasattr(Device, "standby")
     assert "standby" not in [f.public_name for f in Device._fields]
+
+
+async def test_wave3_submode_is_unavailable_in_standby(device):
+    """A unit in standby reports no mode, so its submode is not selectable either"""
+    device.update_from_message(
+        ac517_apl_comm_pb2.DisplayPropertyUpload(
+            dev_sleep_state=SleepState.ON,
+            wave_operating_mode=OperatingMode.COOLING,
+        )
+    )
+    assert device.power is True
+    assert device.is_submode_available is True
+
+    device.update_from_message(
+        ac517_apl_comm_pb2.DisplayPropertyUpload(dev_sleep_state=SleepState.STANDBY)
+    )
+    assert device.power is False
+    assert device.is_submode_available is False
