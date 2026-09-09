@@ -132,7 +132,12 @@ class Device(DeviceBase, ProtobufProps):
 
     @computed_field
     def is_submode_available(self) -> bool:
-        return self.operating_mode in (OperatingMode.COOLING, OperatingMode.HEATING)
+        # A unit in standby reports no mode, so the submode it belongs to is not
+        # selectable either
+        return self.power is True and self.operating_mode in (
+            OperatingMode.COOLING,
+            OperatingMode.HEATING,
+        )
 
     @classmethod
     def check(cls, sn):
