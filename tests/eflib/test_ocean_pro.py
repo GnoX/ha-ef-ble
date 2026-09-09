@@ -168,3 +168,33 @@ async def test_ocean_pro_sends_report_rate_ctrl(device):
     pkt = device._conn.send_packet.await_args.args[0]
     assert (pkt.src, pkt.dst, pkt.cmd_set, pkt.cmd_id) == (0x21, 0x60, 0x60, 0x74)
     assert pkt.payload == bytes([0x08, 0x01, 0x20, 0x03, 0x28, 0x01])
+
+
+async def test_ocean_pro_requests_device_config_once_per_session(
+    device, packet_sequence
+):
+    """The app asks for stored parameters on connect; some values arrive only in reply"""
+    await device.data_parse(
+        await device.packet_parse(bytes.fromhex(packet_sequence[2]))
+    )
+
+    config = [
+        c.args[0]
+        for c in device._conn.send_packet.await_args_list
+        if c.args[0].cmd_id == 0x25
+    ]
+    assert len(config) == 1
+    pkt = config[0]
+    assert (pkt.src, pkt.dst, pkt.cmd_set) == (0x21, 0x60, 0x60)
+    assert pkt.version == 0x13
+    assert pkt.payload == b""
+
+    # a second telemetry frame must not re-request it
+    await device.data_parse(
+        await device.packet_parse(bytes.fromhex(packet_sequence[3]))
+    )
+    assert [
+        c.args[0]
+        for c in device._conn.send_packet.await_args_list
+        if c.args[0].cmd_id == 0x25
+    ] == config

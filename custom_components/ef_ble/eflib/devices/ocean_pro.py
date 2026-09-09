@@ -106,6 +106,37 @@ class Device(V4ProtocolDevice):
         self.add_timer_task(
             self._send_report_rate_ctrl, interval=self._REPORT_RATE_INTERVAL
         )
+        self._config_requested = False
+
+    async def data_parse(self, packet: Packet) -> bool:
+        processed = await super().data_parse(packet)
+
+        if processed and not self._config_requested:
+            self._config_requested = True
+            await self._request_device_config()
+
+        return processed
+
+    async def _request_device_config(self) -> None:
+        """
+        Ask the inverter to report its stored parameters once per session
+
+        The app issues this on every connection before it starts polling, and some
+        values are only ever sent in the reply, so without it they never arrive
+        """
+        await self.send_packet(
+            Packet(
+                src=0x21,
+                dst=0x60,
+                cmd_set=0x60,
+                cmd_id=0x25,
+                payload=jt_s1_sys_pb2.EmsGetParam().SerializeToString(),
+                dsrc=0x01,
+                ddst=0x01,
+                version=0x13,
+            ),
+            wait_for_response=False,
+        )
 
     async def _send_keepalive(self) -> None:
         await self.send_packet(

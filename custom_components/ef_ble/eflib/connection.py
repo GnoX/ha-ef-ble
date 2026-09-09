@@ -1406,6 +1406,13 @@ class Connection:
         if frame_assembler.write_with_response and wait_for_response:
             await self.send_request(to_send, raise_on_failure=raise_on_failure)
         elif self._client is not None and self._client.is_connected:
+            # Log and publish here as well as in `send_request`: without it a
+            # fire-and-forget send is invisible to both the log and diagnostics, which
+            # makes an absent keepalive indistinguishable from one that never ran
+            self._logger.log_filtered(
+                LogOptions.CONNECTION_DEBUG, "Sending (no response): %r", to_send
+            )
+            self._listeners.on_data_send(to_send)
             await self._client.write_gatt_char(
                 self._write_characteristic, bytearray(to_send), response=False
             )
@@ -1584,7 +1591,16 @@ class Connection:
                 if self._connection_state != ConnectionState.AUTHENTICATED:
                     await self._state_changed.wait()
                     continue
-                await coro()
+                try:
+                    await coro()
+                except Exception:
+                    # The task must outlive one bad send: a raise used to end it for
+                    # the rest of the session with no trace, so a keepalive that had
+                    # stopped looked identical to one that never started
+                    self._logger.exception(
+                        "Timer task %s failed; retrying at the next interval",
+                        getattr(coro, "__qualname__", coro),
+                    )
 
                 elapsed = time.monotonic() - start_time
                 sleep_time = max(0, interval - (elapsed % interval))

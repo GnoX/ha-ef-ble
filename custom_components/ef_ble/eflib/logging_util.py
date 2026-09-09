@@ -527,6 +527,9 @@ class DeviceDiagnosticsCollector:
         return self
 
     def _on_state_change(self, state: "ConnectionState") -> None:
+        if state.authenticated:
+            self._connect_times.append(self._now)
+
         if not self._save_on_exception or not state.is_error:
             return
 
@@ -603,6 +606,9 @@ class DeviceDiagnosticsCollector:
         self._connect_times.clear()
         self._disconnect_times.clear()
         self._raw_data_send.clear()
+        # Left behind once, which let a dump pair sends from this session with receives
+        # from an earlier one and read as though nothing was being transmitted
+        self._raw_data_messages.clear()
 
 
 class _LazyHex:
