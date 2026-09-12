@@ -230,12 +230,14 @@ class Device(DeviceBase, ProtobufProps):
         `cfg_power_off` cuts the Bluetooth radio with it, so a unit switched off that way
         can only be woken at the unit itself, which makes it a poor fit for the climate
         entity's off state. Standby keeps the link up so the same entity can turn it back
-        on. The app writes this pair in `configSystemPause` / `configSystemResume`, one
-        true and the other false per write. Powering down is a separate button.
+        on. This is the app's own home-screen toggle: `cfg_power_on` to turn on and
+        `cfg_sys_pause` to send it to standby, with powering down offered separately.
         """
         cfg = ac517_apl_comm_pb2.ConfigWrite()
-        cfg.cfg_sys_pause = not enabled
-        cfg.cfg_sys_resume = enabled
+        if enabled:
+            cfg.cfg_power_on = True
+        else:
+            cfg.cfg_sys_pause = True
         await self._send_config_packet(cfg)
 
     @controls.button(enabled=False)

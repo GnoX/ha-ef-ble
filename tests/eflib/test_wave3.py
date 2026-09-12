@@ -175,12 +175,11 @@ async def test_wave3_climate_off_goes_to_standby_not_power_off(device):
     await device.enable_power(False)
     cfg = _config_write(device._conn.send_packet.await_args.args[0])
     assert cfg.cfg_sys_pause is True
-    assert cfg.cfg_sys_resume is False
     assert cfg.cfg_power_off is False
 
     await device.enable_power(True)
     cfg = _config_write(device._conn.send_packet.await_args.args[0])
-    assert cfg.cfg_sys_resume is True
+    assert cfg.cfg_power_on is True
     assert cfg.cfg_sys_pause is False
 
 
