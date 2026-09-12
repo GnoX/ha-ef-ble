@@ -54,6 +54,7 @@ class EcoflowClimateEntityDescription(ClimateEntityDescription):
 
     set_power_func: Any = None
     set_operating_mode_func: Any = None
+    operating_mode_powers_on: bool = False
     set_target_temp_func: Any = None
     set_target_temp_range_func: Any = None
     set_target_humidity_func: Any = None
@@ -89,6 +90,7 @@ class ClimateBuilder(EntityDescriptionBuilder):
     _temperature_unit_prop: str | None = None
     _set_power_func: Any = None
     _set_operating_mode_func: Any = None
+    _operating_mode_powers_on: bool = False
     _set_target_temp_func: Any = None
     _set_target_temp_range_func: Any = None
     _set_target_humidity_func: Any = None
@@ -220,6 +222,10 @@ class ClimateBuilder(EntityDescriptionBuilder):
         self._set_operating_mode_func = func
         return self
 
+    def operating_mode_powers_on(self, value: bool):
+        self._operating_mode_powers_on = value
+        return self
+
     def set_target_temp_func(self, func: Any):
         self._set_target_temp_func = func
         return self
@@ -269,6 +275,7 @@ class ClimateBuilder(EntityDescriptionBuilder):
             temperature_unit=self._temperature_unit,
             temperature_unit_prop=self._temperature_unit_prop,
             set_power_func=self._set_power_func,
+            operating_mode_powers_on=self._operating_mode_powers_on,
             set_operating_mode_func=self._set_operating_mode_func,
             set_target_temp_func=self._set_target_temp_func,
             set_target_temp_range_func=self._set_target_temp_range_func,
@@ -323,6 +330,7 @@ def _build_from_control(
         .temperature_unit(ctrl.temperature_unit)
         .set_power_func(ctrl.set_power)
         .set_operating_mode_func(ctrl.set_operating_mode)
+        .operating_mode_powers_on(ctrl.mode_powers_on)
         .set_target_temp_func(ctrl.set_target_temperature)
         .set_target_temp_range_func(ctrl.set_target_temperature_range)
         .set_target_humidity_func(ctrl.set_target_humidity)
@@ -381,6 +389,7 @@ class EcoflowClimateEntity(EcoflowEntity, ClimateEntity):
 
         self._set_power = description.set_power_func
         self._set_operating_mode = description.set_operating_mode_func
+        self._mode_powers_on = description.operating_mode_powers_on
         self._set_target_temp = description.set_target_temp_func
         self._set_target_temp_range = description.set_target_temp_range_func
         self._set_target_humidity = description.set_target_humidity_func
@@ -530,7 +539,8 @@ class EcoflowClimateEntity(EcoflowEntity, ClimateEntity):
             return
 
         if (
-            self._power_prop
+            not self._mode_powers_on
+            and self._power_prop
             and getattr(self._device, self._power_prop, None) is not True
         ):
             if self._set_power:

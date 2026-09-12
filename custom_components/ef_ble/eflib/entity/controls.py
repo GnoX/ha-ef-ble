@@ -337,6 +337,9 @@ class climate(ControlType):
     set_operating_mode: "_ModeSetter | None" = dataclasses.field(
         default=None, repr=False, init=False
     )
+    # Set by `mode(powers_on=True)` for devices whose mode write also wakes the unit,
+    # so turning on from off takes one write rather than a power write plus a mode one
+    mode_powers_on: bool = dataclasses.field(default=False, repr=False, init=False)
     set_target_temperature: "_TargetTempSetter | None" = dataclasses.field(
         default=None, repr=False, init=False
     )
@@ -379,11 +382,12 @@ class climate(ControlType):
 
         return bind
 
-    def mode(self) -> _Decorator[_ModeSetter]:
+    def mode(self, *, powers_on: bool = False) -> _Decorator[_ModeSetter]:
         base_field = self._field
 
         def bind(f: _ModeSetter) -> _ModeSetter:
             self.set_operating_mode = _virtual_dispatch(f, notify_fields=[base_field])
+            self.mode_powers_on = powers_on
             return f
 
         return bind
