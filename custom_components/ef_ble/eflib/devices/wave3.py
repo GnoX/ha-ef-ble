@@ -249,16 +249,18 @@ class Device(DeviceBase, ProtobufProps):
     @_climate.mode(powers_on=True)
     async def set_operating_mode(self, mode: OperatingMode):
         """
-        Set the operating mode, waking the unit in the same write
+        Set the operating mode once the unit is out of standby
 
-        Carrying both fields in one message leaves the device no window between waking
-        and being configured, for a unit that ignores a mode written while it wakes.
+        Whether this device accepts a mode written while it is still waking is not
+        established, so a unit in standby is woken and the wake confirmed before the
+        mode follows. A unit that is already running is not delayed.
         """
+        if self.power is not True:
+            await self.enable_power(True)
+            await self.wait_for_field(Device.power, True)
+
         await self._send_config_packet(
-            ac517_apl_comm_pb2.ConfigWrite(
-                cfg_power_on=True,
-                cfg_wave_operating_mode=mode.value,
-            )
+            ac517_apl_comm_pb2.ConfigWrite(cfg_wave_operating_mode=mode.value)
         )
 
     @_climate.target_temp(

@@ -526,6 +526,51 @@ class DeviceBase(abc.ABC):
         self.update_callback(name)
         self.update_state(name, value)
 
+    async def wait_for_field[T](
+        self, field: Field[T] | str, value: T, timeout: float = 5
+    ) -> bool:
+        """
+        Wait until `field` reports `value`, returning whether it did before `timeout`
+
+        Some settings are only accepted once the device reports a state it has been
+        asked to enter, so a command that depends on one waits for the device to say
+        so rather than writing into the transition. A device only reports while it is
+        connected, so a link that is already down, or drops while waiting, ends the
+        wait immediately instead of holding the caller for the whole timeout.
+        """
+        name = field if isinstance(field, str) else field.public_name
+        if getattr(self, name, None) == value:
+            return True
+        if not self.is_connected:
+            return False
+
+        reported = asyncio.get_running_loop().create_future()
+
+        def _resolve(result: bool) -> None:
+            if not reported.done():
+                reported.set_result(result)
+
+        def _on_update(updated: Any) -> None:
+            if updated == value:
+                _resolve(True)
+
+        def _on_disconnect(_: Exception | type[Exception] | None) -> None:
+            _resolve(False)
+
+        self.register_state_update_callback(_on_update, name)
+        unlisten_disconnect = self.on_disconnect(_on_disconnect)
+        try:
+            async with asyncio.timeout(timeout):
+                return await reported
+        except TimeoutError:
+            self._logger.debug(
+                "%s did not report %s=%r in %ss", self, name, value, timeout
+            )
+            return False
+        finally:
+            self.remove_state_update_callback(_on_update, name)
+            unlisten_disconnect()
+
     def _schedule_missing_field_defaults(self, state: ConnectionState) -> None:
         if not state.authenticated:
             return
