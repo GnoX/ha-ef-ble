@@ -253,6 +253,7 @@ class Connection:
         self._packet_version = packet_version
         self._encrypt_type = encrypt_type
         self._verified = verified
+        self._refreshed_binding = False
         self._encryption: EncryptionStrategy | None = None
         self._initial_session_key: bytes = b""
         self._frame_assembler: FrameAssembler | None = None
@@ -840,7 +841,9 @@ class Connection:
             "serial number (%s)",
             "checking" if self._verified else "refreshing an unverified binding",
         )
+        await self._send_auth(command)
 
+    async def _send_auth(self, command: int) -> None:
         # Building payload for auth
         md5_data = hashlib.md5((self._user_id + self._dev_sn).encode("ASCII")).digest()
         # We need upper case in MD5 data here
@@ -861,10 +864,24 @@ class Connection:
         # The auth reply (and everything after) arrives through `_on_notification`
         await self.send_packet(packet)
 
-    async def _check_auth(self, packet: Packet):
+    async def _check_auth(self, packet: Packet) -> bool:
+        """Whether this reply completes authentication, repairing the binding if asked"""
         exc = AuthErrors.from_payload(packet.payload)
         if not exc:
-            return
+            return True
+
+        if exc is AuthErrors.NeedBindInstallFirst and not self._refreshed_binding:
+            # The device is telling us the binding is gone, whatever it advertised, and
+            # a device that holds one for another account refuses this rather than
+            # handing itself over
+            self._refreshed_binding = True
+            self._logger.warning(
+                "Device reports no binding for this account; refreshing it and "
+                "authenticating again"
+            )
+            await self._send_auth(AUTH_REFRESH)
+            return False
+
         exc = exc(f"Authentication failed with response: {packet.payload.hex()}")
 
         self._logger.error("Authentication failed, packet: %s", packet, exc_info=exc)
@@ -1168,7 +1185,9 @@ class Connection:
             authenticating = self._state == ConnectionState.AUTHENTICATING
 
             if is_auth_reply and authenticating:
-                await self._check_auth(packet)
+                if not await self._check_auth(packet):
+                    # A refresh went out instead; its own reply decides the outcome
+                    continue
                 self._connection_attempt = 0
                 self._reconnect_attempt = 0
                 processed = True
