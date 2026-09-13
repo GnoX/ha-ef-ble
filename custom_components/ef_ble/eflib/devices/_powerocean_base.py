@@ -1,6 +1,8 @@
 from collections.abc import Callable
 from typing import Any, cast, overload
 
+from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import AdvertisementData
 from google.protobuf.message import Message
 
 from ..devicebase import DeviceBase
@@ -214,6 +216,71 @@ class PowerOceanBase(DeviceBase, ProtobufProps):
 
     pv_voltage = mppt_group(pb_mppt_pv.vol, 2, "pv_voltage_{n}")
     pv_current = mppt_group(pb_mppt_pv.amp, 2, "pv_current_{n}")
+
+    # The device reports nothing unless it is asked to, and both requests age out, so
+    # the app repeats them for as long as a screen is open: the energy stream every 10 s
+    # and the report rate every 25 s
+    _ENERGY_STREAM_INTERVAL = 10
+    _REPORT_RATE_INTERVAL = 25
+    _UI_REPORT_PERIOD = 3
+
+    _CMD_EMS_GET_PARAM = 0x25
+    _CMD_ENERGY_STREAM_SWITCH = 0x61
+    _CMD_REPORT_RATE_CTRL = 0x74
+
+    def __init__(
+        self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
+    ) -> None:
+        super().__init__(ble_dev, adv_data, sn)
+        self._ems_params_requested = False
+        self.on_disconnect(self._forget_requested_params)
+        self.add_timer_task(
+            self._open_energy_stream, interval=self._ENERGY_STREAM_INTERVAL
+        )
+        self.add_timer_task(self._set_report_rate, interval=self._REPORT_RATE_INTERVAL)
+
+    def _forget_requested_params(
+        self, _exc: Exception | type[Exception] | None
+    ) -> None:
+        self._ems_params_requested = False
+
+    async def _open_energy_stream(self) -> None:
+        await self._send_s1_command(
+            self._CMD_ENERGY_STREAM_SWITCH,
+            jt_s1_sys_pb2.EnergyStreamSwitch(ems_open_energy_stream=True),
+        )
+
+    async def _set_report_rate(self) -> None:
+        await self._send_s1_command(
+            self._CMD_REPORT_RATE_CTRL,
+            jt_s1_sys_pb2.SysReportRateCtrlSet(
+                rate_ctrl_swtich=True,
+                ui_perio=self._UI_REPORT_PERIOD,
+                perio_aging=1,
+            ),
+        )
+        # The parameters do not change on their own, so one request per connection is
+        # enough; the app sends this one only when a settings screen opens
+        if not self._ems_params_requested:
+            self._ems_params_requested = True
+            await self._send_s1_command(
+                self._CMD_EMS_GET_PARAM, jt_s1_sys_pb2.EmsGetParam()
+            )
+
+    async def _send_s1_command(self, cmd_id: int, message: Message) -> None:
+        await self.send_packet(
+            Packet(
+                src=0x21,
+                dst=0x60,
+                cmd_set=0x60,
+                cmd_id=cmd_id,
+                payload=message.SerializeToString(),
+                dsrc=0x01,
+                ddst=0x01,
+                version=0x13,
+            ),
+            wait_for_response=False,
+        )
 
     @classmethod
     def check(cls, sn: bytes):
