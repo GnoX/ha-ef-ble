@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 from enum import Flag, auto
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import bleak
 
@@ -203,21 +203,28 @@ class ConnectionLogger(MaskingLogger):
         )
 
 
+# A device that drops its link is reloaded by Home Assistant, which builds a new device
+# object each time. Keyed by address, these outlive that, so a dump taken after several
+# reconnect cycles still shows the earlier ones instead of only the last
+_HISTORIES: dict[str, deque[dict[str, float | str]]] = {}
+_HISTORY_STARTS: dict[str, float] = {}
+_CONNECTION_ROWS: dict[str, deque[dict[str, float | int | str | None]]] = {}
+
+
 @dataclass
 class ConnectionLog:
     name: str
-    maxlen: int = 20
+    # One handshake is ten states, so a short history shows only the last connection or
+    # two; a device stuck in a reconnect loop needs the whole pattern
+    maxlen: int = 200
     cache_to_file: bool = False
 
     def __post_init__(self):
-        self._history_start = time.time()
+        self._history_start = _HISTORY_STARTS.setdefault(self.name, time.time())
 
     @property
     def history(self) -> deque[dict[str, float | str]]:
-        history = getattr(self, "_history", None)
-        if history is None:
-            self._history = deque(maxlen=self.maxlen)
-        return self._history
+        return _HISTORIES.setdefault(self.name, deque(maxlen=self.maxlen))
 
     @staticmethod
     def cache_file_for(address: str):
@@ -261,6 +268,10 @@ class ConnectionLog:
         ConnectionLog.cache_file_for(address).unlink(missing_ok=True)
 
 
+def _exception_name(exc: Exception | type[Exception]) -> str:
+    return exc.__name__ if isinstance(exc, type) else type(exc).__name__
+
+
 @dataclass
 class DeviceDiagnostics:
     """Diagnostics data collected from the device connection and packets"""
@@ -272,6 +283,7 @@ class DeviceDiagnostics:
     raw_data_connection: list[tuple[float, bytes]]
     raw_data_messages: list[tuple[float, bytes]]
     raw_data_send: list[tuple[float, bytes]]
+    connections: list[dict[str, float | int | str | None]]
     iv: bytes
     session_key: bytes
     initial_session_key: bytes
@@ -330,6 +342,16 @@ class DeviceDiagnosticsCollector:
 
         self._session_keys: deque[tuple[float, bytes, bytes]] = deque(maxlen=10)
 
+        # Raw buffers only survive the current connection, so this keeps one row per
+        # connection: how long it lived, how much crossed it, and why it ended
+        self._connections = _CONNECTION_ROWS.setdefault(
+            device.address, deque(maxlen=50)
+        )
+        # Rows outlive a reload, so their times run from the same origin as the state
+        # history rather than from this load, which restarts at zero
+        self._rows_start = _HISTORY_STARTS.setdefault(device.address, time.time())
+        self._connection: dict[str, float | int | str | None] | None = None
+
         self._disconnect_times: deque[float] = deque(maxlen=buffer_size)
         self._skip_first_messages: int = 8
         self._unlisten_callbacks: list[Callable[[], None]] = []
@@ -379,6 +401,7 @@ class DeviceDiagnosticsCollector:
             raw_data_connection=self._raw_data_connection,
             raw_data_messages=list(self._raw_data_messages),
             raw_data_send=list(self._raw_data_send),
+            connections=[dict(row) for row in self._connections],
             session_keys=[
                 (t - self._start_time, key, iv) for (t, key, iv) in self._session_keys
             ],
@@ -421,9 +444,11 @@ class DeviceDiagnosticsCollector:
                     self._device.on_data_received(self._on_data_received),
                     self._device.on_data_send(self._on_data_send),
                     self._device.on_session_key_derived(self._on_session_key_derived),
+                    self._device.on_connection_state_change(self._on_authenticated),
                 ]
             )
             self._record_current_session_key()
+            self._record_current_connection()
             return self
 
         return self
@@ -485,6 +510,55 @@ class DeviceDiagnosticsCollector:
 
     def _on_disconnect(self, exc: Exception | type[Exception] | None = None):
         self._disconnect_times.append(self._now)
+        self._close_connection_row(exc)
+
+    def _record_current_connection(self) -> None:
+        """Note the link this collector attached to, which may already be up"""
+        state = self._device.connection_state
+        if state is not None and state.authenticated:
+            row = self._connection_row()
+            row["authenticated"] = row["first_seen"]
+
+    @property
+    def _row_now(self) -> float:
+        return time.time() - self._rows_start
+
+    def _on_authenticated(self, state: "ConnectionState") -> None:
+        if state.authenticated:
+            self._connection_row()["authenticated"] = self._row_now
+
+    def _connection_row(self) -> dict[str, float | int | str | None]:
+        if self._connection is None:
+            self._close_stale_row()
+            self._connection = {
+                "index": len(self._connections) + 1,
+                "first_seen": self._row_now,
+                "authenticated": None,
+                "disconnected": None,
+                "sent": 0,
+                "received": 0,
+                "reason": None,
+            }
+            self._connections.append(self._connection)
+        return self._connection
+
+    def _close_stale_row(self) -> None:
+        """Close a row left open by a reload, which tears the listeners down first"""
+        if not self._connections:
+            return
+        previous = self._connections[-1]
+        if previous["disconnected"] is None:
+            previous["disconnected"] = self._row_now
+            previous["reason"] = "end not observed (reload)"
+
+    def _close_connection_row(
+        self, exc: Exception | type[Exception] | None = None
+    ) -> None:
+        if self._connection is None:
+            return
+        self._connection["disconnected"] = self._row_now
+        self._connection["reason"] = None if exc is None else _exception_name(exc)
+        self._connection = None
 
     def _on_packet_received(self, data: bytes):
         self._last_packets.append(self._with_time(data))
@@ -501,9 +575,13 @@ class DeviceDiagnosticsCollector:
             buffer = self._raw_data_messages
 
         buffer.append(self._with_time(data))
+        row = self._connection_row()
+        row["received"] = cast(int, row["received"]) + 1
 
     def _on_data_send(self, data: bytes):
         self._raw_data_send.append(self._with_time(data))
+        row = self._connection_row()
+        row["sent"] = cast(int, row["sent"]) + 1
 
     def with_save_on_exception(self, enabled: bool = True):
         """
@@ -607,7 +685,8 @@ class DeviceDiagnosticsCollector:
         self._disconnect_times.clear()
         self._raw_data_send.clear()
         # Left behind once, which let a dump pair sends from this session with receives
-        # from an earlier one and read as though nothing was being transmitted
+        # from an earlier one and read as though nothing was being transmitted. The
+        # per-connection rows are what keeps the earlier connections visible
         self._raw_data_messages.clear()
 
 
