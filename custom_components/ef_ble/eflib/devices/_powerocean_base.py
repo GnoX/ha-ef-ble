@@ -5,6 +5,7 @@ from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 from google.protobuf.message import Message
 
+from ..commands import TimeCommands
 from ..devicebase import DeviceBase
 from ..packet import Packet
 from ..pb import (
@@ -12,6 +13,7 @@ from ..pb import (
     jt_s1_ev_pb2,
     jt_s1_heatingrod_pb2,
     jt_s1_heatpump_pb2,
+    jt_s1_parallel_pb2,
     jt_s1_sys_pb2,
 )
 from ..props import (
@@ -144,6 +146,30 @@ def mppt_group[T_ATTR](
     )
 
 
+# The command the device answers with names the message, so the map is the protocol:
+# what each module sends and what it means. Device families differ only in the three
+# EMS commands, which each model resolves through its own `EMS_REPORTS`
+_EMS_REPORT_COMMANDS = {(0x60, 0x60, 0x08), (0x60, 0x60, 0x11), (0x60, 0x60, 0x25)}
+
+_REPORTS: dict[tuple[int, int, int], type[Message]] = {
+    (0x60, 0x60, 0x01): jt_s1_sys_pb2.HeartbeatReport,
+    (0x60, 0x60, 0x03): jt_s1_sys_pb2.ErrorChangeReport,
+    (0x60, 0x60, 0x07): jt_s1_sys_pb2.BpHeartbeatReport,
+    (0x60, 0x60, 0x0C): jt_s1_parallel_pb2.ParallelDevListReport,
+    (0x60, 0x60, 0x0D): jt_s1_sys_pb2.EmsParamChangeReport,
+    (0x60, 0x60, 0x21): jt_s1_sys_pb2.EnergyStreamReport,
+    (0x60, 0x60, 0x27): jt_s1_sys_pb2.EmsPVInvEnergyStreamReport,
+    (0x60, 0x60, 0x32): jt_s1_parallel_pb2.ParallelEnergyStreamReport,
+    (0x60, 0x60, 0x67): jt_s1_sys_pb2.SysParamGetAck,
+    (0x60, 0xD1, 0x08): jt_s1_ev_pb2.EVChargingParamReport,
+    (0x60, 0xD1, 0x21): jt_s1_ev_pb2.EVChargingEnergyStreamReport,
+    (0x60, 0xD3, 0x01): jt_s1_heatpump_pb2.HPUIReport,
+    (0x60, 0xD4, 0x08): jt_s1_heatingrod_pb2.HRChargingParamReport,
+    (0x60, 0xD4, 0x21): jt_s1_heatingrod_pb2.HeatingRodEnergyStreamShow,
+    (0x60, 0xF1, 0x21): jt_s1_edev_pb2.EDevEnergyStreamShow,
+}
+
+
 class PowerOceanBase(DeviceBase, ProtobufProps):
     EMS_REPORTS: dict[int, type[Message]] = {}
 
@@ -224,25 +250,28 @@ class PowerOceanBase(DeviceBase, ProtobufProps):
     _REPORT_RATE_INTERVAL = 25
     _UI_REPORT_PERIOD = 3
 
+    _CMD_PARALLEL_DEV_LIST = 0x0C
     _CMD_EMS_GET_PARAM = 0x25
     _CMD_ENERGY_STREAM_SWITCH = 0x61
+    _CMD_SYS_PARAM_GET = 0x67
     _CMD_REPORT_RATE_CTRL = 0x74
 
     def __init__(
         self, ble_dev: BLEDevice, adv_data: AdvertisementData, sn: str
     ) -> None:
         super().__init__(ble_dev, adv_data, sn)
-        self._ems_params_requested = False
-        self.on_disconnect(self._forget_requested_params)
+        self._time_commands = TimeCommands(self)
+        self._parameters_requested = False
+        self.on_disconnect(self._forget_requested_parameters)
         self.add_timer_task(
             self._open_energy_stream, interval=self._ENERGY_STREAM_INTERVAL
         )
         self.add_timer_task(self._set_report_rate, interval=self._REPORT_RATE_INTERVAL)
 
-    def _forget_requested_params(
+    def _forget_requested_parameters(
         self, _exc: Exception | type[Exception] | None
     ) -> None:
-        self._ems_params_requested = False
+        self._parameters_requested = False
 
     async def _open_energy_stream(self) -> None:
         await self._send_s1_command(
@@ -259,13 +288,22 @@ class PowerOceanBase(DeviceBase, ProtobufProps):
                 perio_aging=1,
             ),
         )
-        # The parameters do not change on their own, so one request per connection is
-        # enough; the app sends this one only when a settings screen opens
-        if not self._ems_params_requested:
-            self._ems_params_requested = True
-            await self._send_s1_command(
-                self._CMD_EMS_GET_PARAM, jt_s1_sys_pb2.EmsGetParam()
-            )
+        if not self._parameters_requested:
+            self._parameters_requested = True
+            await self._request_parameters()
+
+    async def _request_parameters(self) -> None:
+        """Read what the device will not send on its own, once per connection"""
+        await self._time_commands.sendRTCRespond()
+        await self._send_s1_command(
+            self._CMD_SYS_PARAM_GET, jt_s1_sys_pb2.SysParamGet()
+        )
+        await self._send_s1_command(
+            self._CMD_EMS_GET_PARAM, jt_s1_sys_pb2.EmsGetParam()
+        )
+        await self._send_s1_command(
+            self._CMD_PARALLEL_DEV_LIST, jt_s1_parallel_pb2.ParallelDevListReport()
+        )
 
     async def _send_s1_command(self, cmd_id: int, message: Message) -> None:
         await self.send_packet(
@@ -318,36 +356,16 @@ class PowerOceanBase(DeviceBase, ProtobufProps):
     async def packet_parse(self, data: bytes):
         return Packet.from_bytes(data, xor_payload=True)
 
+    def _report_type(self, packet: Packet) -> type[Message] | None:
+        key = packet.src, packet.cmd_set, packet.cmd_id
+        if key in _EMS_REPORT_COMMANDS:
+            return self.EMS_REPORTS.get(packet.cmd_id)
+        return _REPORTS.get(key)
+
     async def data_parse(self, packet: Packet):
         self.reset_updated()
 
-        match packet.src, packet.cmd_set, packet.cmd_id:
-            case 0x60, 0x60, 0x01:
-                report = jt_s1_sys_pb2.HeartbeatReport
-            case 0x60, 0x60, 0x03:
-                report = jt_s1_sys_pb2.ErrorChangeReport
-            case 0x60, 0x60, 0x07:
-                report = jt_s1_sys_pb2.BpHeartbeatReport
-            case 0x60, 0x60, (0x08 | 0x11):
-                report = self.EMS_REPORTS.get(packet.cmd_id)
-            case 0x60, 0x60, 0x21:
-                report = jt_s1_sys_pb2.EnergyStreamReport
-            case 0x60, 0x60, 0x27:
-                report = jt_s1_sys_pb2.EmsPVInvEnergyStreamReport
-            case 0x60, 0xD1, 0x08:  # EV
-                report = jt_s1_ev_pb2.EVChargingParamReport
-            case 0x60, 0xD1, 0x21:
-                report = jt_s1_ev_pb2.EVChargingEnergyStreamReport
-            case 0x60, 0xD3, 0x01:  # heat pump
-                report = jt_s1_heatpump_pb2.HPUIReport
-            case 0x60, 0xD4, 0x08:  # heating rod
-                report = jt_s1_heatingrod_pb2.HRChargingParamReport
-            case 0x60, 0xD4, 0x21:
-                report = jt_s1_heatingrod_pb2.HeatingRodEnergyStreamShow
-            case 0x60, 0xF1, 0x21:  # edev
-                report = jt_s1_edev_pb2.EDevEnergyStreamShow
-            case _:
-                report = None
+        report = self._report_type(packet)
 
         if report is not None:
             self.update_from_bytes(report, packet.payload)
@@ -372,10 +390,9 @@ class PowerOceanBase(DeviceBase, ProtobufProps):
                 return cmd_id == 0x10
             case 0x60, 0x60:
                 return cmd_id in {
-                    10, 11, 12, 13, 14, 17, 22, 24, 25, 26, 34, 35, 36, 37, 41, 50,
-                    98, 99, 100, 101, 102, 103, 105, 106, 107, 109, 112, 121, 124,
-                    125, 126, 127, 132, 133, 137, 138, 143, 144, 145, 147, 148, 151,
-                    152, 153,
+                    10, 11, 14, 22, 24, 26, 34, 35, 36, 41, 98, 99, 100, 101, 102,
+                    105, 106, 107, 109, 112, 121, 124, 125, 126, 127, 132, 133, 137,
+                    138, 143, 144, 145, 147, 148, 151, 152, 153,
                 }  # fmt: skip
             case 0x60, 0xD1:  # EV
                 return cmd_id in {2, 97, 98, 99, 100, 101, 103}
