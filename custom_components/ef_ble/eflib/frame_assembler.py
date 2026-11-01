@@ -151,7 +151,7 @@ class PassthroughAssembler(FrameAssembler):
             version_byte = data[1]
 
             if version_byte == 4:
-                # V4: 8-byte outer header + payload + 2-byte CRC16
+                # V4: 8-byte outer header + payload + 2-byte CRC16 or sentinel
                 frame_len = 8 + payload_length + 2
             else:
                 # V2/V3: 5-byte header + inner-cmd block + payload + 2-byte CRC16

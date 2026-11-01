@@ -276,16 +276,20 @@ class PacketV4:
 
       [8+payload_length:-1]   CRC16 LE  (computed over obfuscated bytes)
 
-    Two layers of obfuscation are applied to the body:
+    Session frames apply two layers of obfuscation to the body:
 
-    1. CRC8 layer (always applied) - every byte from position [8] onward (inner cmd
-       header + payload) is XOR'd with the outer header CRC8 value at data[4]
+    1. CRC8 layer - every byte from position [8] onward (inner cmd header + payload) is
+       XOR'd with the outer header CRC8 value at data[4]
     2. v4_type_b layer (applied to the application payload only when v4_type_b is
        non-zero)
+
+    Clear frames (v4_type_a == 0) carry the same layout without either XOR layer and
+    may end with the 0xBBBB sentinel instead of a CRC16.
     """
 
     PREFIX = b"\xaa"
     VERSION = 0x04
+    SENTINEL = b"\xbb\xbb"
 
     def __init__(
         self,
@@ -304,6 +308,7 @@ class PacketV4:
         v4_type_a: int = 0,
         v4_type_b: int = 0,
         time_snap_b0: int = 0,
+        sentinel: bool = False,
     ) -> None:
         self._src = src
         self._dst = dst
@@ -320,6 +325,7 @@ class PacketV4:
         self._v4_type_a = v4_type_a
         self._v4_type_b = v4_type_b
         self._time_snap_b0 = time_snap_b0
+        self._sentinel = sentinel
         self._payload_hex = bytearray(payload).hex()
 
     @property
@@ -384,6 +390,14 @@ class PacketV4:
     def is_rw_cmd(self):
         return self._is_rw_cmd
 
+    @property
+    def sentinel(self):
+        return self._sentinel
+
+    @property
+    def obfuscated(self) -> bool:
+        return self._v4_type_a != 0
+
     def replace(self, **overrides) -> "PacketV4":
         """Copy this packet with the given constructor fields overridden"""
         fields = {
@@ -402,6 +416,7 @@ class PacketV4:
             "v4_type_a": self._v4_type_a,
             "v4_type_b": self._v4_type_b,
             "time_snap_b0": self._time_snap_b0,
+            "sentinel": self._sentinel,
         }
         fields.update(overrides)
         return PacketV4(**fields)
@@ -420,7 +435,8 @@ class PacketV4:
             _LOGGER.error(error_msg, bytearray(data).hex())
             return InvalidPacket(error_msg % bytearray(data).hex())
 
-        if crc16(data[:-2]) != struct.unpack("<H", data[-2:])[0]:
+        sentinel = data.endswith(PacketV4.SENTINEL)
+        if not sentinel and crc16(data[:-2]) != struct.unpack("<H", data[-2:])[0]:
             error_msg = "Unable to parse packet - incorrect CRC16: %s"
             _LOGGER.error(error_msg, bytearray(data).hex())
             return InvalidPacket(error_msg % bytearray(data).hex())
@@ -444,8 +460,8 @@ class PacketV4:
         v4_type_a = data[6]
         v4_type_b = data[7]
 
-        # Layer-2 deobfuscate - XOR bytes [8:8+payload_length] with the CRC8 key
-        xor_key = data[4]
+        # Clear V4 frames carry the same layout without either session XOR layer.
+        xor_key = data[4] if v4_type_a else 0
         inner_and_payload = bytes(b ^ xor_key for b in data[8 : 8 + payload_length])
 
         # Inner command header occupies the first 8 bytes of the deobfuscated block
@@ -463,7 +479,7 @@ class PacketV4:
             payload = inner_and_payload[8 : 8 + actual_payload_len]
             # Layer-3 deobfuscation - when v4_type_b is non-zero the device XOR-encodes
             # the application payload with it before encryption
-            if v4_type_b:
+            if v4_type_a and v4_type_b:
                 payload = bytes(b ^ v4_type_b for b in payload)
         else:
             payload = b""
@@ -484,6 +500,7 @@ class PacketV4:
             v4_type_a=v4_type_a,
             v4_type_b=v4_type_b,
             time_snap_b0=time_snap_b0,
+            sentinel=sentinel,
         )
 
     def toBytes(self) -> bytes:
@@ -509,7 +526,7 @@ class PacketV4:
             | int(self._is_ack)
         )
 
-        # Build outer header; CRC8 byte is also the XOR key for the inner content
+        # Build outer header; CRC8 is the XOR key only for session frames.
         data = PacketV4.PREFIX
         data += struct.pack("<B", self.VERSION) + struct.pack("<H", payload_length)
         crc8_byte = crc8(data)
@@ -517,14 +534,18 @@ class PacketV4:
         data += struct.pack("<B", type_byte)
         data += struct.pack("<B", self._v4_type_a) + struct.pack("<B", self._v4_type_b)
 
-        if self._v4_type_b:
+        if self._v4_type_a and self._v4_type_b:
             payload = bytes(b ^ self._v4_type_b for b in self._payload)
         else:
             payload = self._payload
         inner_content = inner_cmd + payload
-        data += bytes(b ^ crc8_byte for b in inner_content)
+        xor_key = crc8_byte if self._v4_type_a else 0
+        data += bytes(b ^ xor_key for b in inner_content)
 
-        data += struct.pack("<H", crc16(data))
+        if self._sentinel:
+            data += PacketV4.SENTINEL
+        else:
+            data += struct.pack("<H", crc16(data))
 
         return data
 

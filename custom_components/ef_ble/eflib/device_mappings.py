@@ -203,6 +203,7 @@ ECOFLOW_DEVICE_LIST = {
     "BK41":{"name": "EcoFlow STREAM Max", "packets": "v3"},
     "BK51":{"name": "EcoFlow STREAM AC", "packets": "v3"},
     "BK61":{"name": "EcoFlow STREAM Ultra X", "packets": "v3"},
+    "ES22":{"name": "EcoFlow STREAM AC 5000", "packets": "v3"},
 
     # =====================
     # SMART PANELS / GRID
