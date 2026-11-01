@@ -68,7 +68,7 @@ def _repeated_pb_field(
 class Device(DeviceBase, ProtobufProps):
     """STREAM AC 5000"""
 
-    SN_PREFIX = (b"ES22",)
+    SN_PREFIX = (b"ES21", b"ES22")
     NAME_PREFIX = "EF-6"
 
     _TELEMETRY_CMD_ID: ClassVar[int] = 0x27
@@ -159,6 +159,16 @@ class Device(DeviceBase, ProtobufProps):
     @classmethod
     def check(cls, sn):
         return sn[:4] in cls.SN_PREFIX
+
+    @classmethod
+    def device_name_for_serial(cls, sn: bytes) -> str:
+        if sn[:4] == b"ES21":
+            return "STREAM 5000"
+        return (cls.__doc__ or "").strip()
+
+    @property
+    def device(self) -> str:
+        return self.device_name_for_serial(self._sn.encode("ASCII"))
 
     @computed_field
     def backup_port_power(self) -> float | None:

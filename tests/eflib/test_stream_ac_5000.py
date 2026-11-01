@@ -31,12 +31,17 @@ def routed_frame():
     return "aa04a001d7010001214553323258585858585858585834343721014003032efe27de020121015a0e08900310e41220d40f280230d30f620630c80138ea077214080010001800200028d40f300238d30f40004801a201020800ba01060887a8e5d306da0104100118018a023c0d00001d4515000000001d72f97f3f25a4707d3f2d00809c453509eb1b403d0000c84245000000004d0000484455000048445d00401c456500b01a459202009a02020800b2023a0a3808021064189e0e28902730d0830138b32e40f00248f61850fc1858256028682a702a7a01008a011045533232585858585858585858343437c202310a2f0802100118012001280130003a04e882e021421b08011a170a1045533232585858585858585858343437103218e807d80202e20214080210a20e180020902728c7830130b32e38f002f00200f8020082030a08001000180020002a0092032a0a280a10455332325858585858585858583434371500000040256bb27a442802354d6e79c43d6bb27ac4b2031b0a190a10455332325858585858585858583434371002180020d40fca030c0a0a00000000000000000000bbbb"
 
 
-@pytest.fixture
-def device(mocker: MockerFixture):
+@pytest.fixture(
+    params=[
+        "ES22XXXXXXXXX447",
+        "ES21XXXXXXXXX447",
+    ]
+)
+def device(mocker: MockerFixture, request):
     ble_dev = mocker.Mock()
     ble_dev.address = "AA:BB:CC:DD:EE:FF"
     adv_data = mocker.MagicMock()
-    device = Device(ble_dev, adv_data, "ES22XXXXXXXXX447")
+    device = Device(ble_dev, adv_data, request.param)
     device._conn = mocker.AsyncMock()
     return device
 
@@ -55,7 +60,16 @@ async def test_stream_ac_5000_processes_all_payloads_successfully(
 
 def test_stream_ac_5000_is_registered():
     assert Device.check(b"ES22XXXXXXXXX447")
+    assert Device.check(b"ES21XXXXXXXXX447")
     assert ECOFLOW_DEVICE_LIST["ES22"]["name"] == "EcoFlow STREAM AC 5000"
+    assert ECOFLOW_DEVICE_LIST["ES21"]["name"] == "EcoFlow STREAM 5000"
+
+
+def test_stream_5000_reports_model_name(device):
+    expected_model = (
+        "STREAM 5000" if device.serial_number.startswith("ES21") else "STREAM AC 5000"
+    )
+    assert device.device == expected_model
 
 
 async def test_stream_ac_5000_parses_battery_level_and_temperature(
