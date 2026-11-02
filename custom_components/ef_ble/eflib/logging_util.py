@@ -13,48 +13,64 @@ from enum import Flag, auto
 from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+
 import bleak
+
 from .encryption import Session
 from .packet import Packet
+
 if TYPE_CHECKING:
     from .connection import Connection, ConnectionState
     from .devicebase import DeviceBase
+
+
 class SensitiveMaskingFilter(logging.Filter):
     def __init__(
         self, mask_funcs: Sequence[Callable[[str], str | None]], name: str = ""
     ) -> None:
         super().__init__(name)
         self._mask_funcs = mask_funcs
+
     def filter(self, record: logging.LogRecord) -> bool | logging.LogRecord:
         record.msg = self.mask_message(record.msg)
         record.name = self.mask_message(record.name)
+
         if isinstance(record.args, Mapping):
             record.args = {k: self.mask_message(v) for k, v in record.args.items()}
         elif record.args is not None:
             record.args = tuple(self.mask_message(v) for v in record.args)
+
         return True
+
     def mask_message(self, msg: Any):
         msg_str = msg
         if not isinstance(msg, str):
             msg_str = str(msg)
+
         replaced = False
         for func in self._mask_funcs:
             if replacement := func(msg_str):
                 msg_str = replacement
                 replaced = True
         return msg_str if replaced else msg
+
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, SensitiveMaskingFilter):
             return False
         return self.name == value.name
+
+
 class LogOptions(Flag):
     MASKED = auto()
+
     ENCRYPTED_PAYLOADS = auto()
     DECRYPTED_PAYLOADS = auto()
     PACKETS = auto()
     DESERIALIZED_MESSAGES = auto()
+
     CONNECTION_DEBUG = auto()
     BLEAK_DEBUG = auto()
+
     @property
     def enabled(self):
         return self & (
@@ -64,11 +80,16 @@ class LogOptions(Flag):
             | LogOptions.DESERIALIZED_MESSAGES
             | LogOptions.CONNECTION_DEBUG
         )
+
     @staticmethod
     def no_options():
         return LogOptions(0)
+
+
 _BLEAK_LOGGER = logging.getLogger(bleak.__name__)
 _ORIGINAL_BLEAK_LOG_LEVEL = _BLEAK_LOGGER.level
+
+
 class MaskingLogger(logging.Logger):
     def __init__(
         self, logger: logging.Logger, mask_funcs: Sequence[Callable[[str], str | None]]
@@ -76,30 +97,39 @@ class MaskingLogger(logging.Logger):
         self._logger = logger
         self._mask_funcs = mask_funcs
         self._options = LogOptions.no_options()
+
     @cached_property
     def _mask_filter(self):
         return SensitiveMaskingFilter(self._mask_funcs)
+
     def __getattr__(self, name: str):
         return getattr(self._logger, name)
+
     @property
     def options(self):
         return self._options
+
     def set_options(self, options: LogOptions):
         self._options = options
         self._logger.setLevel(logging.DEBUG if options.enabled else logging.INFO)
+
         if LogOptions.MASKED in options:
             for handler in logging.root.handlers:
                 if self._mask_filter not in handler.filters:
                     handler.addFilter(self._mask_filter)
+
         bleak_logger = logging.getLogger(bleak.__name__)
         if LogOptions.BLEAK_DEBUG in options:
             bleak_logger.setLevel(logging.DEBUG)
+
         elif bleak_logger.isEnabledFor(logging.DEBUG):
             bleak_logger.setLevel(_ORIGINAL_BLEAK_LOG_LEVEL)
+
         if LogOptions.MASKED not in options:
             for handler in logging.root.handlers:
                 if self._mask_filter in handler.filters:
                     handler.removeFilter(self._mask_filter)
+
     def log_filtered(
         self,
         options: LogOptions,
@@ -112,16 +142,23 @@ class MaskingLogger(logging.Logger):
                 _LazyHex(a) if isinstance(a, (bytes, bytearray)) else a for a in args
             )
             self._logger.log(level, msg, *args)
+
+
 def _mask_sn(sn: str):
     regex = re.compile(sn)
+
     def _mask(input: str):
         match = regex.search(input)
         if match:
             return f"{sn[:4]}{'*' * len(sn[4:-4])}{sn[-4:]}"
         return None
+
     return _mask
+
+
 def _mask_mac(mac_addr: str):
     regex = re.compile(mac_addr.replace(":", "(.)"))
+
     def _mask(input: str):
         match = regex.search(input)
         if match:
@@ -130,21 +167,30 @@ def _mask_mac(mac_addr: str):
                 delim.join([mac_addr[:2], mac_addr[3:5], "**", "**", "**"]), input
             )
         return None
+
     return _mask
+
+
 def _mask_user_id(user_id: str):
     regex = re.compile(user_id)
+
     def _mask(input: str):
         match = regex.search(input)
         if match:
             return f"{user_id[:4]}{'*' * len(user_id[4:])}"
         return None
+
     return _mask
+
+
 class DeviceLogger(MaskingLogger):
     def __init__(self, device: "DeviceBase"):
         super().__init__(
             logging.getLogger(f"{device.__module__} - {device._address}"),
             mask_funcs=[_mask_mac(device._address), _mask_sn(device._sn)],
         )
+
+
 class ConnectionLogger(MaskingLogger):
     def __init__(self, connection: "Connection") -> None:
         super().__init__(
@@ -155,19 +201,24 @@ class ConnectionLogger(MaskingLogger):
                 _mask_user_id(connection._user_id),
             ],
         )
+
+
 @dataclass
 class ConnectionLog:
     name: str
     maxlen: int = 20
     cache_to_file: bool = False
+
     def __post_init__(self):
         self._history_start = time.time()
+
     @property
     def history(self) -> deque[dict[str, float | str]]:
         history = getattr(self, "_history", None)
         if history is None:
             self._history = deque(maxlen=self.maxlen)
         return self._history
+
     @staticmethod
     def cache_file_for(address: str):
         path = (
@@ -175,20 +226,25 @@ class ConnectionLog:
         )
         path.parent.mkdir(exist_ok=True)
         return path
+
     @property
     def _cache_path(self):
         return self.cache_file_for(self.name)
+
     def append(self, state: "ConnectionState", reason: str | None = None):
         entry: dict[str, float | str] = {
             "time": time.time() - self._history_start,
             "state": f"{state.name}",
         }
+
         if reason:
             entry["reason"] = reason
+
         self.history.append(entry)
         if self.cache_to_file:
             with self._cache_path.open("a") as f:
                 f.write(f"{json.dumps(entry)}\n")
+
     def load_from_cache(self):
         if self._cache_path.exists():
             try:
@@ -199,12 +255,16 @@ class ConnectionLog:
             except:  # noqa: E722
                 return []
         return []
+
     @staticmethod
     def clean_cache_for(address: str):
         ConnectionLog.cache_file_for(address).unlink(missing_ok=True)
+
+
 @dataclass
 class DeviceDiagnostics:
     """Diagnostics data collected from the device connection and packets"""
+
     last_packets: list[tuple[float, bytes]]
     last_errors: list[tuple[float, str]]
     connect_times: list[float]
@@ -221,6 +281,7 @@ class DeviceDiagnostics:
         if session is not None:
             return session.encrypt(value).hex()
         return value.hex()
+
     def serialize(self, session: Session | None = None):
         return dataclasses.replace(
             self,
@@ -249,13 +310,17 @@ class DeviceDiagnostics:
     def as_dict(self):
         """Get diagnostics data as dictionary"""
         return dataclasses.asdict(self)
+
+
 class DeviceDiagnosticsCollector:
     """Class for collecting diagnostics data from connected device"""
+
     def __init__(self, device: "DeviceBase", buffer_size: int = 100):
         self._device = device
         self._enabled = False
         self._save_on_exception = False
         self._buffer_size = buffer_size
+
         self._last_packets: deque[tuple[float, bytes]] = deque(maxlen=buffer_size)
         self._last_errors: deque[tuple[float, str]] = deque(maxlen=buffer_size)
         self._connect_times: deque[float] = deque(maxlen=buffer_size)
@@ -268,11 +333,15 @@ class DeviceDiagnosticsCollector:
         self._disconnect_times: deque[float] = deque(maxlen=buffer_size)
         self._skip_first_messages: int = 8
         self._unlisten_callbacks: list[Callable[[], None]] = []
+
         self._start_time = time.time()
+
         self._logger = logging.getLogger(__name__)
+
     def as_dict(self, session: Session | None = None):
         """Get diagnostics data as dictionary"""
         return self.diagnostics.serialize(session).as_dict()
+
     def build_diagnostics_dict(self, session: Session | None = None) -> dict:
         device = self._device
         result: dict = {
@@ -295,11 +364,13 @@ class DeviceDiagnosticsCollector:
         if self.is_enabled:
             result |= self.as_dict(session)
         return result
+
     @property
     def diagnostics(self):
         """Get diagnostics data"""
         conn = self._device._conn
         encryption = conn._encryption
+
         return DeviceDiagnostics(
             last_packets=list(self._last_packets),
             last_errors=list(self._last_errors),
@@ -315,15 +386,19 @@ class DeviceDiagnosticsCollector:
             session_key=encryption.session_key if encryption is not None else b"",
             initial_session_key=conn._initial_session_key,
         )
+
     @property
     def is_enabled(self):
         """Return True if diagnostics collection is enabled"""
         return self._enabled
+
     def enabled(self, enabled: bool = True):
         """
         Enable or disable diagnostics collection
+
         This method will enable/disable the collection of diagnostics data by
         registering to the device connection events.
+
         Parameters
         ----------
         enabled
@@ -331,9 +406,11 @@ class DeviceDiagnosticsCollector:
         """
         if enabled == self._enabled:
             return self
+
         self._enabled = enabled
         self._clear_buffers()
         self.clear_callbacks()
+
         if enabled:
             self._start_time = time.time()
             self._unlisten_callbacks.extend(
@@ -350,84 +427,109 @@ class DeviceDiagnosticsCollector:
             return self
 
         return self
+
     def add_error(self, error_message: str):
         """Add an error message to the diagnostics"""
         self._last_errors.append((time.time() - self._start_time, error_message))
+
     @property
     def packets_collected(self):
         """Get number of packets collected"""
         return len(self._last_packets)
+
     @property
     def packet_buffer_size(self):
         """
         Get the packet buffer size
+
         Returns
         -------
         The maximum number of packets stored in the diagnostics buffer
         """
         return self._last_packets.maxlen or self._buffer_size
+
     @property
     def packet_target_reached(self):
         """
         Check if number of packets collected reached the buffer size
+
         Returns
         -------
         True if number of packets collected reached the buffer size
         """
         return self.packets_collected >= self.packet_buffer_size
+
     def clear_callbacks(self):
         """Remove all registered listeners from device events"""
         for unlisten in self._unlisten_callbacks:
             unlisten()
+
         self._unlisten_callbacks.clear()
+
     def with_buffer_size(self, buffer_size: int):
         """Set the diagnostics buffer size"""
+
         self._buffer_size = buffer_size
         self._last_packets = deque(self._last_packets, maxlen=buffer_size)
         self._last_errors = deque(self._last_errors, maxlen=buffer_size)
         self._connect_times = deque(self._connect_times, maxlen=buffer_size)
         self._disconnect_times = deque(self._disconnect_times, maxlen=buffer_size)
         return self
+
     @property
     def _now(self):
         return time.time() - self._start_time
+
     def _with_time[T](self, data: T) -> tuple[float, T]:
         return (self._now, data)
+
     def _on_disconnect(self, exc: Exception | type[Exception] | None = None):
         self._disconnect_times.append(self._now)
+
     def _on_packet_received(self, data: bytes):
         self._last_packets.append(self._with_time(data))
+
     def _on_packet_parsed(self, packet: Packet):
         if Packet.is_invalid(packet):
             self._last_errors.append(self._with_time(packet.error_message))
             return
+
     def _on_data_received(self, data: bytes, state: "ConnectionState"):
         if not state.authenticated:
             buffer = self._raw_data_connection
         else:
             buffer = self._raw_data_messages
+
         buffer.append(self._with_time(data))
+
     def _on_data_send(self, data: bytes):
         self._raw_data_send.append(self._with_time(data))
+
     def with_save_on_exception(self, enabled: bool = True):
         """
         Enable or disable automatic diagnostics save on connection error
+
         When enabled, packet collection is force-enabled and a state change
         listener is registered. On any error state, collected diagnostics
         are saved to disk automatically.
         """
         if enabled == self._save_on_exception:
             return self
+
         self._save_on_exception = enabled
+
         if enabled:
             self.enabled(True)
             self._unlisten_callbacks.append(
                 self._device.on_connection_state_change(self._on_state_change)
             )
+
         return self
+
     def _on_state_change(self, state: "ConnectionState") -> None:
         if not self._save_on_exception or not state.is_error:
             return
+
         conn = self._device._conn
         exc = getattr(conn, "_last_exception", None) if conn is not None else None
         try:
@@ -436,12 +538,14 @@ class DeviceDiagnosticsCollector:
             self._device._logger.exception(
                 "Failed to save diagnostics-on-exception snapshot"
             )
+
     def _save_to_disk(
         self,
         state: "ConnectionState",
         exc: Exception | type[Exception] | None = None,
     ) -> None:
         session = Session()
+
         exc_message = None
         exc_traceback = None
         if exc is not None:
@@ -449,6 +553,7 @@ class DeviceDiagnosticsCollector:
         if isinstance(exc, BaseException) and exc.__traceback__ is not None:
             tb = "".join(traceback.format_tb(exc.__traceback__))
             exc_traceback = session.encrypt(tb.encode()).hex()
+
         data = {
             "timestamp": datetime.now(UTC).isoformat(),
             "exception": {
@@ -459,15 +564,19 @@ class DeviceDiagnosticsCollector:
             },
             "data": self.build_diagnostics_dict(session),
         }
+
         sn_prefix = self._device._sn[:4]
         ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         cache_dir = Path(__file__).parent.parent / ".diagnostics"
         path = cache_dir / f"{sn_prefix}_exception_{ts}.json"
         content = json.dumps(data, default=str, indent=2)
+
         def _write() -> None:
             cache_dir.mkdir(exist_ok=True)
             path.write_text(content)
+
         task = asyncio.get_running_loop().run_in_executor(None, _write)
+
         def _log_result(future: asyncio.Future) -> None:
             if (err := future.exception()) is not None:
                 self._device._logger.error(
@@ -494,17 +603,25 @@ class DeviceDiagnosticsCollector:
         self._connect_times.clear()
         self._disconnect_times.clear()
         self._raw_data_send.clear()
+
+
 class _LazyHex:
     __slots__ = ("_data",)
+
     def __init__(self, data: bytes | bytearray) -> None:
         self._data = data
+
     def __str__(self) -> str:
         return bytes(self._data).hex()
+
     def __repr__(self) -> str:
         return bytes(self._data).hex()
+
+
 def caller_chain(depth: int = 4) -> str:
     """
     Compact `->` chain of the innermost `depth` call frames, for tracing triggers
+
     Drops this helper's own frame; awaited coroutine frames stay on the stack, so the
     chain reaches across `await` boundaries to whatever ultimately triggered the call.
     """
