@@ -43,7 +43,7 @@ class EncPacket:
         engine = AES.new(self._enc_key, AES.MODE_CBC, self._iv)
         return engine.encrypt(pad(self._payload, AES.block_size))
 
-    def toBytes(self):
+    def to_bytes(self) -> bytes:
         """Will serialize the internal data to bytes stream"""
         payload = self.encryptPayload()
 
@@ -55,3 +55,7 @@ class EncPacket:
         data += struct.pack("<H", crc16(data))
 
         return data
+
+    def toBytes(self) -> bytes:
+        """Backward-compatible alias for `to_bytes`."""
+        return self.to_bytes()
