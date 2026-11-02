@@ -495,10 +495,18 @@ class Connection:
         if client is not None and client is not self._client:
             return
 
+        # BlueZ can deliver the callback after an explicit disconnect has completed.
+        # Do not treat that late notification as a new remote drop (and reload HA).
+        if self._state is ConnectionState.DISCONNECTED:
+            return
+
         # Traces the trigger: an unsolicited bleak drop shows bleak/asyncio frames here,
         # whereas a drop we requested shows our own `disconnect` chain.
         trigger = caller_chain()
-        self._logger.warning("Disconnected from device (%s)", trigger)
+        if self._state is ConnectionState.DISCONNECTING:
+            self._logger.info("Disconnected from device (%s)", trigger)
+        else:
+            self._logger.warning("Disconnected from device (%s)", trigger)
 
         # NOTE(gnox): don't trigger disconnect/reconnect logic while
         # establish_connection is still retrying internally (bleak_retry_connector
