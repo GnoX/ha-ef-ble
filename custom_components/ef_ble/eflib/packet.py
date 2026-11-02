@@ -1,6 +1,6 @@
 import logging
 import struct
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import ClassVar, TypeGuard
 
 from .crc import crc8, crc16
@@ -34,6 +34,27 @@ class Packet:
     @property
     def payload_hex(self) -> str:
         return self.payload.hex()
+
+    @property
+    def payloadHex(self) -> str:
+        return self.payload_hex
+
+    @property
+    def cmdSet(self) -> int:
+        return self.cmd_set
+
+    @property
+    def cmdId(self) -> int:
+        return self.cmd_id
+
+    @property
+    def productId(self) -> int:
+        return self.product_id
+
+    @staticmethod
+    def fromBytes(data: bytes, xor_payload: bool = False):
+        """Backward-compatible alias for `from_bytes`."""
+        return Packet.from_bytes(data, xor_payload=xor_payload)
 
     @staticmethod
     def from_bytes(
@@ -114,6 +135,10 @@ class Packet:
             seq=seq,
         )
 
+    def toBytes(self) -> bytes:
+        """Backward-compatible alias for `to_bytes`."""
+        return self.to_bytes()
+
     def to_bytes(self) -> bytes:
         """Serialize the internal data to bytes stream."""
         # Header
@@ -167,6 +192,10 @@ class Packet:
     ) -> TypeGuard["InvalidPacket"]:
         """Check if the given packet is invalid."""
         return isinstance(packet, InvalidPacket)
+
+    def replace(self, **changes):
+        """Compatibility helper mirroring dataclasses.replace()."""
+        return replace(self, **changes)
 
 
 @dataclass(slots=True)
@@ -242,6 +271,63 @@ class PacketV4:
     @property
     def payload_hex(self) -> str:
         return self.payload.hex()
+
+    @property
+    def payloadHex(self) -> str:
+        return self.payload_hex
+
+    @property
+    def cmdSet(self) -> int:
+        return self.cmd_set
+
+    @property
+    def cmdId(self) -> int:
+        return self.cmd_id
+
+    @property
+    def encType(self) -> int:
+        return self.enc_type
+
+    @property
+    def checkType(self) -> int:
+        return self.check_type
+
+    @property
+    def isRwCmd(self) -> bool:
+        return self.is_rw_cmd
+
+    @property
+    def isAck(self) -> bool:
+        return self.is_ack
+
+    @property
+    def frameType(self) -> int:
+        return self.frame_type
+
+    @property
+    def payloadType(self) -> int:
+        return self.payload_type
+
+    @property
+    def cmdFlags(self) -> int:
+        return self.cmd_flags
+
+    @property
+    def v4TypeA(self) -> int:
+        return self.v4_type_a
+
+    @property
+    def v4TypeB(self) -> int:
+        return self.v4_type_b
+
+    @property
+    def timeSnapB0(self) -> int:
+        return self.time_snap_b0
+
+    @staticmethod
+    def fromBytes(data: bytes):
+        """Backward-compatible alias for `from_bytes`."""
+        return PacketV4.from_bytes(data)
 
     @staticmethod
     def from_bytes(data: bytes) -> "PacketV4 | InvalidPacket":
@@ -327,6 +413,10 @@ class PacketV4:
             sentinel=sentinel,
         )
 
+    def toBytes(self) -> bytes:
+        """Backward-compatible alias for `to_bytes`."""
+        return self.to_bytes()
+
     def to_bytes(self) -> bytes:
         inner_cmd = bytes(
             [
@@ -370,6 +460,10 @@ class PacketV4:
             return data + PacketV4.SENTINEL
 
         return data + struct.pack("<H", crc16(data))
+
+    def replace(self, **changes):
+        """Compatibility helper mirroring dataclasses.replace()."""
+        return replace(self, **changes)
 
     def __repr__(self) -> str:
         return (
