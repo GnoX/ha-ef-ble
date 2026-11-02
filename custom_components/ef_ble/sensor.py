@@ -217,12 +217,9 @@ def temperature(
 
 
 def _wave_unit(dev: "wave2.Device | wave3.Device"):
-    if isinstance(dev, wave3.Device):
-        return UnitOfTemperature.CELSIUS
-
     return (
         UnitOfTemperature.FAHRENHEIT
-        if dev.temp_unit is units.Temperature.F
+        if dev.temp_unit in (units.Temperature.F, wave3.TemperatureUnit.FAHRENHEIT)
         else UnitOfTemperature.CELSIUS
     )
 
@@ -501,6 +498,7 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
     "total_energy": energy(),
     # SHP2
     "grid_power": power(precision=1),
+    "backup_port_power": power(precision=1),
     "power_status": enum(options=shp2.PowerStatus),
     "in_use_power": power(precision=2),
     "circuit_power_{n}": shp2_circuit(
@@ -888,6 +886,8 @@ _SENSORS: Final[dict[str, SensorEntityDescription]] = {
         enabled=False, entity_category=EntityCategory.DIAGNOSTIC
     ),
     "battery_power": power(precision=1),
+    "battery_ac_input_power": power(precision=1),
+    "battery_ac_output_power": power(precision=1),
     "inverter_temperature": temperature(),
     "inverter_current": current(precision=2),
     "inverter_power": power(precision=0),
