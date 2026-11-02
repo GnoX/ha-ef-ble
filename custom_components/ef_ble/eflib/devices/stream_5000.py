@@ -1,4 +1,3 @@
-@@ -0,0 +1,248 @@
 from typing import ClassVar
 
 from bleak.backends.device import BLEDevice

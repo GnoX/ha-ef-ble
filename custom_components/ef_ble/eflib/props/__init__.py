@@ -36,5 +36,6 @@ __all__ = [
     "proto_attr_mapper",
     "proto_has_attr",
     "raw_field",
+    "repeated_pb_field",
     "repeated_pb_field_type",
 ]

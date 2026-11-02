@@ -12,7 +12,7 @@ from typing import (
 
 from google.protobuf.message import Message
 
-from .protobuf_field import ProtobufField
+from .protobuf_field import ProtobufField, TransformIfMissing, proto_has_attr
 
 if TYPE_CHECKING:
     from .protobuf_props import ProtobufProps
@@ -152,3 +152,25 @@ def repeated_pb_field_type[T_ITEM, T_OUT](
         pb_field = list_field
 
     return CustomPerItemRepeatedField
+
+
+def repeated_pb_field(
+    list_field: Sequence[Any],
+    item_attr: Any,
+    transform: Callable[[Any], Any] | None = None,
+) -> ProtobufField[Any]:
+    """Create a repeated protobuf field from a list field and nested item attribute."""
+
+    process_if_missing = isinstance(transform, TransformIfMissing)
+    item_name = item_attr.attrs[-1]
+    field_type = repeated_pb_field_type(list_field, per_item=True)
+
+    class RepeatedField(field_type):
+        def get_value(self, item: Message) -> Any:
+            if not proto_has_attr(item, item_attr):
+                return transform(None) if process_if_missing else None
+
+            value = getattr(item, item_name)
+            return transform(value) if transform is not None else value
+
+    return RepeatedField()
