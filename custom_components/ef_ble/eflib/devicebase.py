@@ -30,7 +30,7 @@ from .logging_util import (
     LogOptions,
     caller_chain,
 )
-from .packet import Packet
+from .packet import Packet, SendablePacket
 from .props.raw_data_props import Literal
 from .props.updatable_props import Field, UpdatableProps
 
