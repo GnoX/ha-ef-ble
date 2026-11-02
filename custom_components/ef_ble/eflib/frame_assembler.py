@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from .crc import crc8, crc16
 from .encpacket import EncPacket
 from .encryption import EncryptionStrategy
-from .packet import Packet
+from .packet import Packet, SendablePacket
 
 
 class FrameAssembler(ABC):
@@ -24,7 +24,7 @@ class FrameAssembler(ABC):
         """Whether BLE writes should use write-with-response"""
 
     @abstractmethod
-    async def encode(self, packet: Packet) -> bytes:
+    async def encode(self, packet: SendablePacket) -> bytes:
         """Encode a Packet into wire bytes (encrypted, framed)"""
 
     @abstractmethod
@@ -39,7 +39,7 @@ class EncPacketAssembler(FrameAssembler):
     def write_with_response(self) -> bool:
         return True
 
-    async def encode(self, packet: Packet) -> bytes:
+    async def encode(self, packet: SendablePacket) -> bytes:
         return EncPacket(
             EncPacket.FRAME_TYPE_PROTOCOL,
             EncPacket.PAYLOAD_TYPE_VX_PROTOCOL,
@@ -122,7 +122,7 @@ class PassthroughAssembler(FrameAssembler):
     def write_with_response(self) -> bool:
         return False
 
-    async def encode(self, packet: Packet) -> bytes:
+    async def encode(self, packet: SendablePacket) -> bytes:
         return packet.toBytes()
 
     async def reassemble(self, data: bytes) -> list[bytes]:
@@ -175,7 +175,7 @@ class RawHeaderAssembler(FrameAssembler):
     def write_with_response(self) -> bool:
         return False
 
-    async def encode(self, packet: Packet) -> bytes:
+    async def encode(self, packet: SendablePacket) -> bytes:
         raw = packet.toBytes()
         header = raw[:5]
         inner = raw[5:]
