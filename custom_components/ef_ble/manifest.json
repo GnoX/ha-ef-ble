@@ -57,12 +57,6 @@
             "connectable": true
         },
         {
-            "local_name": "EF-D3*",
-            "manufacturer_id": 46517,
-            "manufacturer_data_start": [19, 68, 51, 54, 49],
-            "connectable": true
-        },
-        {
             "local_name": "EF-P3*",
             "manufacturer_id": 46517,
             "manufacturer_data_start": [19, 80, 51, 50, 49],
@@ -159,6 +153,12 @@
             "connectable": true
         },
         {
+            "local_name": "EF-R2*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 82, 54, 48],
+            "connectable": true
+        },
+        {
             "local_name": "EF-BK*",
             "manufacturer_id": 46517,
             "manufacturer_data_start": [19, 66, 75, 48],
@@ -229,8 +229,8 @@
     "requirements": [
         "ecdsa~=0.19",
         "PyCryptodome~=3.23",
-        "protobuf>=6.30"
+        "protobuf~=6.30"
     ],
 
-    "version": "0.45.0"
+    "version": "0.44.0-i.7"
 }
