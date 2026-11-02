@@ -52,7 +52,6 @@ def proto_attr_mapper[T: Message](pb: type[T]) -> type[T]:
     Returns
     -------
         Proxy object that tracks all accessed attributes
-
     """
     return _ProtoAttrAccessor(pb)  # type: ignore reportReturnType
 

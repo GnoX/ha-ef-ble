@@ -1,113 +1,102 @@
-class PacketParseError(Exception):
-    """Error during parsing Packet"""
+import functools
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import cast
+
+from Crypto.Cipher import AES
+from Crypto.Hash import SHA256
+from Crypto.Protocol.DH import key_agreement
+from Crypto.Protocol.KDF import HKDF
+from Crypto.PublicKey import ECC
+from Crypto.Random import get_random_bytes
+from Crypto.Util.Padding import pad, unpad
 
 
-class EncPacketParseError(Exception):
-    """Error during parsing EncPacket"""
+@dataclass
+class EncryptionStrategy(ABC):
+    """Strategy for session-level AES-CBC encryption/decryption"""
+
+    session_key: bytes
+    iv: bytes
+
+    @abstractmethod
+    async def encrypt(self, plaintext: bytes) -> bytes: ...
+
+    @abstractmethod
+    async def decrypt(self, ciphertext: bytes) -> bytes: ...
 
 
-class PacketReceiveError(Exception):
-    """Error during receiving packet"""
+class Type7Encryption(EncryptionStrategy):
+    async def encrypt(self, plaintext: bytes) -> bytes:
+        cipher = AES.new(self.session_key, AES.MODE_CBC, self.iv)
+        return cipher.encrypt(plaintext=pad(plaintext, AES.block_size))
+
+    async def decrypt(self, ciphertext: bytes) -> bytes:
+        # native firmware decrypts only full AES blocks and discards any trailing bytes
+        # that don't fill a complete block
+        aligned = len(ciphertext) - len(ciphertext) % AES.block_size
+        if aligned == 0:
+            return ciphertext
+        cipher = AES.new(self.session_key, AES.MODE_CBC, self.iv)
+        decrypted = cipher.decrypt(ciphertext[:aligned])
+        try:
+            return unpad(decrypted, AES.block_size)
+        except ValueError:
+            return decrypted
 
 
-class NotConnectedError(Exception):
-    """Raised when a command cannot be delivered because the BLE link is unavailable"""
+class Type1Encryption(EncryptionStrategy):
+    async def encrypt(self, plaintext: bytes) -> bytes:
+        padded_len = (len(plaintext) + 15) // 16 * 16
+        padded = plaintext + b"\x00" * (padded_len - len(plaintext))
+        cipher = AES.new(self.session_key, AES.MODE_CBC, self.iv)
+        return cipher.encrypt(padded)
+
+    async def decrypt(self, ciphertext: bytes) -> bytes:
+        cipher = AES.new(self.session_key, AES.MODE_CBC, self.iv)
+        return cipher.decrypt(ciphertext)
 
 
-class FailedToAuthenticate(Exception):
-    """Failed to connect"""
+def _counter_nonce(base: bytes, counter: int) -> bytes:
+    n = bytearray(base)
+    cb = counter.to_bytes(12)
+    return bytes(a ^ b for a, b in zip(n, cb, strict=True))
 
 
-class ConnectionTimeout(TimeoutError):
-    """Connection timeout reached"""
-
-
-class MaxConnectionAttemptsReached(Exception):
-    """Device could not complete initial connection after maximum attempts"""
-
-    def __init__(
-        self, last_error: Exception | type[Exception] | None = None, attempts: int = 8
-    ):
-        super().__init__()
-        self.last_error = last_error
-        self.attempts = attempts
-
-
-class MaxReconnectAttemptsReached(Exception):
-    """Device could not reconnect after maximum attempts"""
-
-    def __init__(
-        self,
-        last_error: Exception | type[Exception] | None = None,
-        attempts: int = 2,
-    ):
-        super().__init__(
-            f"Could not connect to device after {attempts} unsuccessful attempts"
+class Session:
+    @staticmethod
+    @functools.cache
+    def _developer_pubkey():
+        # NOTE(gnox): used for encrypting sensitive diagnostics data - only integration
+        # developers have access to the private key
+        return ECC.import_key(
+            "-----BEGIN PUBLIC KEY-----\n"
+            "MCowBQYDK2VuAyEAjyDKgWi1v2IO417ZsQC3VIa5U6bs8TzQQGxzlvCKWkM=\n"
+            "-----END PUBLIC KEY-----"
         )
-        self.last_error = last_error
-        self.attempts = attempts
 
+    def __init__(self) -> None:
+        eph_priv = ECC.generate(curve="curve25519")
+        eph_der = eph_priv.public_key().export_key(format="DER")
 
-class BaseAuthException(Exception):
-    pass
-
-
-class AuthFailedError(BaseAuthException):
-    pass
-
-
-class AuthErrors:
-    BaseException = BaseAuthException
-
-    class KeyInfoReqFailed(BaseAuthException):
-        pass
-
-    class NeedRefreshToken(BaseAuthException):
-        pass
-
-    class DeviceInternalError(BaseAuthException):
-        pass
-
-    class DeviceAlreadyBound(BaseAuthException):
-        pass
-
-    class NeedBindInstallFirst(BaseAuthException):
-        pass
-
-    class AppSendDataError(BaseAuthException):
-        pass
-
-    class WrongKey(BaseAuthException):
-        pass
-
-    class MaximumDevicesError(BaseAuthException):
-        pass
-
-    class UnknownError(BaseAuthException):
-        pass
-
-    _PAYLOAD_TO_ERROR = {
-        b"\x00": None,
-        b"\x01": NeedRefreshToken,
-        b"\x02": DeviceInternalError,
-        b"\x03": DeviceAlreadyBound,
-        b"\x04": NeedBindInstallFirst,
-        b"\x05": AppSendDataError,
-        b"\x06": WrongKey,
-        b"\x07": MaximumDevicesError,
-    }
-
-    @classmethod
-    def from_payload(cls, payload: bytes) -> type[Exception] | None:
-        return cls._PAYLOAD_TO_ERROR.get(payload, AuthErrors.UnknownError)
-
-
-class UnsupportedBluetoothProtocol(Exception):
-    def __init__(self, characteristic_type: str, available_characteristics: list[str]):
-        self.characteristic_type = characteristic_type
-        self.available_characteristics = available_characteristics
-        characteristics = "\n    ".join(available_characteristics)
-        super().__init__(
-            f"Device is using unsupported protocol for {characteristic_type}.\n"
-            f"Available characteristics:\n    {characteristics}"
+        shared = key_agreement(
+            static_priv=eph_priv,
+            static_pub=Session._developer_pubkey(),
+            kdf=lambda z: z,
         )
+        self._aes_key = cast(
+            "bytes",
+            HKDF(shared, 32, b"", SHA256, context=b"ecies-curve25519-aes256gcm"),
+        )
+        self._base_nonce = get_random_bytes(12)
+        self._counter = 0
+
+        self.header = len(eph_der).to_bytes(2) + eph_der + self._base_nonce
+
+    def encrypt(self, plaintext: bytes) -> bytes:
+        counter = self._counter
+        self._counter += 1
+        nonce = _counter_nonce(self._base_nonce, counter)
+        cipher = AES.new(self._aes_key, AES.MODE_GCM, nonce=nonce)
+        ciphertext, tag = cipher.encrypt_and_digest(plaintext)
+        return counter.to_bytes(2) + ciphertext + tag

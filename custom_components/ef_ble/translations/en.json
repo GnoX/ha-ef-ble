@@ -48,38 +48,7 @@
               "region": "Region"
             },
             "data_description": {
-              "region": "Pick the region matching your EcoFlow account: US (Global / United States), EU (Europe), APAC (Asia-Pacific), CN (China - phone number only). Auto tries CN for phone numbers and US/EU/APAC in order otherwise. If you receive an \"Account does not exist\" message, try selecting your region explicitly."
-            }
-          },
-          "advanced_connection_options": {
-            "name": "Advanced connection options",
-            "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
-            "data": {
-              "connection_timeout": "Connection timeout",
-              "connection_delay": "Connection delay",
-              "preferred_proxy": "Preferred Bluetooth proxy",
-              "preferred_proxy_timeout": "Preferred proxy timeout",
-              "bluez_start_notify": "Force BlueZ StartNotify"
-            },
-            "data_description": {
-              "connection_timeout": "Number of seconds to wait for the device to connect and authenticate. The default value should work for most setups. Increasing this rarely helps - if the device cannot connect in time, the underlying Bluetooth connection is likely the problem.",
-              "connection_delay": "Number of seconds to wait before connecting when another EcoFlow device has just connected. Home Assistant picks which Bluetooth proxy each connection goes through and penalizes proxies that are already busy connecting, so devices coming up at the same moment can end up on a more distant proxy for the rest of the session. Spacing them out gives each device a better chance of being connected through the proxy closest to it. A device that is not coming up alongside another is never delayed. Set to 0 to disable this for the device.",
-              "preferred_proxy": "Connect this device through a particular Bluetooth adapter or proxy when possible, for example the one sitting next to it. Home Assistant chooses the path itself and cannot be told to use a specific one, so the integration instead waits until the proxy you pick is the one Home Assistant would choose anyway, and connects at that moment. A proxy whose signal is weaker than another may therefore never be chosen. The list is taken when this page opens and only holds adapters and proxies that are online right now, so if one is missing, bring it back online and reopen this page. Leave this on \"Any available proxy\" unless a device keeps connecting through the wrong one.",
-              "preferred_proxy_timeout": "Number of seconds to wait for the preferred proxy before connecting through whatever proxy is available. A proxy that is already online is usually picked straight away, so this only comes into play when it is still starting up - after restarting Home Assistant, a proxy can take a while to come back, and the device stays disconnected until it does or this runs out. Set to 0 to connect immediately through whichever proxy is best at that moment.",
-              "bluez_start_notify": "Force `StartNotify` instead of the default `AcquireNotify` for BLE notifications on Linux. Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
-            }
-          },
-          "diagnostics_options": {
-            "name": "Diagnostics",
-            "description": "Configure diagnostics data collection and encryption.",
-            "data": {
-              "collect_packets": "Enable packet collection",
-              "collect_packets_amount": "Number of packets to store",
-              "diagnostics_encrypt": "Encrypt diagnostics data"
-            },
-            "data_description": {
-              "collect_packets": "Enabling this option will start storing packets for diagnostics info - wait a minute after you enable this option before downloading diagnostics info and don't forget to turn it off.\nSome devices may contain identifying information in their messages such as your exact location, make sure encryption is enabled before sharing.",
-              "diagnostics_encrypt": "When enabled, sensitive diagnostics data (packets, session keys, manufacturer data) is encrypted before being included in the diagnostics download. Disable only if you need raw data for local debugging."
+              "region": "Pick the EcoFlow API host matching your account. Auto uses api.ecoflow.com for email and api-cn for phone numbers. Your account may live on a different host than your actual geographic region, so if you receive an \"Account does not exist\" message, try selecting the host explicitly."
             }
           },
           "log_options": {
@@ -93,6 +62,18 @@
               "log_encrypted_payloads": "Log encrypted payloads",
               "log_payloads": "Log decrypted payloads",
               "log_bleak": "Enable bleak debug log level (not masked and not filtered to this device)"
+            }
+          },
+          "advanced_connection_options": {
+            "name": "Advanced connection options",
+            "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
+            "data": {
+              "connection_timeout": "Connection timeout",
+              "bluez_start_notify": "Use BlueZ start notify"
+            },
+            "data_description": {
+              "connection_timeout": "Number of seconds to wait for the device to connect and authenticate.",
+              "bluez_start_notify": "Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
             }
           }
         }
@@ -124,38 +105,7 @@
               "region": "Region"
             },
             "data_description": {
-              "region": "Pick the region matching your EcoFlow account: US (Global / United States), EU (Europe), APAC (Asia-Pacific), CN (China - phone number only). Auto tries CN for phone numbers and US/EU/APAC in order otherwise. If you receive an \"Account does not exist\" message, try selecting your region explicitly."
-            }
-          },
-          "advanced_connection_options": {
-            "name": "Advanced connection options",
-            "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
-            "data": {
-              "connection_timeout": "Connection timeout",
-              "connection_delay": "Connection delay",
-              "preferred_proxy": "Preferred Bluetooth proxy",
-              "preferred_proxy_timeout": "Preferred proxy timeout",
-              "bluez_start_notify": "Force BlueZ StartNotify"
-            },
-            "data_description": {
-              "connection_timeout": "Number of seconds to wait for the device to connect and authenticate. The default value should work for most setups. Increasing this rarely helps - if the device cannot connect in time, the underlying Bluetooth connection is likely the problem.",
-              "connection_delay": "Number of seconds to wait before connecting when another EcoFlow device has just connected. Home Assistant picks which Bluetooth proxy each connection goes through and penalizes proxies that are already busy connecting, so devices coming up at the same moment can end up on a more distant proxy for the rest of the session. Spacing them out gives each device a better chance of being connected through the proxy closest to it. A device that is not coming up alongside another is never delayed. Set to 0 to disable this for the device.",
-              "preferred_proxy": "Connect this device through a particular Bluetooth adapter or proxy when possible, for example the one sitting next to it. Home Assistant chooses the path itself and cannot be told to use a specific one, so the integration instead waits until the proxy you pick is the one Home Assistant would choose anyway, and connects at that moment. A proxy whose signal is weaker than another may therefore never be chosen. The list is taken when this page opens and only holds adapters and proxies that are online right now, so if one is missing, bring it back online and reopen this page. Leave this on \"Any available proxy\" unless a device keeps connecting through the wrong one.",
-              "preferred_proxy_timeout": "Number of seconds to wait for the preferred proxy before connecting through whatever proxy is available. A proxy that is already online is usually picked straight away, so this only comes into play when it is still starting up - after restarting Home Assistant, a proxy can take a while to come back, and the device stays disconnected until it does or this runs out. Set to 0 to connect immediately through whichever proxy is best at that moment.",
-              "bluez_start_notify": "Force `StartNotify` instead of the default `AcquireNotify` for BLE notifications on Linux. Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
-            }
-          },
-          "diagnostics_options": {
-            "name": "Diagnostics",
-            "description": "Configure diagnostics data collection and encryption.",
-            "data": {
-              "collect_packets": "Enable packet collection",
-              "collect_packets_amount": "Number of packets to store",
-              "diagnostics_encrypt": "Encrypt diagnostics data"
-            },
-            "data_description": {
-              "collect_packets": "Enabling this option will start storing packets for diagnostics info - wait a minute after you enable this option before downloading diagnostics info and don't forget to turn it off.\nSome devices may contain identifying information in their messages such as your exact location, make sure encryption is enabled before sharing.",
-              "diagnostics_encrypt": "When enabled, sensitive diagnostics data (packets, session keys, manufacturer data) is encrypted before being included in the diagnostics download. Disable only if you need raw data for local debugging."
+              "region": "Pick the EcoFlow API host matching your account. Auto uses api.ecoflow.com for email and api-cn for phone numbers. Your account may live on a different host than your actual geographic region, so if you receive an \"Account does not exist\" message, try selecting the host explicitly."
             }
           },
           "log_options": {
@@ -169,6 +119,18 @@
               "log_encrypted_payloads": "Log encrypted payloads",
               "log_payloads": "Log decrypted payloads",
               "log_bleak": "Enable bleak debug log level (not masked and not filtered to this device)"
+            }
+          },
+          "advanced_connection_options": {
+            "name": "Advanced connection options",
+            "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
+            "data": {
+              "connection_timeout": "Connection timeout",
+              "bluez_start_notify": "Use BlueZ start notify"
+            },
+            "data_description": {
+              "connection_timeout": "Number of seconds to wait for the device to connect and authenticate.",
+              "bluez_start_notify": "Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
             }
           }
         }
@@ -195,43 +157,12 @@
               "region": "Region"
             },
             "data_description": {
-              "region": "Pick the region matching your EcoFlow account: US (Global / United States), EU (Europe), APAC (Asia-Pacific), CN (China - phone number only). Auto tries CN for phone numbers and US/EU/APAC in order otherwise. If you receive an \"Account does not exist\" message, try selecting your region explicitly."
-            }
-          },
-          "advanced_connection_options": {
-            "name": "Advanced connection options",
-            "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
-            "data": {
-              "connection_timeout": "Connection timeout",
-              "connection_delay": "Connection delay",
-              "preferred_proxy": "Preferred Bluetooth proxy",
-              "preferred_proxy_timeout": "Preferred proxy timeout",
-              "bluez_start_notify": "Force BlueZ StartNotify"
-            },
-            "data_description": {
-              "connection_timeout": "Number of seconds to wait for the device to connect and authenticate. The default value should work for most setups. Increasing this rarely helps - if the device cannot connect in time, the underlying Bluetooth connection is likely the problem.",
-              "connection_delay": "Number of seconds to wait before connecting when another EcoFlow device has just connected. Home Assistant picks which Bluetooth proxy each connection goes through and penalizes proxies that are already busy connecting, so devices coming up at the same moment can end up on a more distant proxy for the rest of the session. Spacing them out gives each device a better chance of being connected through the proxy closest to it. A device that is not coming up alongside another is never delayed. Set to 0 to disable this for the device.",
-              "preferred_proxy": "Connect this device through a particular Bluetooth adapter or proxy when possible, for example the one sitting next to it. Home Assistant chooses the path itself and cannot be told to use a specific one, so the integration instead waits until the proxy you pick is the one Home Assistant would choose anyway, and connects at that moment. A proxy whose signal is weaker than another may therefore never be chosen. The list is taken when this page opens and only holds adapters and proxies that are online right now, so if one is missing, bring it back online and reopen this page. Leave this on \"Any available proxy\" unless a device keeps connecting through the wrong one.",
-              "preferred_proxy_timeout": "Number of seconds to wait for the preferred proxy before connecting through whatever proxy is available. A proxy that is already online is usually picked straight away, so this only comes into play when it is still starting up - after restarting Home Assistant, a proxy can take a while to come back, and the device stays disconnected until it does or this runs out. Set to 0 to connect immediately through whichever proxy is best at that moment.",
-              "bluez_start_notify": "Force `StartNotify` instead of the default `AcquireNotify` for BLE notifications on Linux. Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
-            }
-          },
-          "diagnostics_options": {
-            "name": "Diagnostics",
-            "description": "Configure diagnostics data collection and encryption.",
-            "data": {
-              "collect_packets": "Enable packet collection",
-              "collect_packets_amount": "Number of packets to store",
-              "diagnostics_encrypt": "Encrypt diagnostics data"
-            },
-            "data_description": {
-              "collect_packets": "Enabling this option will start storing packets for diagnostics info - wait a minute after you enable this option before downloading diagnostics info and don't forget to turn it off.\nSome devices may contain identifying information in their messages such as your exact location, make sure encryption is enabled before sharing.",
-              "diagnostics_encrypt": "When enabled, sensitive diagnostics data (packets, session keys, manufacturer data) is encrypted before being included in the diagnostics download. Disable only if you need raw data for local debugging."
+              "region": "Pick the EcoFlow API host matching your account. Auto uses api.ecoflow.com for email and api-cn for phone numbers. Your account may live on a different host than your actual geographic region, so if you receive an \"Account does not exist\" message, try selecting the host explicitly."
             }
           },
           "log_options": {
             "name": "Logging Options",
-            "description": "Detailed logging options. Most of these will flood your logs, so avoid leaving them enabled for long periods.",
+            "description": "Advanced logging options. Most of these settings will generate a large volume of log output, so it is recommended not to leave them enabled for extended periods.",
             "data": {
               "log_masked": "Mask sensitive information (useful when sharing logs publicly)",
               "log_connection": "Log device connection requests and responses",
@@ -240,6 +171,18 @@
               "log_encrypted_payloads": "Log encrypted payloads",
               "log_payloads": "Log decrypted payloads",
               "log_bleak": "Enable bleak debug log level (not masked and not filtered to this device)"
+            }
+          },
+          "advanced_connection_options": {
+            "name": "Advanced connection options",
+            "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
+            "data": {
+              "connection_timeout": "Connection timeout",
+              "bluez_start_notify": "Use BlueZ start notify"
+            },
+            "data_description": {
+              "connection_timeout": "Number of seconds to wait for the device to connect and authenticate.",
+              "bluez_start_notify": "Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
             }
           }
         }
@@ -272,36 +215,6 @@
           "update_period": "Number of seconds to wait before processing the next device update. Value of 0 means all updates are processed immediately (will result in a high number of DB writes)."
         },
         "sections": {
-          "advanced_connection_options": {
-            "name": "Advanced connection options",
-            "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
-            "data": {
-              "connection_timeout": "Connection timeout",
-              "connection_delay": "Connection delay",
-              "preferred_proxy": "Preferred Bluetooth proxy",
-              "preferred_proxy_timeout": "Preferred proxy timeout",
-              "bluez_start_notify": "Force BlueZ StartNotify"
-            },
-            "data_description": {
-              "connection_timeout": "Number of seconds to wait for the device to connect and authenticate. The default value should work for most setups. Increasing this rarely helps - if the device cannot connect in time, the underlying Bluetooth connection is likely the problem.",
-              "connection_delay": "Number of seconds to wait before connecting when another EcoFlow device has just connected. Home Assistant picks which Bluetooth proxy each connection goes through and penalizes proxies that are already busy connecting, so devices coming up at the same moment can end up on a more distant proxy for the rest of the session. Spacing them out gives each device a better chance of being connected through the proxy closest to it. A device that is not coming up alongside another is never delayed. Set to 0 to disable this for the device.",
-              "preferred_proxy": "Connect this device through a particular Bluetooth adapter or proxy when possible, for example the one sitting next to it. Home Assistant chooses the path itself and cannot be told to use a specific one, so the integration instead waits until the proxy you pick is the one Home Assistant would choose anyway, and connects at that moment. A proxy whose signal is weaker than another may therefore never be chosen. The list is taken when this page opens and only holds adapters and proxies that are online right now, so if one is missing, bring it back online and reopen this page. Leave this on \"Any available proxy\" unless a device keeps connecting through the wrong one.",
-              "preferred_proxy_timeout": "Number of seconds to wait for the preferred proxy before connecting through whatever proxy is available. A proxy that is already online is usually picked straight away, so this only comes into play when it is still starting up - after restarting Home Assistant, a proxy can take a while to come back, and the device stays disconnected until it does or this runs out. Set to 0 to connect immediately through whichever proxy is best at that moment.",
-              "bluez_start_notify": "Force `StartNotify` instead of the default `AcquireNotify` for BLE notifications on Linux. Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
-            }
-          },
-          "device_options": {
-            "name": "Device options",
-            "description": "Advanced options specific to this device model. Only change these if you know what you are doing.",
-            "data": {
-              "unlock_ac_charging_minimum": "Unlock AC charging speed minimum",
-              "unlock_dc_charging_minimum": "Unlock DC charging speed minimum"
-            },
-            "data_description": {
-              "unlock_ac_charging_minimum": "Allows setting the AC charging speed below the minimum the EcoFlow app enforces. 1 W stops the device drawing from the grid without unplugging it, which is what solar-surplus automations need; charging that slowly is less efficient and may generate additional heat.",
-              "unlock_dc_charging_minimum": "⚠️ WARNING: this may damage your device. The EcoFlow app limits are likely there for a reason, and running the DC input below them for long periods can wear its components; damage caused this way may not be covered by warranty. Use at your own risk.\n\nAllows setting the DC charging speed below the minimum the EcoFlow app enforces, down to 0 A. 0 A is not off: the device can still draw a small current from the input. The value caps the current drawn from the DC input, so a lower one keeps the device within what a weak source can give - a fuse-limited car socket, a small supply or a single panel - instead of stalling it by asking for more."
-            }
-          },
           "diagnostics_options": {
             "name": "Diagnostics",
             "description": "Configure diagnostics data collection and encryption.",
@@ -328,6 +241,18 @@
               "log_encrypted_payloads": "Log encrypted payloads",
               "log_payloads": "Log decrypted payloads",
               "log_bleak": "Enable bleak debug log level (not masked and not filtered to this device)"
+            }
+          },
+          "advanced_connection_options": {
+            "name": "Advanced connection options",
+            "description": "These options affect the Bluetooth connection behavior. Only change them if you are experiencing connectivity issues.",
+            "data": {
+              "connection_timeout": "Connection timeout",
+              "bluez_start_notify": "Use BlueZ start notify"
+            },
+            "data_description": {
+              "connection_timeout": "Number of seconds to wait for the device to connect and authenticate.",
+              "bluez_start_notify": "Try enabling this if you experience frequent disconnects when multiple BLE devices are connected, or if you see `AcquireNotify: Read error` / `Unexpected EOF on notification file handle` in your logs."
             }
           }
         }
@@ -370,10 +295,6 @@
     "max_connection_attempts_reached": {
       "title": "Could not connect to {device_name} after {attempts} unsuccessful attempts",
       "description": "Failed to connect to {device_name} after {attempts} unsuccessful attempts. Check the logs for more info.\n\nAutomatic retry was disabled to not spam logs, integration has to be reloaded manually. This error clears after successful connection."
-    },
-    "charging_minimum_applied": {
-      "title": "Charging controls on {device_name} now stop at the EcoFlow app's minimum unless you unlock it in the device options",
-      "description": "The AC and DC charging controls now refuse values below the minimum the EcoFlow app enforces, so an automation that sets a lower value will fail with an out-of-range error.\n\n⚠️ WARNING: going below these minimums may damage your device. EcoFlow likely set them for a reason, running below them for long periods can wear its components, and damage caused this way may not be covered by warranty. Only unlock them if you accept that risk.\n\nTo keep setting values below the minimum, turn on the matching option under Configure for this device. The Delta 2 and Delta 2 Max also gained an AC Charging switch, which stops the device drawing from the grid without needing a very low charging speed.\n\nThe minimums for this device are {minimums}."
     }
   },
   "entity": {
@@ -418,12 +339,6 @@
       },
       "plugged_in_ac": {
         "name": "AC Plugged In"
-      },
-      "battery_connected": {
-        "name": "Battery Connected"
-      },
-      "solar_connected": {
-        "name": "Solar Connected"
       },
       "fan_running": {
         "name": "Fan Running"
@@ -526,6 +441,9 @@
       },
       "grid_power": {
         "name": "Grid Power"
+      },
+      "backup_port_power": {
+        "name": "Backup Port Power"
       },
       "in_use_power": {
         "name": "In Use Power"
@@ -652,6 +570,12 @@
       },
       "dc12v_output_energy": {
         "name": "DC 12V Output Energy"
+      },
+      "dc12v_output_current": {
+        "name": "DC 12V Output Current"
+      },
+      "dc12v_output_voltage": {
+        "name": "DC 12V Output Voltage"
       },
       "usbc_output_power": {
         "name": "USB C Output Power"
@@ -866,6 +790,9 @@
       "inverter_frequency": {
         "name": "Inverter Frequency"
       },
+      "llc_temperature": {
+        "name": "LLC Temperature"
+      },
       "backup_is_ready": {
         "name": "Channel {channel} Backup Ready"
       },
@@ -1046,6 +973,12 @@
       },
       "ac_c20_in_type": {
         "name": "AC C20 In Type"
+      },
+      "battery_ac_input_power": {
+        "name": "Battery AC Input Power"
+      },
+      "battery_ac_output_power": {
+        "name": "Battery AC Output Power"
       }
     },
     "select": {
@@ -1148,12 +1081,6 @@
       "backup_discharge_limit": {
         "name": "Discharge Limit"
       },
-      "battery_charge_limit_max": {
-        "name": "Battery Charge Limit"
-      },
-      "battery_charge_limit_min": {
-        "name": "Battery Discharge Limit"
-      },
       "ac_charging_speed": {
         "name": "AC Charging Speed"
       },
@@ -1232,9 +1159,6 @@
       "ac_ports": {
         "name": "AC Ports"
       },
-      "ac_charging": {
-        "name": "AC Charging"
-      },
       "ac_lv_port": {
         "name": "AC LV Port"
       },
@@ -1288,16 +1212,13 @@
   "selector": {
     "ecoflow_region": {
       "options": {
-        "auto": "Auto (try CN for phone, US / EU / APAC for email)",
-        "us": "US (Global / United States)",
-        "eu": "EU (Europe)",
-        "apac": "APAC (Asia-Pacific)",
-        "cn": "CN (China - phone number only)"
-      }
-    },
-    "preferred_proxy": {
-      "options": {
-        "any": "Any available proxy"
+        "auto": "Auto (api.ecoflow.com for email, api-cn for phone)",
+        "api": "api.ecoflow.com (Global / US)",
+        "api-e": "api-e.ecoflow.com (Europe)",
+        "api-a": "api-a.ecoflow.com (Asia / MEA)",
+        "api-j": "api-j.ecoflow.com (Japan)",
+        "api-r": "api-r.ecoflow.com (Russia)",
+        "api-cn": "api-cn.ecoflow.com (China - phone number only)"
       }
     }
   }

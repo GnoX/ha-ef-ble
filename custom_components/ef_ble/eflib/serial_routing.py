@@ -1,5 +1,6 @@
 """Addressing a device by serial number from inside a V4 payload"""
 
+import dataclasses
 from dataclasses import dataclass
 from typing import ClassVar
 
@@ -74,7 +75,7 @@ class SerialRouting:
     envelope, then the protobuf.
 
     Writes: mirror the latest telemetry post's frame - reusing its session obfuscation,
-    addressing and inner header via the packet's `replace` method - and override only the
+    addressing and inner header via `dataclasses.replace` - and override only the
     command flags and the application payload, which is
     `serial9 + full_serial16 + envelope + protobuf`. Mirroring matters because the
     constant stretches of the frame are then the device's own bytes rather than ones we
@@ -197,7 +198,8 @@ class SerialRouting:
         )
         serial9 = self._serial[-self.SERIAL_FRAGMENT_LEN :].encode("ascii")
         serial16 = self._serial.encode("ascii")
-        return self._post_template.replace(
+        return dataclasses.replace(
+            self._post_template,
             cmd_flags=self._cmd_flags,
             is_ack=True,
             is_rw_cmd=False,
