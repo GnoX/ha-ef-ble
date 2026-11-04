@@ -54,6 +54,9 @@ def _supported_device_name(sn: str) -> str | None:
         except Exception:  # noqa: BLE001 - a device check must never break naming
             matched = False
         if matched:
+            name_for_serial = getattr(device_cls, "device_name_for_serial", None)
+            if name_for_serial is not None:
+                return name_for_serial(sn_bytes) or None
             return (device_cls.__doc__ or "").strip() or None
     return None
 
@@ -203,6 +206,8 @@ ECOFLOW_DEVICE_LIST = {
     "BK41":{"name": "EcoFlow STREAM Max", "packets": "v3"},
     "BK51":{"name": "EcoFlow STREAM AC", "packets": "v3"},
     "BK61":{"name": "EcoFlow STREAM Ultra X", "packets": "v3"},
+    "ES22":{"name": "EcoFlow STREAM AC 5000", "packets": "v3"},
+    "ES21":{"name": "EcoFlow STREAM 5000", "packets": "v3"},
 
     # =====================
     # SMART PANELS / GRID

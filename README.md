@@ -21,17 +21,6 @@ No internet connection required • Real-time status updates • Full local cont
 
 ---
 
-> [!WARNING]
-> This fork is primarily intended for personal experimentation and testing. It includes
-  the latest features, but **may not be fully stable** on devices other than **River 3**
-  and **Delta 3 Plus**.  
->
-> All changes will eventually be merged into the [main repository](https://github.com/rabits/ha-ef-ble).
-  If you're not actively testing or developing new features, it's recommended to use the
-  main repo instead.
-
----
-
 ## Overview
 
 This integration enables local communication with EcoFlow power stations, EV chargers,
@@ -213,7 +202,6 @@ Click on any device below to see available sensors, switches, and controls:
 > the registered devices.
 
 </details>
-
 <details>
 <summary><b>Delta Pro Ultra X</b></summary>
 
@@ -305,39 +293,40 @@ Click on any device below to see available sensors, switches, and controls:
 
 <br>
 
-| *Sensors*                           | *Switches*                      | *Sliders*                  |
-|-------------------------------------|---------------------------------|----------------------------|
-| Main Battery Level                  | AC Ports                        | Backup Reserve Level ²     |
-| Battery Level                       | AC Ports (2) ³                  | Max Charge Limit           |
-| AC Input Power                      | DC Ports ²                      | Min Discharge Limit        |
-| AC Output Power                     | Backup Reserve ²                | AC Charging Speed          |
-| AC (1) Power ³                      | USB Ports ¹²                    | DC Charging Max Amps       |
-| AC (2) Power ³                      | Disable Grid Bypass ²(disabled) | DC (2) Charging Max Amps ⁺ |
-| DC 12V Port Output Power ²          |                                 |                            |
-| DC Port Input Power                 |                                 |                            |
-| DC Port Input State                 |                                 |                            |
-| DC Port (2) Input Power ⁺           |                                 |                            |
-| DC Port (2) Input State ⁺           |                                 |                            |
-| Solar Power                         |                                 |                            |
-| Solar Power (2) ⁺                   |                                 |                            |
-| Input Power Total                   |                                 |                            |
-| Output Power Total                  |                                 |                            |
-| USB A Output Power                  |                                 |                            |
-| USB A (2) Output Power              |                                 |                            |
-| USB C Output Power                  |                                 |                            |
-| USB C (2) Output Power              |                                 |                            |
-| USB C (3) Output Power ³            |                                 |                            |
-| AC Plugged In                       |                                 |                            |
-| Battery Input Power (disabled)      |                                 |                            |
-| Battery Output Power (disabled)     |                                 |                            |
-| Cell Temperature (disabled)         |                                 |                            |
-| Charge Time Remaining (disabled)    |                                 |                            |
-| Discharge Time Remaining (disabled) |                                 |                            |
+| *Sensors*                            | *Switches*                      | *Sliders*                  |
+|--------------------------------------|---------------------------------|----------------------------|
+| Main Battery Level                   | AC Ports                        | Backup Reserve Level ²     |
+| Battery Level                        | AC Ports (2) ³⁴                 | Max Charge Limit           |
+| AC Input Power                       | DC Ports ²                      | Min Discharge Limit        |
+| AC Output Power                      | Backup Reserve ²                | AC Charging Speed          |
+| AC (1, 2) Power ³                    | USB Ports ¹²                    | DC Charging Max Amps       |
+| AC (1-1, 1-2, 2-1, 2-2, 2-3) Power ⁴ | Disable Grid Bypass ²(disabled) | DC (2) Charging Max Amps ⁺ |
+| DC 12V Port Output Power ²           |                                 |                            |
+| DC Port Input Power                  |                                 |                            |
+| DC Port Input State                  |                                 |                            |
+| DC Port (2) Input Power ⁺            |                                 |                            |
+| DC Port (2) Input State ⁺            |                                 |                            |
+| Solar Power                          |                                 |                            |
+| Solar Power (2) ⁺                    |                                 |                            |
+| Input Power Total                    |                                 |                            |
+| Output Power Total                   |                                 |                            |
+| USB A Output Power                   |                                 |                            |
+| USB A (2) Output Power               |                                 |                            |
+| USB C Output Power                   |                                 |                            |
+| USB C (2) Output Power               |                                 |                            |
+| USB C (3) Output Power ³⁴            |                                 |                            |
+| AC Plugged In                        |                                 |                            |
+| Battery Input Power (disabled)       |                                 |                            |
+| Battery Output Power (disabled)      |                                 |                            |
+| Cell Temperature (disabled)          |                                 |                            |
+| Charge Time Remaining (disabled)     |                                 |                            |
+| Discharge Time Remaining (disabled)  |                                 |                            |
 
 <sup>⁺ Only available on Plus variant</sup><br>
 <sup>¹ Not available on Classic</sup><br>
 <sup>² Not available on Air</sup><br>
-<sup>³ Only available on Max Plus and Ultra Plus</sup><br>
+<sup>³ Only available on Max Plus</sup><br>
+<sup>⁴ Only available on Ultra Plus</sup>
 
 > **📝 Note:** Delta 3 models do not expose energy sensors. To use with the Energy
 > dashboard, you must create them yourself. See the
@@ -406,18 +395,18 @@ Click on any device below to see available sensors, switches, and controls:
 
 <br>
 
-| *Sensors*              | *Switches*           | *Sliders*  | *Selects*        |
-|------------------------|----------------------|------------|------------------|
-| Output Power           | Engine               | Gas Weight | Performance Mode |
-| AC Output Power        | Self Start           |            | Gas Unit         |
-| Engine State           | LPG Level Monitoring |            |                  |
-| Fuel Type              | AC Ports             |            |                  |
-| Gas Consumption        |                      |            |                  |
-| Abnormal State         |                      |            |                  |
-| Internal Battery Power |                      |            |                  |
-| Internal Battery State |                      |            |                  |
-| XT150 Battery Level ⁴  |                      |            |                  |
-| XT150 Charge Type ⁴    |                      |            |                  |
+| *Sensors*              | *Switches*           | *Sliders*        | *Selects*        |
+|------------------------|----------------------|------------------|------------------|
+| Output Power           | Engine               | Gas Weight       | Performance Mode |
+| AC Output Power        | Self Start           | DC Output Power⁴ | Gas Unit         |
+| Engine State           | LPG Level Monitoring |                  |                  |
+| Fuel Type              | AC Ports             |                  |                  |
+| Gas Consumption        |                      |                  |                  |
+| Abnormal State         |                      |                  |                  |
+| Internal Battery Power |                      |                  |                  |
+| Internal Battery State |                      |                  |                  |
+| XT150 Battery Level ⁴  |                      |                  |                  |
+| XT150 Charge Type ⁴    |                      |                  |                  |
 
 <sup>⁴ Only available on 4000 variant</sup>
 
@@ -754,6 +743,12 @@ Click on any device below to see available sensors, switches, and controls:
 ### Method 1: HACS Installation (Recommended)
 
 This integration is available in the default HACS repository.
+
+**Quick Install:** Click the badge below to open this repository directly in HACS:
+
+[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=rabits&repository=ha-ef-ble&category=integration)
+
+**Manual steps:**
 
 1. Open **HACS** in your Home Assistant instance
 2. Go to **Integrations**

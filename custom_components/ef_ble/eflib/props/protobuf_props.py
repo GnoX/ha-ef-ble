@@ -88,7 +88,6 @@ class ProtobufProps(UpdatableProps):
         ----------
         message
             Protocol buffer message to update fields from
-
         """
         if reset:
             self.reset_updated()

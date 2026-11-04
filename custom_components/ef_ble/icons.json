@@ -137,6 +137,9 @@
       "grid_power": {
         "default": "mdi:transmission-tower"
       },
+      "backup_port_power": {
+        "default": "mdi:power-plug-battery-outline"
+      },
       "in_use_power": {
         "default": "mdi:home-lightning-bolt-outline"
       },
@@ -266,12 +269,6 @@
         "default": "mdi:power-plug",
         "state": {
           "off": "mdi:power-plug-off"
-        }
-      },
-      "ac_charging": {
-        "default": "mdi:battery-charging",
-        "state": {
-          "off": "mdi:battery-charging-outline"
         }
       },
       "ac_lv_port": {

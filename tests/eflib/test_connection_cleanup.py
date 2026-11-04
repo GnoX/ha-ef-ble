@@ -82,6 +82,24 @@ async def test_explicit_disconnect_closes_transport(
     assert connection._state == ConnectionState.DISCONNECTED
 
 
+async def test_late_disconnect_callback_after_explicit_disconnect_is_ignored(
+    connection: Connection, transport_client: TransportClient
+) -> None:
+    client, _ = transport_client(connected=True)
+    connection._client = client
+    listener = Mock()
+    remove_listener = connection.on_disconnect(listener)
+
+    try:
+        await connection.disconnect()
+        connection.disconnected()
+
+        listener.assert_not_called()
+        assert connection._state is ConnectionState.DISCONNECTED
+    finally:
+        remove_listener()
+
+
 async def test_connect_waits_for_old_transport_cleanup(
     connection: Connection,
     transport_client: TransportClient,

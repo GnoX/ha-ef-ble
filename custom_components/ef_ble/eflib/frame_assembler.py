@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from .crc import crc8, crc16
 from .encpacket import EncPacket
 from .encryption import EncryptionStrategy
-from .packet import Packet
+from .packet import Packet, SendablePacket
 
 
 class FrameAssembler(ABC):
@@ -14,22 +14,18 @@ class FrameAssembler(ABC):
         self._buffer = b""
         self._encryption = encryption
 
-    def reset(self) -> None:
-        """Discard any buffered partial frame data."""
-        self._buffer = b""
-
     @property
     @abstractmethod
     def write_with_response(self) -> bool:
         """Whether BLE writes should use write-with-response"""
 
     @abstractmethod
-    async def encode(self, packet: Packet) -> bytes:
+    async def encode(self, packet: SendablePacket) -> bytes:
         """Encode a Packet into wire bytes (encrypted, framed)"""
 
     @abstractmethod
     async def reassemble(self, data: bytes) -> list[bytes]:
-        """Decode wire bytes into decrypted payloads ready for Packet.fromBytes()"""
+        """Decode wire bytes into decrypted payloads ready for Packet.from_bytes()"""
 
 
 class EncPacketAssembler(FrameAssembler):
@@ -39,16 +35,16 @@ class EncPacketAssembler(FrameAssembler):
     def write_with_response(self) -> bool:
         return True
 
-    async def encode(self, packet: Packet) -> bytes:
+    async def encode(self, packet: SendablePacket) -> bytes:
         return EncPacket(
             EncPacket.FRAME_TYPE_PROTOCOL,
             EncPacket.PAYLOAD_TYPE_VX_PROTOCOL,
-            packet.toBytes(),
+            packet.to_bytes(),
             0,
             0,
             self._encryption.session_key,
             self._encryption.iv,
-        ).toBytes()
+        ).to_bytes()
 
     async def reassemble(self, data: bytes) -> list[bytes]:
         if self._buffer:
@@ -97,14 +93,6 @@ class EncPacketAssembler(FrameAssembler):
                 continue
 
             data = data[data_end:]
-
-            if header[2] >> 4 == EncPacket.FRAME_TYPE_COMMAND:
-                # A plaintext handshake frame, not device data: some devices repeat each
-                # handshake reply several times and the copies land after the session
-                # key is in place, where decrypting one yields noise that counts toward
-                # the session-loss limit
-                continue
-
             decrypted = await self._encryption.decrypt(payload_data)
             payloads.append(decrypted)
 
@@ -122,8 +110,8 @@ class PassthroughAssembler(FrameAssembler):
     def write_with_response(self) -> bool:
         return False
 
-    async def encode(self, packet: Packet) -> bytes:
-        return packet.toBytes()
+    async def encode(self, packet: SendablePacket) -> bytes:
+        return packet.to_bytes()
 
     async def reassemble(self, data: bytes) -> list[bytes]:
         if self._buffer:
@@ -175,8 +163,8 @@ class RawHeaderAssembler(FrameAssembler):
     def write_with_response(self) -> bool:
         return False
 
-    async def encode(self, packet: Packet) -> bytes:
-        raw = packet.toBytes()
+    async def encode(self, packet: SendablePacket) -> bytes:
+        raw = packet.to_bytes()
         header = raw[:5]
         inner = raw[5:]
         encrypted = await self._encryption.encrypt(inner)
@@ -207,7 +195,17 @@ class RawHeaderAssembler(FrameAssembler):
             payload_length = struct.unpack("<H", data[2:4])[0]
             version = data[1]
 
-            inner_overhead = 15 if version >= 3 else 13
+            # Bytes after the 5-byte unencrypted header that are NOT payload_length:
+            #   V4  (0x04): outer[5..7] (3 B) + CRC16 (2 B) = 5   (payload_length includes 8-B inner cmd)
+            #   V3  (0x03): product+seq+zeros+addr+cmd (13 B) + CRC16 (2 B) = 15
+            #   V19 (0x13): same 13-B cmd section; no CRC16; \xbb\xbb is inside payload_length = 13
+            #   V2  (0x02): product+seq+zeros+addr+cmd (11 B) + CRC16 (2 B) = 13
+            if version == 4:
+                inner_overhead = 5
+            elif version >= 3:
+                inner_overhead = 15
+            else:
+                inner_overhead = 13
             inner_len = inner_overhead + payload_length
             encrypted_len = (inner_len + 15) // 16 * 16
             frame_len = 5 + encrypted_len
@@ -232,10 +230,6 @@ class SimplePacketAssembler:
     def __init__(self) -> None:
         self._buffer = b""
 
-    def reset(self) -> None:
-        """Discard any buffered partial frame data."""
-        self._buffer = b""
-
     @staticmethod
     def encode(payload: bytes) -> bytes:
         """Wrap raw payload bytes in an unencrypted EncPacket command frame"""
@@ -243,7 +237,7 @@ class SimplePacketAssembler:
             EncPacket.FRAME_TYPE_COMMAND,
             EncPacket.PAYLOAD_TYPE_VX_PROTOCOL,
             payload,
-        ).toBytes()
+        ).to_bytes()
 
     def parse(self, data: bytes) -> bytes | None:
         """

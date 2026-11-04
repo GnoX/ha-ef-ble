@@ -1,0 +1,236 @@
+{
+    "domain": "ef_ble",
+    "name": "EcoFlow BLE (Unofficial)",
+    "bluetooth": [
+        {
+            "local_name": "EF-HD3*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 72, 68, 51, 49],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-SHP3*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 72, 82, 54, 50],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-SHP3*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 72, 82, 54, 51],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-SHP3*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 72, 82, 54, 67],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-YJ*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 89, 55, 49, 49],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-R3*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 82, 54],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-D3*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 68, 51, 78, 49],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-D3*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 80, 50, 51, 49],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-D3*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 80, 51, 53, 49],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-P3*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 80, 51, 50, 49],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-D5*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 68, 53, 49, 49],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-DP3*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 77, 82, 53, 49],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-GE*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 71, 51],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-F3*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 70, 51, 55, 49],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-F3*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 44, 43, 30, 31],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-6*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 66, 75],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-AC*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 65, 67, 55, 49],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-R33*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 82, 51, 51],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-KT2*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 75, 84, 50, 49],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-WN2*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 66, 75, 50, 49],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-R35*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 82, 51, 53],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-PR*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 80, 82, 49],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-PR*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 80, 82, 50],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-R2*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 82, 54, 50],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-R2*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 82, 54, 49],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-R2*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 82, 54, 48],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-BK*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 66, 75, 48],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-BK*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 78, 48, 49],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-HW51*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 72, 87, 53, 49],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-DC",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 68, 67]
+        },
+        {
+            "local_name": "EF-DC",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 90, 49]
+        },
+        {
+            "local_name": "EF-DC",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 82, 23, 49, 49]
+        },
+        {
+            "local_name": "EF-C10*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 67, 49, 48],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-C37*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 67, 51, 55],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-P10*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 80, 49, 48],
+            "connectable": true
+        },
+        {
+            "local_name": "EF-R70*",
+            "manufacturer_id": 46517,
+            "manufacturer_data_start": [19, 82, 55, 48],
+            "connectable": true
+        }
+    ],
+
+    "codeowners": ["@rabits"],
+    "config_flow": true,
+    "dependencies": ["bluetooth_adapters"],
+    "documentation": "https://github.com/rabits/ha-ef-ble/wiki",
+    "integration_type": "device",
+    "iot_class": "local_push",
+    "issue_tracker": "https://github.com/rabits/ha-ef-ble/issues",
+    "loggers": ["custom_components.ef_ble"],
+
+    "requirements": [
+        "ecdsa~=0.19",
+        "PyCryptodome~=3.23",
+        "protobuf~=6.30"
+    ],
+
+    "version": "0.44.0-i.7"
+}

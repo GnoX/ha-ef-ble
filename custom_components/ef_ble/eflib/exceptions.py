@@ -1,113 +1,97 @@
-class PacketParseError(Exception):
-    """Error during parsing Packet"""
+class UnsupportedBluetoothProtocol(Exception):
+    """Raised when a Bluetooth characteristic set is not supported by the device."""
 
-
-class EncPacketParseError(Exception):
-    """Error during parsing EncPacket"""
-
-
-class PacketReceiveError(Exception):
-    """Error during receiving packet"""
-
-
-class NotConnectedError(Exception):
-    """Raised when a command cannot be delivered because the BLE link is unavailable"""
-
-
-class FailedToAuthenticate(Exception):
-    """Failed to connect"""
+    def __init__(self, char_type: object, characteristics: object) -> None:
+        self.char_type = char_type
+        self.characteristics = characteristics
+        super().__init__(
+            f"Unsupported Bluetooth protocol for {char_type}: {characteristics}"
+        )
 
 
 class ConnectionTimeout(TimeoutError):
-    """Connection timeout reached"""
+    """Raised when the connection handshake or request times out."""
 
 
-class MaxConnectionAttemptsReached(Exception):
-    """Device could not complete initial connection after maximum attempts"""
+class PacketParseError(ValueError):
+    """Raised when a packet payload does not match the expected protocol layout."""
 
-    def __init__(
-        self, last_error: Exception | type[Exception] | None = None, attempts: int = 8
-    ):
-        super().__init__()
-        self.last_error = last_error
+
+class NotConnectedError(RuntimeError):
+    """Raised when an operation requires an active BLE link."""
+
+
+class FailedToAuthenticate(RuntimeError):
+    """Raised when the device rejects authentication."""
+
+
+class MaxConnectionAttemptsReached(RuntimeError):
+    """Raised after repeatedly failing to connect."""
+
+    def __init__(self, attempts: int, last_error: Exception | None = None) -> None:
         self.attempts = attempts
-
-
-class MaxReconnectAttemptsReached(Exception):
-    """Device could not reconnect after maximum attempts"""
-
-    def __init__(
-        self,
-        last_error: Exception | type[Exception] | None = None,
-        attempts: int = 2,
-    ):
-        super().__init__(
-            f"Could not connect to device after {attempts} unsuccessful attempts"
-        )
         self.last_error = last_error
+        super().__init__(f"Reached max connection attempts ({attempts})")
+
+
+class MaxReconnectAttemptsReached(RuntimeError):
+    """Raised after exhausting automatic reconnect retries."""
+
+    def __init__(self, attempts: int, last_error: Exception | None = None) -> None:
         self.attempts = attempts
-
-
-class BaseAuthException(Exception):
-    pass
-
-
-class AuthFailedError(BaseAuthException):
-    pass
+        self.last_error = last_error
+        super().__init__(f"Reached max reconnect attempts ({attempts})")
 
 
 class AuthErrors:
-    BaseException = BaseAuthException
+    """Authentication result codes returned by EcoFlow devices."""
 
-    class KeyInfoReqFailed(BaseAuthException):
-        pass
+    class BaseException(Exception):
+        """Base class for authenticated-device failures."""
 
-    class NeedRefreshToken(BaseAuthException):
-        pass
+    class NeedRefreshToken(BaseException):
+        """The app needs to refresh the OAuth token."""
 
-    class DeviceInternalError(BaseAuthException):
-        pass
+    class DeviceInternalError(BaseException):
+        """The device reported an internal error."""
 
-    class DeviceAlreadyBound(BaseAuthException):
-        pass
+    class DeviceAlreadyBound(BaseException):
+        """The device is already bound to another account."""
 
-    class NeedBindInstallFirst(BaseAuthException):
-        pass
+    class NeedBindInstallFirst(BaseException):
+        """The companion app installation/bind step is still required."""
 
-    class AppSendDataError(BaseAuthException):
-        pass
+    class AppSendDataError(BaseException):
+        """The app failed to send required data to the device."""
 
-    class WrongKey(BaseAuthException):
-        pass
+    class WrongKey(BaseException):
+        """The supplied key material is invalid."""
 
-    class MaximumDevicesError(BaseAuthException):
-        pass
+    class UnknownError(BaseException):
+        """The device reported an unknown auth failure."""
 
-    class UnknownError(BaseAuthException):
-        pass
+    class KeyInfoReqFailed(BaseException):
+        """The device rejected the key info request."""
 
-    _PAYLOAD_TO_ERROR = {
-        b"\x00": None,
-        b"\x01": NeedRefreshToken,
-        b"\x02": DeviceInternalError,
-        b"\x03": DeviceAlreadyBound,
-        b"\x04": NeedBindInstallFirst,
-        b"\x05": AppSendDataError,
-        b"\x06": WrongKey,
-        b"\x07": MaximumDevicesError,
+    _ERRORS_BY_CODE: dict[int, type[BaseException]] = {
+        0x01: NeedRefreshToken,
+        0x02: DeviceInternalError,
+        0x03: DeviceAlreadyBound,
+        0x04: NeedBindInstallFirst,
+        0x05: AppSendDataError,
+        0x06: WrongKey,
+        0x07: UnknownError,
+        0x08: KeyInfoReqFailed,
     }
 
     @classmethod
-    def from_payload(cls, payload: bytes) -> type[Exception] | None:
-        return cls._PAYLOAD_TO_ERROR.get(payload, AuthErrors.UnknownError)
+    def from_payload(cls, payload: bytes | bytearray | memoryview | str) -> type[BaseException] | None:
+        if payload is None:
+            return None
 
+        data = bytes(payload) if not isinstance(payload, (bytes, bytearray, memoryview)) else bytes(payload)
+        if not data:
+            return None
 
-class UnsupportedBluetoothProtocol(Exception):
-    def __init__(self, characteristic_type: str, available_characteristics: list[str]):
-        self.characteristic_type = characteristic_type
-        self.available_characteristics = available_characteristics
-        characteristics = "\n    ".join(available_characteristics)
-        super().__init__(
-            f"Device is using unsupported protocol for {characteristic_type}.\n"
-            f"Available characteristics:\n    {characteristics}"
-        )
+        code = data[0]
+        return cls._ERRORS_BY_CODE.get(code)
